@@ -6,9 +6,103 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["strictUndefinedChecks"]
 }
 
 datasource db {
   provider = "sqlite"
   url      = "file:./dev.db"
+}
+
+model User {
+  id             Int         @id @default(autoincrement())
+  name           String
+  username       String       @unique
+  email          String       @unique
+  posts          BlogPost[]
+  comments       Comment[]
+  ratings        Rating[]
+  codeTemplates  CodeTemplate[]
+}
+
+model BlogPost {
+  id          Int            @id @default(autoincrement())
+  authorId    Int
+  author      User            @relation(fields: [authorId], references: [id])
+  title       String
+  content     String
+  tags        TagsOnPosts[]   @relation("PostToTags")
+  codeLinks   CodeTemplate[]
+  comments    Comment[]
+  ratings     Rating[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model Tag{
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  posts        TagsOnPosts[]     @relation("TagToPosts")
+  templates    TagsOnTemplates[] @relation("TagToTemplates")
+}
+
+model TagsOnPosts{
+  postId      Int
+  post        BlogPost @relation("PostToTags", fields: [postId], references: [id], onDelete: Cascade)
+  tagId       Int
+  tag         Tag     @relation("TagToPosts", fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@id([postId, tagId])
+}
+
+model CodeTemplate{
+  id          Int     @id @default(autoincrement())
+  title       String
+  code        String
+  language    String
+  explanation String
+  tags         TagsOnTemplates[]     @relation("TemplateToTags")
+  authorId    Int
+  author      User    @relation(fields: [authorId], references: [id])
+  isForked    Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  posts       BlogPost[]
+}
+
+model TagsOnTemplates{
+  templateId  Int
+  template    CodeTemplate @relation("TemplateToTags", fields: [templateId], references: [id], onDelete: Cascade)
+  tagId       Int
+  tag         Tag     @relation("TagToTemplates", fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@id([templateId, tagId])
+}
+
+model Comment {
+  id          Int         @id @default(autoincrement())
+  content     String
+  authorId    Int
+  author      User         @relation(fields: [authorId], references: [id])
+  postId      Int
+  post        BlogPost     @relation(fields: [postId], references: [id])
+  parent      Comment?     @relation("CommentReplies", fields: [parentId], references: [id])
+  parentId    Int?
+  replies     Comment[]    @relation("CommentReplies")
+  ratings     Rating[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Rating {
+  id          Int         @id @default(autoincrement())
+  value       Int          // -1 for downvote, +1 for upvote
+  user        User         @relation(fields: [userId], references: [id])
+  userId      Int
+  postId      Int?
+  post        BlogPost?    @relation(fields: [postId], references: [id])
+  commentId   Int?
+  comment     Comment?     @relation(fields: [commentId], references: [id])
 }
