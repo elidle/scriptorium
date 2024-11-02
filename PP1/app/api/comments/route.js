@@ -118,18 +118,49 @@ export async function GET(req) {
         author: {
           select: {
             id: true,
-            name: true,
-            email: true
+            username: true
           }
         },
         parent: true,
+        ratings: {
+          select: {
+            value: true
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'
       }
     });
 
-    return NextResponse.json(comments, { status: 200 });
+    const commentsWithMetrics = comment.map(comment => {
+      const upvotes = comment.ratings.filter(r => r.value === 1).length;
+      const downvotes = comment.ratings.filter(r => r.value === -1).length;
+      const totalVotes = upvotes + downvotes;
+      const totalScore = upvotes - downvotes;
+      
+      let controversyScore = 0;
+      if (totalVotes > 0) {
+        const upvoteRatio = upvotes / totalVotes;
+        controversyScore = (1 - Math.abs(0.5 - upvoteRatio)) * Math.log10(Math.max(totalVotes, 1));
+      }
+
+      return {
+        ...comment,
+        metrics: {
+          upvotes,
+          downvotes,
+          totalVotes,
+          totalScore,
+          controversyScore,
+          upvoteRatio: totalVotes > 0 ? (upvotes / totalVotes) : 0
+        }
+      }
+    })
+
+    const { ratings, ...cleanedComments } = commentsWithMetrics;
+
+    return NextResponse.json(cleanedComments, { status: 200 });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
