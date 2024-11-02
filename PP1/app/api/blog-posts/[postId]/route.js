@@ -1,12 +1,16 @@
 import { PrismaClient } from '@prisma/client';
+import { NextResponse } from 'next/server';
 
 const prisma = new PrismaClient();
 
-export async function GET(req, { params }) {
+export async function GET({ params }) {
   const postId = Number(params.postId);
 
   if (!postId) {
-    return new Response(JSON.stringify({ error: 'Invalid postId' }), { status: 400 });
+    return new NextResponse.json(
+        { error: 'Invalid postId' }, 
+        { status: 400 }
+    );
   }
 
   try {
@@ -59,21 +63,12 @@ export async function GET(req, { params }) {
 
     const { ratings, ...cleanedPost } = postWithMetrics;
 
-    return new Response(JSON.stringify({
-      post: cleanedPost,
-    }), { 
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
+    return NextResponse.json(cleanedPost, {status: 200} );
   } catch (error) {
     console.error(error);
-    return new Response(JSON.stringify({ error: `Failed to fetch blog post with ID ${postId}` }), { 
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
+    return NextResponse.json(
+      { error: 'Failed to fetch blog post' },
+      { status: 500 }
+    );
   }
 }

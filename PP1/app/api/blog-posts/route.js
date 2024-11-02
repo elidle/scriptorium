@@ -1,31 +1,36 @@
 import { PrismaClient } from '@prisma/client';
+import { NextResponse } from 'next/server';
 
 const prisma = new PrismaClient();
 
-/**
- * POST /api/blog-posts
- */
 export async function POST(req) {
   try {
-    const { authorId, title, content, tags = [], codeLinks = [] } = await req.json();
+    let { authorId, title, content, tags = [], codeLinks = [] } = await req.json();
+    authorId = Number(authorId);
 
-    if (!Number(authorId) || !title || !content) {
-      return new Response(JSON.stringify({ error: 'Invalid or missing required fields' }), { status: 400 });
+    if (!authorId || !title || !content) {
+      return NextResponse.json(
+        { error: 'Invalid or missing required fields' },
+        { status: 400 }
+      );
     }
 
     const author = await prisma.user.findUnique({
       where: {
-          id: Number(authorId),
+          id: authorId,
       },
     });
 
     if (!author) {
-      return new Response(JSON.stringify({ error: 'Author not found' }), { status: 404 });
+      return NextResponse.json(
+        { error: 'Author not found' },
+        { status: 404 }
+      );
     }
 
     const newPost = await prisma.blogPost.create({
       data: {
-        authorId: Number(authorId),
+        authorId,
         title,
         content,
         tags: {
@@ -44,26 +49,30 @@ export async function POST(req) {
       }
     });
 
-    return new Response(JSON.stringify(newPost), { status: 201 });
+    return NextResponse.json(newPost, { status: 201 });
   } catch (error) {
     console.error(error);
-    return new Response(JSON.stringify({ error: 'Failed to create blog post' }), { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to create blog post' },
+      { status: 500 }
+    );
   }
 }
 
-/**
- * PUT /api/blog-posts
- */
 export async function PUT(req) {
   try {
-    const { id, title, content, tags, codeLinks } = await req.json();
+    let { id, title, content, tags, codeLinks } = await req.json();
+    id = Number(id);
 
-    if (!Number(id)) {
-      return new Response(JSON.stringify({ error: 'Missing or invalid ID' }), { status: 400 });
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Missing or invalid ID' },
+        { status: 400 }
+      );
     }
 
     const updatedPost = await prisma.blogPost.update({
-      where: { id: Number(id) },
+      where: { id },
       data: {
         ...(title && { title }),
         ...(content && { content }),
@@ -92,42 +101,49 @@ export async function PUT(req) {
       }
     });
 
-    return new Response(JSON.stringify(updatedPost), { status: 200 });
+    return NextResponse.json(updatedPost, { status: 200 });
   } catch (error) {
     console.error(error);
-    return new Response(JSON.stringify({ error: 'Failed to update blog posts' }), { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to update blog posts' },
+      { status: 500 }
+    );
   }
 }
 
-/**
- * DELETE /api/blog-posts
- */
+
 export async function DELETE(req) {
   try {
     const { id } = await req.json();
 
     if (!Number(id)) {
-      return new Response(JSON.stringify({ error: 'Missing or invalid ID' }), { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing or invalid ID' },
+        { status: 400 }
+      );
     }
 
     await prisma.blogPost.delete({
-      where: { id: Number(id) }
+      where: { id }
     });
 
-    return new Response(JSON.stringify({ message: 'Blog posts deleted successfully' }), { status: 200 });
+    return NextResponse.json(
+      { message: 'Blog post deleted successfully' },
+      { status: 200 }
+    );
   } catch (error) {
     console.error(error);
-    return new Response(JSON.stringify({ error: 'Failed to delete blog posts' }), { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to delete blog post' },
+      { status: 500 }
+    );
   }
 }
 
 /**
- * GET /api/blog-posts
- * 
  * Supports:
  * - Cursor-based pagination
  * - Sorting by: new, old, top, controversial
- * - Configurable page size
  * 
  * Query params:
  * - cursor: ID of the last item in previous batch
@@ -139,20 +155,19 @@ export async function GET(req) {
   const searchParams = req.nextUrl.searchParams;
 
   // Pagination parameters
-  const cursor = searchParams.get('cursor'); // ID of last item
-  const cursorValue = searchParams.get('cursorValue'); // Value used for sorting (timestamp, score)
-  const limit = Number(searchParams.get('limit')) || 10; // Default to 10 items per page
+  const cursor = searchParams.get('cursor');              // ID of last item
+  const cursorValue = searchParams.get('cursorValue');    // Value used for sorting (timestamp, score)
+  const limit = Number(searchParams.get('limit')) || 10;  // Default to 10 items per page
 
-  // Other filter parameters
+  // Filter parameters
   const searchTerm = searchParams.get('searchTerm') || '';
   const tag = searchParams.get('tag') || '';
   const codeTemplateId = searchParams.get('codeTemplateId');
   const sortBy = searchParams.get('sortBy') || 'new';
 
   try {
-    // Build the cursor condition based on sorting method
     const getCursorCondition = () => {
-      if (!cursor || !cursorValue) return {};
+      if (!cursor || !cursorValue) return {};  // No cursor
 
       switch (sortBy) {
         case 'new':
@@ -164,22 +179,17 @@ export async function GET(req) {
                   ? { lt: new Date(cursorValue) }
                   : { gt: new Date(cursorValue) }
               },
-              { NOT: { id: parseInt(cursor) } } // Exclude the cursor item
+              { NOT: { id: parseInt(cursor) } }  // Exclude the cursor item
             ]
           };
         case 'top':
-          // For 'top' sorting, we need to handle this after fetching the data
-          // because we need to calculate the total score
-          return {};
-        case 'controversial':
-          // Similar to 'top', handle after fetching
+        case 'controversial':  // Handle after fetching
           return {};
         default:
           return {};
       }
     };
 
-    // Fetch one extra item to determine if there are more pages
     const posts = await prisma.blogPost.findMany({
       where: {
         ...getCursorCondition(),
@@ -210,7 +220,7 @@ export async function GET(req) {
           }
         }
       },
-      take: limit + 1, // Fetch one extra to check for next page
+      take: limit + 1,  // Fetch one extra to check for next page
       orderBy: sortBy === 'old' ? { createdAt: 'asc' } : { createdAt: 'desc' }
     });
 
@@ -240,7 +250,6 @@ export async function GET(req) {
       };
     });
 
-    // Sort if needed (for 'top' and 'controversial')
     let sortedPosts = postsWithMetrics;
     if (sortBy === 'top' || sortBy === 'controversial') {
       sortedPosts = postsWithMetrics.sort((a, b) => {
@@ -256,7 +265,6 @@ export async function GET(req) {
         return b.createdAt.getTime() - a.createdAt.getTime();
       });
 
-      // Apply cursor-based filtering for 'top' and 'controversial'
       if (cursor && cursorValue) {
         const cursorIndex = sortedPosts.findIndex(post => post.id === parseInt(cursor));
         if (cursorIndex !== -1) {
@@ -279,30 +287,24 @@ export async function GET(req) {
       return cleanPost;
     });
 
-    return new Response(JSON.stringify({
-      posts: cleanedPosts,
-      pagination: {
-        hasMore,
-        nextCursor
-      }
-    }), { 
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
+    return NextResponse.json(
+      {
+        posts: cleanedPosts,
+        pagination: {
+          hasMore,
+          nextCursor
+        }
+      }, { status: 200 }
+    );
   } catch (error) {
     console.error(error);
-    return new Response(JSON.stringify({ error: 'Failed to fetch blog posts' }), { 
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
+    return NextResponse.json(
+      { error: 'Failed to fetch blog posts' },
+      { status: 500 }
+    );
   }
 }
 
-// Helper function to get the sort value based on sorting method
 function getSortValue(post, sortBy) {
   switch (sortBy) {
     case 'new':
