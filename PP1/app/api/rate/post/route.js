@@ -7,10 +7,35 @@ export async function POST(req) {
     userId = Number(userId);
     postId = Number(postId);
 
-    if ((value !== -1 && value !== 1) || !userId || !postId) {
+    if (!value || !userId || !postId) {
       return Response.json(
         { error: 'Invalid or missing required fields' },
         { status: 400 }
+      );
+    }
+    
+    if (value !== -1 && value !== 1) {
+      return Response.json(
+        { error: 'Invalid rating value (must be 1 for upvote or -1 for downvote)' },
+        { status: 400 }
+      );
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user) {
+      return Response.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    const post = await prisma.blogPost.findUnique({ where: { id: postId } });
+
+    if (!post) {
+      return Response.json(
+        { error: 'Post not found' },
+        { status: 404 }
       );
     }
 
