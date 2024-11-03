@@ -32,7 +32,7 @@ export async function POST(req) {
 
     const post = await prisma.blogPost.findUnique({ where: { id: postId } });
 
-    if (!post) {
+    if (!post || post.isDeleted) {
       return Response.json(
         { error: 'Post not found' },
         { status: 404 }
@@ -93,7 +93,7 @@ export async function DELETE(req) {
 
     const post = await prisma.blogPost.findUnique({ where: { id: postId } });
 
-    if (!post) {
+    if (!post || post.isDeleted) {
       return Response.json(
         { error: 'Post not found' },
         { status: 404 }

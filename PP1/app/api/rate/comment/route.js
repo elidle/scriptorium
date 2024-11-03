@@ -93,7 +93,7 @@ export async function DELETE(req) {
 
     const comment = await prisma.comment.findUnique({ where: { id: commentId } });
 
-    if (!comment) {
+    if (!comment || comment.isDeleted) {
       return Response.json(
         { error: 'Comment not found' },
         { status: 404 }
