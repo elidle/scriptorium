@@ -5,6 +5,7 @@ export async function PUT(req, { params }) {
     let { content } = await req.json();
     let { id } = params;
     id = Number(id);
+    console.log("Received request to update comment with ID: ", id);
 
     if (!id || !content ) {
       return Response.json(
@@ -15,7 +16,7 @@ export async function PUT(req, { params }) {
 
     const comment = await prisma.comment.findUnique({ where: { id } });
 
-    if (!comment) {
+    if (!comment || comment.isDeleted) {
       return Response.json(
         { error: 'Comment not found' },
         { status: 404 }
@@ -50,9 +51,7 @@ export async function DELETE(req, { params }) {
       );
     }
 
-    const comment = await prisma.comment.findUnique({ where: { id } });
-
-    if (!comment) {
+    if (!comment || comment.isDeleted) {
       return Response.json(
         { error: 'Comment not found' },
         { status: 404 }

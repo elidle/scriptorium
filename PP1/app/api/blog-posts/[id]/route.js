@@ -19,7 +19,7 @@ export async function PUT(req, { params }) {
 
     const post = await prisma.blogPost.findUnique({ where: { id } });
 
-    if (!post) {
+    if (!post || post.isDeleted) {
       return Response.json(
         { error: 'Post not found' },
         { status: 404 }
@@ -71,7 +71,7 @@ export async function DELETE(req, { params }) {
 
     const post = await prisma.blogPost.findUnique({ where: { id } });
 
-    if (!post) {
+    if (!post || post.isDeleted) {
       return Response.json(
         { error: 'Post not found' },
         { status: 404 }
