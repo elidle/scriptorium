@@ -1,0 +1,47 @@
+import { prisma } from '../../../../../utils/db';
+
+// This function is used to report a post.
+export async function POST(req) {
+  // const user = verifyToken(req.headers.get("authorization"));
+  // if (!user) {
+  //   return new Response(JSON.stringify({ status: 'error', message: 'Unauthorized' }), { status: 401 });
+  // }
+  const { reporterId, postId, reason } = await req.json();
+
+  if(!reporterId || !postId || !reason){
+    return Response.json({ status: 'error', message: 'Missing required fields' }, { status: 400 });
+  }
+  if(typeof postId !== "number"){
+    return Response.json({ status: 'error', message: 'Invalid postId' }, { status: 400 });
+  }
+  try{
+    const reporter = await prisma.user.findUnique({
+      where: {
+        id: reporterId,
+      }
+    });
+    if(!reporter){
+      return Response.json({ status: 'error', message: 'Reporter not found' }, { status: 400 });
+    }
+    const existingPost = await prisma.blogPost.findUnique({
+      where: {
+        id: Number(postId),
+      }
+    });
+    if (!existingPost) {
+      return Response.json({ status: 'error', message: 'Post not found' }, { status: 400 });
+    }
+    const report = await prisma.postReport.create({
+      data: {
+        reporterId: reporterId,
+        postId: Number(postId),
+        reason: reason,
+      }
+    });
+  }
+  catch(err){
+    // return new Response(JSON.stringify({ status: 'error', message: 'Failed to report post' }), { status: 500 });
+    return Response.json({ status: 'error', message: 'Failed to report post' }, { status: 500 });
+  }
+  return Response.json({ status: 'success' }, { status: 200 });
+}

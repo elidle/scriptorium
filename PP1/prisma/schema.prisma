@@ -5,7 +5,8 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["strictUndefinedChecks"]
 }
 
 datasource db {
@@ -15,11 +16,23 @@ datasource db {
 
 model User {
   id              Int             @id @default(autoincrement())
+  firstname            String
+  lastname             String
   username        String           @unique
+  hashedPassword  String
+  avatar          String?
+  role            String           @default("user") // "user" or "admin"
+  phoneNumber     String           @default("0")
+  email           String           @unique
   posts           BlogPost[]
   comments        Comment[]
   postRatings     PostRating[]
   commentRatings  CommentRating[]
+  codeTemplates   CodeTemplate[]
+  reportPosts     PostReport[]
+  reportComments  CommentReport[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }
 
 model BlogPost {
@@ -34,36 +47,53 @@ model BlogPost {
   codeTemplates   CodeTemplate[]
   comments        Comment[]
   ratings         PostRating[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  report          PostReport[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
 
 model Tag {
-  id         Int               @id @default(autoincrement())
-  name       String             @unique
-  posts      BlogPost[]
+  id        Int               @id @default(autoincrement())
+  name      String            @unique
+  posts     BlogPost[]
+  templates CodeTemplate[]
 }
 
 model CodeTemplate {
-  id         Int              @id @default(autoincrement())
-  blogPosts  BlogPost[]
+  id           Int               @id @default(autoincrement())
+  title        String
+  code         String
+  language     String
+  explanation  String
+  tags         Tag[]
+  authorId     Int
+  author       User              @relation(fields: [authorId], references: [id])
+  isForked     Boolean           @default(false)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  posts        BlogPost[]
+  parentForkId Int?
+  parentFork   CodeTemplate?     @relation("childForks", fields: [parentForkId], references: [id])
+  childForks   CodeTemplate[]    @relation("childForks")
 }
 
 model Comment {
-  id          Int              @id @default(autoincrement())
-  content     String?
-  authorId    Int?
-  author      User?             @relation(fields: [authorId], references: [id])
-  post        BlogPost          @relation(fields: [postId], references: [id])
-  postId      Int
-  parent      Comment?          @relation("CommentReplies", fields: [parentId], references: [id])
-  parentId    Int?
-  replies     Comment[]         @relation("CommentReplies")
-  ratings     CommentRating[]
+  id            Int             @id @default(autoincrement())
+  content       String
+  authorId      Int
+  author        User            @relation(fields: [authorId], references: [id])
+  postId        Int
+  post          BlogPost        @relation(fields: [postId], references: [id])
+  parent        Comment?        @relation("CommentReplies", fields: [parentId], references: [id])
+  parentId      Int?
+  replies       Comment[]       @relation("CommentReplies")
+  ratings       CommentRating[]
+  reports       CommentReport[]
   isDeleted   Boolean           @default(false)
   deletedAt   DateTime?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
 }
 
 model PostRating {
@@ -82,4 +112,26 @@ model CommentRating {
   userId      Int
   comment     Comment     @relation(fields: [commentId], references: [id])
   commentId   Int
+}
+
+model CommentReport {
+  id         Int      @id @default(autoincrement())
+  commentId  Int
+  comment    Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reporterId Int
+  reporter   User     @relation(fields: [reporterId], references: [id])
+  reason     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model PostReport {
+  id         Int      @id @default(autoincrement())
+  postId     Int
+  post       BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporterId Int
+  reporter   User     @relation(fields: [reporterId], references: [id])
+  reason     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
