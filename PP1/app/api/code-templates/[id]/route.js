@@ -133,14 +133,23 @@ export async function PUT(req, { params }) {
   * This function is used to delete a code template.
  */
 export async function DELETE(req, { params }) {
-  const user = verifyToken(req.headers.get("authorization"));
-  if (!user) {
-    return Response.json({ status: 'error', message: 'Unauthorized' }, { status: 401 });
-  }
-
+  // const user = verifyToken(req.headers.get("authorization"));
+  // if (!user) {
+  //   return Response.json({ status: 'error', message: 'Unauthorized' }, { status: 401 });
+  // }
   const { id } = params;
-  try{
-    const template = await prisma.codeTemplate.delete({
+
+
+try{
+  const existingTemplate = await prisma.codeTemplate.findUnique({
+    where: {
+      id: parseInt(id),
+    },
+  });
+  if(!existingTemplate){
+    return Response.json({ status: 'error', message: 'Template not found' }, { status: 400 });
+  }
+  const template = await prisma.codeTemplate.delete({
       where: {
         id: parseInt(id),
       },
@@ -149,7 +158,7 @@ export async function DELETE(req, { params }) {
   catch(err){
     return Response.json({ status: 'error', message: 'Failed to delete template' }, { status: 400 });
   }
-  return Response.json({ status: 'success' }, { status: 200 });
+return Response.json({ status: 'success' }, { status: 200 });
 }
 
 

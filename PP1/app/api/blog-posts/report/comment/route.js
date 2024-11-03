@@ -14,6 +14,22 @@ export async function POST(req) {
     return Response.json({ status: 'error', message: 'Invalid commentId' }, { status: 400 });
   }
   try{
+    const reporter = await prisma.user.findUnique({
+      where: {
+        id: reporterId,
+      }
+    });
+    if(!reporter){
+      return Response.json({ status: 'error', message: 'Reporter not found' }, { status: 400 });
+    }
+    const existingComment = await prisma.comment.findUnique({
+      where: {
+        id: Number(commentId),
+      }
+    });
+    if (!existingComment) {
+      return Response.json({ status: 'error', message: 'Comment not found' }, { status: 400 });
+    }
     const report = await prisma.commentReport.create({
       data: {
         reporterId: reporterId,

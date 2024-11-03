@@ -8,17 +8,32 @@ import { sortMostRelevantFirst } from "../../../../utils/code-template/sorts";
 export async function GET(req) {
   const q = req.nextUrl.searchParams.get('q');
   const tags = req.nextUrl.searchParams.getAll('tags'); // Format: /search?q=...&tags=tag1&tags=tag2
-  let userId = req.nextUrl.searchParams.get('userId');
-  userId = userId ? Number(userId) : undefined;
-
+  const username = req.nextUrl.searchParams.get('username');
   const cursor = req.nextUrl.searchParams.get('cursor');
   const cursorValue = req.nextUrl.searchParams.get('cursorValue');
   const sortBy = req.nextUrl.searchParams.get('sortBy');
   const limit = req.nextUrl.searchParams.get('limit') ? Number(req.nextUrl.searchParams.get('limit')) : 10;
 
-
-  let templates;
+  let templates, userId;
   try{
+    if(username) {
+      const existingUser = await prisma.user.findUnique({
+        where: {
+          username: username,
+        },
+        include: {
+          codeTemplates: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+      if (!existingUser) {
+        return Response.json({ status: 'error', message: 'User not found' }, { status: 400 });
+      }
+      userId = existingUser.id;
+    }
     const getCursorCondition = () => {
       if (!cursor || !cursorValue) return {};  // No cursor
 

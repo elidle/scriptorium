@@ -6,7 +6,7 @@ import { prisma } from '../../../../utils/db';
  */
 export async function GET(req) {
   const q = req.nextUrl.searchParams.get('q');
-  let tags;
+  let tags = [];
   try{
     tags = await prisma.tag.findMany({
       where: {
