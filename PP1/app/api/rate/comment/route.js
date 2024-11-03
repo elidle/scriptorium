@@ -32,7 +32,7 @@ export async function POST(req) {
 
     const comment = await prisma.comment.findUnique({ where: { id: commentId } });
 
-    if (!comment) {
+    if (!comment || comment.isDeleted) {
       return Response.json(
         { error: 'Comment not found' },
         { status: 404 }
@@ -114,17 +114,12 @@ export async function DELETE(req) {
       );
     }
 
-    const deletedComment = await prisma.blogPost.update({
-      where: { id },
-      date: {
-        isDeleted: true,
-        deletedAt: new Date(),
-        content: null,
-        authorId: null
-      }
+    const deletedRating = await prisma.commentRating.update({
+      where: { id: rating.id },
+      data: { value: 0 }
     });
 
-    return Response.json( deletedComment, { status: 200 } );
+    return Response.json( deletedRating, { status: 200 } );
   } catch (error) {
     console.error(error);
     return Response.json(

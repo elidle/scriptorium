@@ -114,14 +114,12 @@ export async function DELETE(req) {
       );
     }
 
-    await prisma.postRating.delete({
-      where: { id: rating.id }
+    const deletedRating = await prisma.postRating.update({
+      where: { id: rating.id },
+      data: { value: 0 }
     });
 
-    return Response.json(
-      { message: 'Rating deleted successfully' },
-      { status: 200 }
-    );
+    return Response.json( deletedRating, { status: 200 } );
   } catch (error) {
     console.error(error);
     return Response.json(
