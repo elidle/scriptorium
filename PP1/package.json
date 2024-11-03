@@ -17,7 +17,6 @@
     "@prisma/studio": "^0.503.0",
     "bcrypt": "^5.1.1",
     "jsonwebtoken": "^9.0.2",
-    "is-thirteen": "^2.0.0",
     "next": "14.2.15",
     "react": "^18",
     "react-dom": "^18"
