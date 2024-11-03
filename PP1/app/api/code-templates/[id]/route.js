@@ -33,6 +33,9 @@ export async function GET(req, { params }) {
   catch(err){
     return new Response(JSON.stringify({ status: 'error', message: 'Failed to fetch template' }), { status: 400 });
   }
+  if(!template){
+    return new Response(JSON.stringify({ status: 'error', message: 'Template not found' }), { status: 400 });
+  }
   return new Response(JSON.stringify({ status: 'success', template: template }), { status: 200 });
 }
 
@@ -93,6 +96,14 @@ export async function PUT(req, { params }) {
     //     }
     //   });
     // }
+    const existingTemplate = await prisma.codeTemplate.findUnique({
+      where: {
+        id: parseInt(id),
+      },
+    });
+    if(!existingTemplate){
+      return new Response(JSON.stringify({ status: 'error', message: 'Template not found' }), { status: 400 });
+    }
     const template = await prisma.codeTemplate.update({
       where: {
         id: parseInt(id),

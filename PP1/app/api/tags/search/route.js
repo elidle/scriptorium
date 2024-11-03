@@ -1,6 +1,9 @@
 import { prisma } from '../../../../utils/db';
 
-// This function is used to search for tags.
+/* This function is used to search for tags.
+ * If the query parameter 'q' is provided, it will search for tags that contain the query string.
+ * If the query parameter 'q' is not provided, it will return all tags.
+ */
 export async function GET(req) {
   const q = req.nextUrl.searchParams.get('q');
   let tags;
