@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/utils/db';
 import { NextResponse } from 'next/server';
-import { itemsRatingsToMetrics } from '@/app/utils/blog/metrics';
+import { itemsRatingsToMetrics } from '@/utils/blog/metrics';
 import { sortItems } from '@/utils/blog/sorts';
-
-const prisma = new PrismaClient();
 
 export async function POST(req) {
   try {
@@ -97,7 +95,7 @@ export async function GET(req) {
     const postId = Number(searchParams.get('postId'));
 
     // Sorting parameter
-    const sortBy = searchParams.get('sortBy');
+    const sortBy = searchParams.get('sortBy') || 'new';
 
     if (!postId) {
       return NextResponse.json(

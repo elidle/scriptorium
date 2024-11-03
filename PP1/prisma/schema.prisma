@@ -26,33 +26,24 @@ model User {
 }
 
 model BlogPost {
-  id          Int            @id @default(autoincrement())
-  authorId    Int
-  author      User            @relation(fields: [authorId], references: [id])
-  title       String
-  content     String
-  tags        TagsOnPosts[]   @relation("PostToTags")
-  codeLinks   CodeTemplate[]
-  comments    Comment[]
-  ratings     PostRating[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id              Int            @id @default(autoincrement())
+  authorId        Int
+  author          User            @relation(fields: [authorId], references: [id])
+  title           String
+  content         String
+  tags            Tag[]
+  codeTemplates   CodeTemplate[]
+  comments        Comment[]
+  ratings         PostRating[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }
 
 model Tag {
-  id     Int                  @id @default(autoincrement())
-  name   String                @unique
-  posts  TagsOnPosts[]         @relation("TagToPosts")
-  templates  TagsOnTemplate[]  @relation("TagToTemplates")
-}
-
-model TagsOnPosts {
-  post       BlogPost  @relation("PostToTags", fields: [postId], references: [id], onDelete: Cascade)
-  postId     Int
-  tag        Tag       @relation("TagToPosts", fields: [tagId], references: [id], onDelete: Cascade)
-  tagId      Int
-
-  @@id([postId, tagId])
+  id         Int               @id @default(autoincrement())
+  name       String             @unique
+  posts      BlogPost[]
+  templates  CodeTemplate[]
 }
 
 model CodeTemplate {
@@ -61,19 +52,10 @@ model CodeTemplate {
   author     User              @relation(fields: [authorId], references: [id])
   title      String
   content    String
-  tags       TagsOnTemplate[]  @relation("TemplateToTags")
+  tags       Tag[]
   blogPosts  BlogPost[]
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
-}
-
-model TagsOnTemplate {
-  codeTemplate      CodeTemplate  @relation("TemplateToTags", fields: [templateId], references: [id], onDelete: Cascade)
-  templateId        Int
-  tag               Tag            @relation("TagToTemplates", fields: [tagId], references: [id], onDelete: Cascade)
-  tagId             Int
-
-  @@id([templateId, tagId])
 }
 
 model Comment {
