@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { NextResponse } from 'next/server';
+import { itemsRatingsToMetrics } from '@/app/utils/blog/metrics';
+import { sortItems } from '@/utils/blog/sorts';
 
 const prisma = new PrismaClient();
 
@@ -94,6 +96,9 @@ export async function GET(req) {
 
     const postId = Number(searchParams.get('postId'));
 
+    // Sorting parameter
+    const sortBy = searchParams.get('sortBy');
+
     if (!postId) {
       return NextResponse.json(
         { error: 'Invalid or missing postId' },
@@ -133,34 +138,19 @@ export async function GET(req) {
       }
     });
 
-    const commentsWithMetrics = comment.map(comment => {
-      const upvotes = comment.ratings.filter(r => r.value === 1).length;
-      const downvotes = comment.ratings.filter(r => r.value === -1).length;
-      const totalVotes = upvotes + downvotes;
-      const totalScore = upvotes - downvotes;
-      
-      let controversyScore = 0;
-      if (totalVotes > 0) {
-        const upvoteRatio = upvotes / totalVotes;
-        controversyScore = (1 - Math.abs(0.5 - upvoteRatio)) * Math.log10(Math.max(totalVotes, 1));
-      }
+    const commentsWithMetrics = itemsRatingsToMetrics(comments);
 
-      return {
-        ...comment,
-        metrics: {
-          upvotes,
-          downvotes,
-          totalVotes,
-          totalScore,
-          controversyScore,
-          upvoteRatio: totalVotes > 0 ? (upvotes / totalVotes) : 0
-        }
-      }
-    })
+    const topLevelComments = commentsWithMetrics.filter(comment => !comment.parentId);
+    const replies = commentsWithMetrics.filter(comment => comment.parentId);
 
-    const { ratings, ...cleanedComments } = commentsWithMetrics;
+    const sortedTopLevelComments = sortItems(topLevelComments, sortBy);
+    const sortedReplies = sortItems(replies, 'old');
 
-    return NextResponse.json(cleanedComments, { status: 200 });
+    const allSortedComments = [...sortedTopLevelComments, ...sortedReplies];
+
+    const commentTree = buildCommentTree(allSortedComments);
+
+    return NextResponse.json(commentTree, { status: 200 });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
@@ -168,4 +158,27 @@ export async function GET(req) {
       { status: 500 }
     );
   }
+}
+
+function buildCommentTree(comments) {
+  const commentMap = new Map();
+  const rootComments = [];
+
+  comments.forEach(comment => {
+    comment.replies = [];
+    commentMap.set(comment.id, comment);
+  });
+
+  comments.forEach(comment => {
+    if (comment.parentId) {
+      const parentComment = commentMap.get(comment.parentId);
+      if (parentComment) {
+        parentComment.replies.push(comment);
+      }
+    } else {
+      rootComments.push(comment);
+    }
+  });
+
+  return rootComments;
 }
