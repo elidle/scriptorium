@@ -20,7 +20,7 @@ export async function GET(req) {
     });
   } catch (err) {
     console.log(err);
-    return new Response(JSON.stringify({ status: 'error', message: 'Failed to search tags' }), { status: 500 });
+    return Response.json({ status: 'error', message: 'Failed to search tags' }, { status: 500 });
   }
-  return new Response(JSON.stringify({ status: 'success', tags: tags }), { status: 200 });
+  return Response.json({ status: 'success', tags: tags }, { status: 200 });
 }

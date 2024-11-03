@@ -8,12 +8,12 @@ export async function POST(req) {
   // Authenticate the user
   // const user = verifyToken(req.headers.get("authorization"));
   // if (!user) {
-  //   return new Response(JSON.stringify({ status: 'error', message: 'Unauthorized' }), { status: 401 });
+  //     return Response.json({ status: 'error', message: 'Unauthorized' }, { status: 401 });
   // }
 
   let { name } = await req.json();
   if(!name){
-    return new Response(JSON.stringify({ status: 'error', message: 'Missing required fields' }), { status: 400 });
+    return Response.json({ status: 'error', message: 'Missing required fields' }, { status: 400 });
   }
   try {
     const existingTag = await prisma.tag.findFirst({
@@ -22,16 +22,16 @@ export async function POST(req) {
       }
     });
     if(existingTag){
-      return new Response(JSON.stringify({ status: 'error', message: 'Tag with same name already exists' }), { status: 400 });
+      return Response.json({ status: 'error', message: 'Tag with same name already exists' }, { status: 400 });
     }
     const tag = await prisma.tag.create({
       data: {
         name: name,
       }
     });
-    return new Response(JSON.stringify({ status: 'success', message: 'Tag created successfully', tag: tag }), { status: 200 });
+    return Response.json({ status: 'success', message: 'Tag created successfully', tag: tag }, { status: 200 });
   } catch (err) {
     console.log(err);
-    return new Response(JSON.stringify({ status: 'error', message: 'Failed to create tag' }), { status: 500 });
+    return Response.json({ status: 'error', message: 'Failed to create tag' }, { status: 500 });
   }
 }

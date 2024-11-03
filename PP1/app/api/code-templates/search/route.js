@@ -80,14 +80,21 @@ export async function GET(req) {
       },
       // take: limit + 1,  // Fetch one extra to check for next page
       // orderBy: sortBy === 'new' ? { createdAt: 'desc' } : { createdAt: 'asc' }
+      include: {
+        tags: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
   }
   catch(err) {
     console.log(err); // TODO: Remove this line
-    return new Response(JSON.stringify({status: 'error', message: 'Failed to fetch templates'}), {status: 400});
+    return Response.json({ status: 'error', message: 'Failed to fetch templates' }, { status: 400 });
   }
   if(sortBy === 'most-relevant'){
     templates = sortMostRelevantFirst(templates, q); // Sort by relevance
   }
-  return new Response(JSON.stringify(templates), { status: 200 });
+  return Response.json(templates, { status: 200 });
 }

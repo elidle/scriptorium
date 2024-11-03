@@ -4,14 +4,14 @@ import { prisma } from '../../../../../utils/db';
 export async function POST(req) {
   // const user = verifyToken(req.headers.get("authorization"));
   // if (!user) {
-  //   return new Response(JSON.stringify({ status: 'error', message: 'Unauthorized' }), { status: 401 });
+  //   return Response.json({ status: 'error', message: 'Unauthorized' }, { status: 401 });
   // }
   const { reporterId, commentId, reason } = await req.json();
   if(!reporterId || !commentId || !reason){
-    return new Response(JSON.stringify({ status: 'error', message: 'Missing required fields' }), { status: 400 });
+    return Response.json({ status: 'error', message: 'Missing required fields' }, { status: 400 });
   }
   if(typeof commentId !== "number"){
-    return new Response(JSON.stringify({ status: 'error', message: 'Invalid commentId' }), { status: 400 });
+    return Response.json({ status: 'error', message: 'Invalid commentId' }, { status: 400 });
   }
   try{
     const report = await prisma.commentReport.create({
@@ -23,7 +23,7 @@ export async function POST(req) {
     });
   }
   catch(err){
-    return new Response(JSON.stringify({ status: 'error', message: 'Failed to report comment' }), { status: 500 });
+    return Response.json({ status: 'error', message: 'Failed to report comment' }, { status: 500 });
   }
-  return new Response(JSON.stringify({ status: 'success' }), { status: 200 });
+  return Response.json({ status: 'success' }, { status: 200 });
 }

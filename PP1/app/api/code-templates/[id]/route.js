@@ -31,12 +31,12 @@ export async function GET(req, { params }) {
     });
   }
   catch(err){
-    return new Response(JSON.stringify({ status: 'error', message: 'Failed to fetch template' }), { status: 400 });
+    return Response.json({ status: 'error', message: 'Failed to fetch template' }, { status: 400 });
   }
   if(!template){
-    return new Response(JSON.stringify({ status: 'error', message: 'Template not found' }), { status: 400 });
+    return Response.json({ status: 'error', message: 'Template not found' }, { status: 400 });
   }
-  return new Response(JSON.stringify({ status: 'success', template: template }), { status: 200 });
+  return Response.json({ status: 'success', template: template }, { status: 200 });
 }
 
 /*
@@ -45,7 +45,7 @@ export async function GET(req, { params }) {
 export async function PUT(req, { params }) {
   // const user = await verifyToken(req.headers.get("authorization"));
   // if (!user) {
-  //   return new Response(JSON.stringify({ status: 'error', message: 'Unauthorized' }), { status: 401 });
+  //     return Response.json({ status: 'error', message: 'Unauthorized' }, { status: 401 });
   // }
   const { id } = params;
   let { title, code, language, explanation, tags, authorId, isForked} = await req.json();
@@ -83,7 +83,7 @@ export async function PUT(req, { params }) {
     //   }
     // });
     // if(!existingTags){
-    //   return new Response(JSON.stringify({ status: 'error', message: 'Template not found' }), { status: 400 });
+    //     return Response.json({ status: 'error', message: 'Template not found' }, { status: 400 });
     // }
     // console.log(existingTags["tags"]);
     // const existingTagNames = existingTags["tags"].map((tagObj) => tagObj.tag.name);
@@ -102,7 +102,7 @@ export async function PUT(req, { params }) {
       },
     });
     if(!existingTemplate){
-      return new Response(JSON.stringify({ status: 'error', message: 'Template not found' }), { status: 400 });
+      return Response.json({ status: 'error', message: 'Template not found' }, { status: 400 });
     }
     const template = await prisma.codeTemplate.update({
       where: {
@@ -114,6 +114,7 @@ export async function PUT(req, { params }) {
         language: language ?? Prisma.skip,
         explanation: explanation ?? Prisma.skip,
         tags: tags.length > 0 ? {
+          deleteMany: {},
           connectOrCreate: tags.map((tagName) => ({
               where: { name: tagName },
               create: { name: tagName },
@@ -126,9 +127,9 @@ export async function PUT(req, { params }) {
   }
   catch(err){
     console.log(err);
-    return new Response(JSON.stringify({ status: 'error', message: 'Failed to update template' }), { status: 400 });
+    return Response.json({ status: 'error', message: 'Failed to update template' }, { status: 400 });
   }
-  return new Response(JSON.stringify({ status: 'success' }), { status: 200 });
+  return Response.json({ status: 'success' }, { status: 200 });
 }
 
 /*
@@ -137,7 +138,7 @@ export async function PUT(req, { params }) {
 export async function DELETE(req, { params }) {
   const user = verifyToken(req.headers.get("authorization"));
   if (!user) {
-    return new Response(JSON.stringify({ status: 'error', message: 'Unauthorized' }), { status: 401 });
+    return Response.json({ status: 'error', message: 'Unauthorized' }, { status: 401 });
   }
 
   const { id } = params;
@@ -149,9 +150,9 @@ export async function DELETE(req, { params }) {
     });
   }
   catch(err){
-    return new Response(JSON.stringify({ status: 'error', message: 'Failed to update template' }), { status: 400 });
+    return Response.json({ status: 'error', message: 'Failed to delete template' }, { status: 400 });
   }
-  return new Response(JSON.stringify({ status: 'success' }), { status: 200 });
+  return Response.json({ status: 'success' }, { status: 200 });
 }
 
 

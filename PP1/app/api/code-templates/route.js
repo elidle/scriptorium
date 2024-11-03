@@ -7,7 +7,7 @@ import {generateAccessToken, verifyToken} from "../../../utils/auth";
 export async function POST(req) {
   // const user = verifyToken(req.headers.get("authorization"));
   // if (!user) {
-  //   return new Response(JSON.stringify({ status: 'error', message: 'Unauthorized' }), { status: 401 });
+  //     return Response.json({ status: 'error', message: 'Unauthorized' }, { status: 401 });
   // }
 
   let { title, code, language , explanation, tags, authorId, isForked, parentTemplateId } = await req.json();
@@ -18,10 +18,10 @@ export async function POST(req) {
    * Need to confirm what the format of <tags> is.
    */
   if(!title || !code || !authorId){
-    return new Response(JSON.stringify({ status: 'error', message: 'Missing required fields' }), { status: 400 });
+    return Response.json({ status: 'error', message: 'Missing required fields' }, { status: 400 });
   }
   if(typeof authorId !== 'number'){
-    return new Response(JSON.stringify({ status: 'error', message: 'Invalid authorId' }), { status: 400 });
+    return Response.json({ status: 'error', message: 'Invalid authorId' }, { status: 400 });
   }
   // Set default values
   if (!language) {
@@ -70,13 +70,13 @@ export async function POST(req) {
         },
       });
       if(!parentTemplate){
-        return new Response(JSON.stringify({ status: 'error', message: 'Parent template not found' }), { status: 400 });
+        return Response.json({ status: 'error', message: 'Parent template not found' }, { status: 400 });
       }
     }
   }
   catch(err){
     console.log(err)
-    return new Response(JSON.stringify({ status: 'error', message: 'Failed to create new template' }), { status: 400 });
+    return Response.json({ status: 'error', message: 'Failed to create new template' }, { status: 400 });
   }
-  return new Response(JSON.stringify({ status: 'success' }), { status: 200 });
+  return Response.json({ status: 'success' }, { status: 200 });
 }
