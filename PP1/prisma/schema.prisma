@@ -15,33 +15,34 @@ datasource db {
 }
 
 model User {
-  id             Int             @id @default(autoincrement())
-  name           String
-  username       String          @unique
-  email          String          @unique
-  posts          BlogPost[]
-  comments       Comment[]
-  ratings        Rating[]
-  codeTemplates  CodeTemplate[]
-  reportComments CommentReport[]
-  reportPosts    PostReport[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id              Int             @id @default(autoincrement())
+  name            String
+  username        String           @unique
+  email           String           @unique
+  posts           BlogPost[]
+  comments        Comment[]
+  postRatings     PostRating[]
+  commentRatings  CommentRating[]
+  codeTemplates   CodeTemplate[]
+  reportPosts     PostReport[]
+  reportComments  CommentReport[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }
 
 model BlogPost {
-  id         Int            @id @default(autoincrement())
-  authorId   Int
-  author     User           @relation(fields: [authorId], references: [id])
-  title      String
-  content    String
-  tags       Tag[]
-  codeLinks  CodeTemplate[]
-  comments   Comment[]
-  ratings    Rating[]
-  reportPost PostReport[]
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
+  id              Int            @id @default(autoincrement())
+  authorId        Int
+  author          User           @relation(fields: [authorId], references: [id])
+  title           String
+  content         String
+  tags            Tag[]
+  codeTemplates   CodeTemplate[]
+  comments        Comment[]
+  ratings         PostRating[]
+  report          PostReport[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
 
 model Tag {
@@ -79,21 +80,28 @@ model Comment {
   parent        Comment?        @relation("CommentReplies", fields: [parentId], references: [id])
   parentId      Int?
   replies       Comment[]       @relation("CommentReplies")
-  ratings       Rating[]
+  ratings       CommentRating[]
+  reports       CommentReport[]
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
-  commentReport CommentReport[]
 }
 
-model Rating {
-  id        Int       @id @default(autoincrement())
-  value     Int // -1 for downvote, +1 for upvote
-  user      User      @relation(fields: [userId], references: [id])
-  userId    Int
-  postId    Int?
-  post      BlogPost? @relation(fields: [postId], references: [id])
-  commentId Int?
-  comment   Comment?  @relation(fields: [commentId], references: [id])
+model PostRating {
+  id          Int        @id @default(autoincrement())
+  value       Int         // -1 for downvote, +1 for upvote
+  user        User        @relation(fields: [userId], references: [id])
+  userId      Int
+  post        BlogPost    @relation(fields: [postId], references: [id])
+  postId      Int
+}
+
+model CommentRating {
+  id          Int        @id @default(autoincrement())
+  value       Int         // -1 for downvote, +1 for upvote
+  user        User        @relation(fields: [userId], references: [id])
+  userId      Int
+  comment     Comment     @relation(fields: [commentId], references: [id])
+  commentId   Int
 }
 
 model CommentReport {
