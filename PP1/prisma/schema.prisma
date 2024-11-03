@@ -68,7 +68,7 @@ model Comment {
 
 model PostRating {
   id          Int        @id @default(autoincrement())
-  value       Int         // -1 for downvote, +1 for upvote
+  value       Int         // -1 for downvote, 1 for upvote, 0 for no rating value
   user        User        @relation(fields: [userId], references: [id])
   userId      Int
   post        BlogPost    @relation(fields: [postId], references: [id])
@@ -77,7 +77,7 @@ model PostRating {
 
 model CommentRating {
   id          Int        @id @default(autoincrement())
-  value       Int         // -1 for downvote, +1 for upvote
+  value       Int         // -1 for downvote, 1 for upvote, 0 for no rating value
   user        User        @relation(fields: [userId], references: [id])
   userId      Int
   comment     Comment     @relation(fields: [commentId], references: [id])
