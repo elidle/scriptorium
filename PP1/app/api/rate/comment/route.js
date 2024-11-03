@@ -1,38 +1,43 @@
 import { prisma } from '@/utils/db';
-import { NextResponse } from 'next/server';
 
 export async function POST(req) {
   try {
     let { value, userId, commentId } = await req.json();
+    value = Number(value);
     userId = Number(userId);
     commentId = Number(commentId);
 
     if ((value !== -1 && value !== 1) || !userId || !commentId) {
-      return new NextResponse.json(
+      return Response.json(
         { error: 'Invalid or missing required fields' },
         { status: 400 }
       );
     }
 
-    const newRating = await prisma.commentRating.upsert({
+    const existingRating = await prisma.commentRating.findFirst({
       where: {
-        userId_commentId: {
-          userId,
-          commentId,
-        },
-      },
-      update: { value },
-      create: {
-        value,
-        user: { connect: { id: Number(userId) } },
-        comment: { connect: { id: Number(commentId) } },
-      },
+        userId,
+        commentId
+      }
     });
 
-    return new NextResponse.json(newRating, { status: 201 });
+    const newRating = existingRating 
+      ? await prisma.commentRating.update({
+          where: { id: existingRating.id },
+          data: { value }
+        })
+      : await prisma.commentRating.create({
+          data: {
+            value,
+            user: { connect: { id: userId } },
+            comment: { connect: { id: commentId } }
+          }
+        });
+
+    return Response.json(newRating, { status: 201 });
   } catch (error) {
     console.error(error);
-    return new NextResponse.json(
+    return Response.json(
       { error: 'Failed to create rating' },
       { status: 500 }
     );
@@ -41,27 +46,60 @@ export async function POST(req) {
 
 export async function DELETE(req) {
   try {
-    let { id } = await req.json();
-    id = Number(id);
+    let { userId, commentId } = await req.json();
+    userId = Number(userId);
+    commentId = Number(commentId);
 
-    if (!id) {
-      return new NextResponse.json(
+    if (!userId || !commentId) {
+      return Response.json(
         { error: 'Missing or invalid ID field' },
         { status: 400 }
       );
     }
 
-    await prisma.commentRating.delete({
-      where: { id }
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user) {
+      return Response.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    const comment = await prisma.comment.findUnique({ where: { id: commentId } });
+
+    if (!comment) {
+      return Response.json(
+        { error: 'Comment not found' },
+        { status: 404 }
+      );
+    }
+
+    const rating = await prisma.commentRating.findFirst({ 
+      where: { 
+        userId,
+        commentId
+      } 
     });
 
-    return new NextResponse.json(
+    if (!rating) {
+      return Response.json(
+        { error: 'Rating not found' },
+        { status: 404 }
+      );
+    }
+
+    await prisma.commentRating.delete({
+      where: { id: rating.id }
+    });
+
+    return Response.json(
       { message: 'Rating deleted successfully' },
       { status: 200 }
     );
   } catch (error) {
     console.error(error);
-    return new NextResponse.json(
+    return Response.json(
       { error: 'Failed to delete rating' },
       { status: 500 }
     );

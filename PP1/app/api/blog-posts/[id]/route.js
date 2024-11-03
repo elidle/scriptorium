@@ -1,5 +1,4 @@
 import { prisma } from '@/utils/db';
-import { NextResponse } from 'next/server';
 import { itemRatingsToMetrics } from '@/utils/blog/metrics';
 
 export async function PUT(req, { params }) {
@@ -9,7 +8,7 @@ export async function PUT(req, { params }) {
     console.log("Received request to update post with ID: ", id);
 
     if (!id) {
-      return NextResponse.json(
+      return Response.json(
         { error: 'Missing or invalid ID' },
         { status: 400 }
       );
@@ -17,6 +16,15 @@ export async function PUT(req, { params }) {
 
     const { title, content, tags } = await req.json();
     // TODO: Implement updating code templates on post
+
+    const post = await prisma.blogPost.findUnique({ where: { id } });
+
+    if (!post) {
+      return Response.json(
+        { error: 'Post not found' },
+        { status: 404 }
+      );
+    }
 
     const updatedPost = await prisma.blogPost.update({
       where: { id },
@@ -38,10 +46,10 @@ export async function PUT(req, { params }) {
       }
     });
 
-    return NextResponse.json(updatedPost, { status: 200 });
+    return Response.json(updatedPost, { status: 200 });
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
+    return Response.json(
       { error: 'Failed to update blog posts' },
       { status: 500 }
     );
@@ -56,9 +64,18 @@ export async function DELETE(req, { params }) {
     console.log("Received request to delete post with ID: ", id);
 
     if (!id) {
-      return NextResponse.json(
+      return Response.json(
         { error: 'Missing or invalid ID' },
         { status: 400 }
+      );
+    }
+
+    const post = await prisma.blogPost.findUnique({ where: { id } });
+
+    if (!post) {
+      return Response.json(
+        { error: 'Post not found' },
+        { status: 404 }
       );
     }
 
@@ -66,13 +83,13 @@ export async function DELETE(req, { params }) {
       where: { id }
     });
 
-    return NextResponse.json(
+    return Response.json(
       { message: 'Blog post deleted successfully' },
       { status: 200 }
     );
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
+    return Response.json(
       { error: 'Failed to delete blog post' },
       { status: 500 }
     );
@@ -85,7 +102,7 @@ export async function GET(req, { params }) {
   console.log("Received request to fetch post with ID: ", id);
 
   if (!id) {
-    return new NextResponse.json(
+    return Response.json(
         { error: 'Invalid post ID' }, 
         { status: 400 }
     );
@@ -93,9 +110,7 @@ export async function GET(req, { params }) {
 
   try {
     const post = await prisma.blogPost.findUnique({
-      where: {
-        id
-      },
+      where: { id },
       include: {
         tags: true,
         ratings: {
@@ -107,12 +122,19 @@ export async function GET(req, { params }) {
       }
     });
 
+    if (!post) {
+      return Response.json(
+        { error: 'Post not found' },
+        { status: 404 }
+      );
+    }
+
     const postWithMetrics = itemRatingsToMetrics(post);
 
-    return NextResponse.json(postWithMetrics, {status: 200} );
+    return Response.json(postWithMetrics, {status: 200} );
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
+    return Response.json(
       { error: 'Failed to fetch blog post' },
       { status: 500 }
     );

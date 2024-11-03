@@ -1,5 +1,4 @@
 import { prisma } from '@/utils/db';
-import { NextResponse } from 'next/server';
 import { itemsRatingsToMetrics } from '@/utils/blog/metrics';
 import { sortItems } from '@/utils/blog/sorts';
 
@@ -11,7 +10,7 @@ export async function POST(req) {
     postId = Number(postId);
 
     if (!content || !authorId || !postId) {
-      return NextResponse.json(
+      return Response.json(
         { error: 'Invalid or missing required fields' },
         { status: 400 }
       );
@@ -22,7 +21,7 @@ export async function POST(req) {
     });
 
     if (!author) {
-      return NextResponse.json(
+      return Response.json(
         { error: 'Author not found' },
         { status: 404 }
       );
@@ -33,7 +32,7 @@ export async function POST(req) {
     });
 
     if (!blogPost) {
-      return NextResponse.json(
+      return Response.json(
         { error: 'Blog post not found' },
         { status: 404 }
       );
@@ -45,14 +44,14 @@ export async function POST(req) {
       });
 
       if (!parentComment) {
-        return NextResponse.json(
+        return Response.json(
           { error: 'Parent comment not found' },
           { status: 404 }
         );
       }
 
       if (parentComment.postId !== postId) {
-        return NextResponse.json(
+        return Response.json(
           { error: 'Parent comment does not belong to the specified blog post' },
           { status: 400 }
         );
@@ -78,11 +77,47 @@ export async function POST(req) {
       }
     });
 
-    return NextResponse.json(newComment, { status: 201 });
+    return Response.json(newComment, { status: 201 });
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
+    return Response.json(
       { error: 'Failed to add comment' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(req) {
+  try {
+    let { id, content } = await req.json();
+    id = Number(id);
+
+    if (!id || !content ) {
+      return Response.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    const comment = await prisma.comment.findUnique({ where: { id } });
+
+    if (!comment) {
+      return Response.json(
+        { error: 'Comment not found' },
+        { status: 404 }
+      );
+    }
+
+    const updatedComment = await prisma.comment.update({
+      where: { id },
+      data: { content }
+    });
+
+    return Response.json(updatedComment, { status: 200 });
+  } catch (error) {
+    console.error(error);
+    return Response.json(
+      { error: 'Failed to update comment' },
       { status: 500 }
     );
   }
@@ -98,7 +133,7 @@ export async function GET(req) {
     const sortBy = searchParams.get('sortBy') || 'new';
 
     if (!postId) {
-      return NextResponse.json(
+      return Response.json(
         { error: 'Invalid or missing postId' },
         { status: 400 }
       );
@@ -109,7 +144,7 @@ export async function GET(req) {
     });
 
     if (!blogPost) {
-      return NextResponse.json(
+      return Response.json(
         { error: 'Blog post not found' },
         { status: 404 }
       );
@@ -148,10 +183,10 @@ export async function GET(req) {
 
     const commentTree = buildCommentTree(allSortedComments);
 
-    return NextResponse.json(commentTree, { status: 200 });
+    return Response.json(commentTree, { status: 200 });
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
+    return Response.json(
       { error: 'Failed to fetch comments' },
       { status: 500 }
     );

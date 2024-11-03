@@ -1,5 +1,4 @@
 import { prisma } from '@/utils/db';
-import { NextResponse } from 'next/server';
 import { itemsRatingsToMetrics } from '@/utils/blog/metrics';
 import { sortItems } from '@/utils/blog/sorts';
 
@@ -9,7 +8,7 @@ export async function POST(req) {
     authorId = Number(authorId);
 
     if (!authorId || !title || !content) {
-      return NextResponse.json(
+      return Response.json(
         { error: 'Invalid or missing required fields' },
         { status: 400 }
       );
@@ -22,7 +21,7 @@ export async function POST(req) {
     });
 
     if (!author) {
-      return NextResponse.json(
+      return Response.json(
         { error: 'Author not found' },
         { status: 404 }
       );
@@ -42,10 +41,10 @@ export async function POST(req) {
       }
     });
 
-    return NextResponse.json(newPost, { status: 201 });
+    return Response.json(newPost, { status: 201 });
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
+    return Response.json(
       { error: 'Failed to create blog post' },
       { status: 500 }
     );
@@ -95,10 +94,10 @@ export async function GET(req) {
     const postsWithMetrics = itemsRatingsToMetrics(posts);
     const sortedPosts = sortItems(postsWithMetrics, sortBy);
 
-    return NextResponse.json(sortedPosts, { status: 200 });
+    return Response.json(sortedPosts, { status: 200 });
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
+    return Response.json(
       { error: 'Failed to fetch blog posts' },
       { status: 500 }
     );
