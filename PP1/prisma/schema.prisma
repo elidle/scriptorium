@@ -37,10 +37,12 @@ model User {
 
 model BlogPost {
   id              Int            @id @default(autoincrement())
-  authorId        Int
-  author          User           @relation(fields: [authorId], references: [id])
-  title           String
-  content         String
+  authorId        Int?
+  author          User?            @relation(fields: [authorId], references: [id])
+  title           String?
+  content         String?
+  isDeleted       Boolean          @default(false)
+  deletedAt       DateTime?
   tags            Tag[]
   codeTemplates   CodeTemplate[]
   comments        Comment[]
@@ -87,8 +89,11 @@ model Comment {
   replies       Comment[]       @relation("CommentReplies")
   ratings       CommentRating[]
   reports       CommentReport[]
+  isDeleted   Boolean           @default(false)
+  deletedAt   DateTime?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+
 }
 
 model PostRating {
