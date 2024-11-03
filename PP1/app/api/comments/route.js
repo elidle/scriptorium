@@ -69,8 +69,7 @@ export async function POST(req) {
         author: {
           select: {
             id: true,
-            name: true,
-            email: true
+            username: true
           }
         },
         parent: true
@@ -82,42 +81,6 @@ export async function POST(req) {
     console.error(error);
     return Response.json(
       { error: 'Failed to add comment' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function PUT(req) {
-  try {
-    let { id, content } = await req.json();
-    id = Number(id);
-
-    if (!id || !content ) {
-      return Response.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    const comment = await prisma.comment.findUnique({ where: { id } });
-
-    if (!comment) {
-      return Response.json(
-        { error: 'Comment not found' },
-        { status: 404 }
-      );
-    }
-
-    const updatedComment = await prisma.comment.update({
-      where: { id },
-      data: { content }
-    });
-
-    return Response.json(updatedComment, { status: 200 });
-  } catch (error) {
-    console.error(error);
-    return Response.json(
-      { error: 'Failed to update comment' },
       { status: 500 }
     );
   }
@@ -155,7 +118,6 @@ export async function GET(req) {
       include: {
         author: {
           select: {
-            id: true,
             username: true
           }
         },

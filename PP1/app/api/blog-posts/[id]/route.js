@@ -56,7 +56,6 @@ export async function PUT(req, { params }) {
   }
 }
 
-
 export async function DELETE(req, { params }) {
   try {
     let { id } = params;
@@ -79,14 +78,24 @@ export async function DELETE(req, { params }) {
       );
     }
 
-    await prisma.blogPost.delete({
-      where: { id }
+    const deletedPost = await prisma.blogPost.update({
+      where: { id },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+        content: null,
+        title: null,
+        authorId: null,
+        tags: {
+          set: []
+        },
+        codeTemplates: {
+          set: []
+        }
+      }
     });
 
-    return Response.json(
-      { message: 'Blog post deleted successfully' },
-      { status: 200 }
-    );
+    return Response.json(deletedPost, { status: 200 });
   } catch (error) {
     console.error(error);
     return Response.json(
@@ -112,6 +121,11 @@ export async function GET(req, { params }) {
     const post = await prisma.blogPost.findUnique({
       where: { id },
       include: {
+        author: {
+          select: {
+            id: true
+          }
+        },
         tags: true,
         ratings: {
           select: {

@@ -114,14 +114,17 @@ export async function DELETE(req) {
       );
     }
 
-    await prisma.commentRating.delete({
-      where: { id: rating.id }
+    const deletedComment = await prisma.blogPost.update({
+      where: { id },
+      date: {
+        isDeleted: true,
+        deletedAt: new Date(),
+        content: null,
+        authorId: null
+      }
     });
 
-    return Response.json(
-      { message: 'Rating deleted successfully' },
-      { status: 200 }
-    );
+    return Response.json( deletedComment, { status: 200 } );
   } catch (error) {
     console.error(error);
     return Response.json(

@@ -80,8 +80,14 @@ export async function GET(req) {
             }
           },
         }),
+        isDeleted: false
       },
       include: {
+        author: {
+          select: {
+            username: true
+          }
+        },
         tags: true,
         ratings: {
           select: {
