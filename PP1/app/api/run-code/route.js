@@ -1,130 +1,3 @@
-// import { NextResponse } from 'next/server';
-// import { spawn } from 'child_process';
-// import path from 'path';
-// import fs from 'fs';
-
-// // Create a unique filename for the code based on the language
-// const generateFileName = (language) => {
-//     const extensionMap = {
-//         python: 'py',
-//         javascript: 'js',
-//         c: 'c',
-//         cpp: 'cpp',
-//         java: 'java',
-//     };
-//     return `code_${Date.now()}.${extensionMap[language]}`;
-// };
-
-// export async function POST(req) {
-//     const { code, input, language } = await req.json();
-
-//     // Validate input
-//     if (!code || !language) {
-//         return NextResponse.json({ error: "Code and language are required." }, { status: 400 });
-//     }
-
-//     const fileName = generateFileName(language);
-//     const filePath = path.join(process.cwd(), fileName);
-
-//     // Write the code to a temporary file
-//     fs.writeFileSync(filePath, code);
-
-//     // Determine the command and args based on the language
-//     let command;
-//     let args = [];
-
-//     switch (language) {
-//         case 'python':
-//             command = 'python';
-//             args.push(filePath);
-//             break;
-//         case 'javascript':
-//             command = 'node';
-//             args.push(filePath);
-//             break;
-//         case 'c':
-//             command = 'gcc';
-//             args.push(filePath, '-o', 'output');
-//             break;
-//         case 'cpp':
-//             command = 'g++';
-//             args.push(filePath, '-o', 'output');
-//             break;
-//         case 'java':
-//             command = 'javac';
-//             args.push(filePath);
-//             break;
-//         default:
-//             return NextResponse.json({ error: "Unsupported language." }, { status: 400 });
-//     }
-
-//     // Spawn a child process to run the code
-//     const child = spawn(command, args);
-
-//     // Create variables to store the output
-//     let output = '';
-//     let errorOutput = '';
-
-//     // If there's input to provide, write it to stdin
-//     if (input) {
-//         child.stdin.write(input);
-//         child.stdin.end(); // Close stdin after writing input
-//     }
-
-//     // Listen for data from stdout
-//     child.stdout.on('data', (data) => {
-//         output += data.toString();
-//     });
-
-//     // Listen for data from stderr
-//     child.stderr.on('data', (data) => {
-//         errorOutput += data.toString();
-//     });
-
-//     // Listen for the child process to exit
-//     return new Promise((resolve) => {
-//         child.on('close', (code) => {
-//             // Clean up: Delete the temporary file
-//             fs.unlinkSync(filePath);
-//             if (language === 'c' || language === 'cpp') {
-//                 fs.unlinkSync(path.join(process.cwd(), 'output')); // Clean up compiled output
-//             } else if (language === 'java') {
-//                 fs.unlinkSync(filePath); // Clean up the compiled Java file
-//                 fs.unlinkSync(path.join(process.cwd(), fileName.replace('.java', '.class'))); // Clean up the compiled Java class
-//             }
-
-//             if (code !== 0) {
-//                 return resolve(
-//                     NextResponse.json({
-//                         error: "Error executing code",
-//                         details: errorOutput || "Unknown error"
-//                     }, { status: 500 })
-//                 );
-//             }
-
-//             // If C or C++ was executed, run the output binary
-//             if (language === 'c' || language === 'cpp') {
-//                 const outputChild = spawn(`./output`);
-//                 let binaryOutput = '';
-
-//                 outputChild.stdout.on('data', (data) => {
-//                     binaryOutput += data.toString();
-//                 });
-
-//                 outputChild.stderr.on('data', (data) => {
-//                     errorOutput += data.toString();
-//                 });
-
-//                 outputChild.on('close', (binaryCode) => {
-//                     resolve(NextResponse.json({ output: binaryOutput || errorOutput }));
-//                 });
-//             } else {
-//                 resolve(NextResponse.json({ output }));
-//             }
-//         });
-//     });
-// }
-
 import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
@@ -135,11 +8,11 @@ const MEMORY_LIMIT_MB = 100; // Memory limit in megabytes
 
 const generateFileName = (language) => {
     const extensionMap = {
-        python: 'py',
+        python3: 'py',
         javascript: 'js',
         c: 'c',
         cpp: 'cpp',
-        java: 'java',
+        java: 'java', 
     };
 
     // For Java, force the file name to be "Main.java"
@@ -193,10 +66,20 @@ export async function POST(req) {
     return new Promise((resolve) => {
         const child = spawn(command, args);
 
-        if (language === 'javascript' || language === 'python') {
-            child.stdin.write(input + '\n');
-            child.stdin.end();
-        } 
+        if (language === 'javascript' || language === 'python3') {
+            // const inputlist = input.split("\n");
+            // child.stdin.write(input); // Provide input
+
+            const inputs = input.split("\n"); // Split the input by newlines
+
+            for (const line of inputs) {
+                child.stdin.write(line + "\n"); // Write each line to the child process
+            }
+
+            child.stdin.end(); // Close the input stream
+            // const child = spawn(command, args);
+        }
+        console.log(args);
 
         let output = '';
         let errorOutput = '';
@@ -227,6 +110,15 @@ export async function POST(req) {
             if (language === 'c' || language === 'cpp') {
                 // Execute the compiled output
                 const execChild = spawn(path.join(process.cwd(), 'output'));
+                // execChild.stdin.write(input); // Provide input
+
+                const inputs = input.split("\n"); // Split the input by newlines
+
+                for (const line of inputs) {
+                    execChild.stdin.write(line + "\n"); // Write each line to the child process
+                }
+
+                execChild.stdin.end(); // Close the input stream
 
                 execChild.stdout.on('data', (data) => {
                     output += data.toString();
@@ -264,6 +156,16 @@ export async function POST(req) {
 
                 // Execute the compiled Java class file
                 const execChild = spawn('java', ['-cp', process.cwd(), 'Main']); // Ensure 'Main' matches the class name
+
+                // execChild.stdin.write(input); // Provide input
+
+                const inputs = input.split("\n"); // Split the input by newlines
+
+                for (const line of inputs) {
+                    execChild.stdin.write(line + "\n"); // Write each line to the child process
+                }
+
+                execChild.stdin.end(); // Close the input stream
 
                 execChild.stdout.on('data', (data) => {
                     output += data.toString();
@@ -305,4 +207,3 @@ export async function POST(req) {
         });
     });
 }
-

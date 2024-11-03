@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { comparePassword, generateAccessToken, generateRefreshToken } from "../../utils/auth";
+import { comparePassword, generateAccessToken, generateRefreshToken } from '../../../utils/auth';
 
 const prisma = new PrismaClient();
 
@@ -22,14 +22,14 @@ export async function POST(req) {
         }
 
         // Compare the password with the stored hashed password
-        const isPasswordValid = comparePassword(password, user.hashedpassword);
+        const isPasswordValid = await comparePassword(password, user.hashedPassword);
         
         if (!isPasswordValid) {
             return new Response("Invalid username or password", { status: 401 });
         }
 
         // Generate the token
-        obj = { userId: user.id, username: user.username }
+        const obj = { userId: user.id, username: user.username }
         const Accesstoken = generateAccessToken(obj);
         const RefreshToken = generateRefreshToken(obj);
 
@@ -50,9 +50,10 @@ export async function POST(req) {
             headers: { "Content-Type": "application/json" },
         });
     } catch (error) {
+        
         console.error("Error during login:", error);
         return new Response("Internal Server Error", { status: 500 });
     } finally {
         await prisma.$disconnect(); // Ensure that Prisma Client disconnects
     }
-}
+} 

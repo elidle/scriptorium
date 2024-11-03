@@ -4,19 +4,6 @@ import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
-export async function GET(req) {
-    try {
-        const users = await prisma.user.findMany();
-        return new Response(JSON.stringify(users), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-        });
-    } catch (error) {
-        console.error("Error fetching users:", error);
-        return new Response("Internal Server Error", { status: 500 });
-    }
-}
-
 export async function POST(req) {
     const { username, firstname, lastname, email, password, phoneNumber, role } = await req.json(); // Assuming you are getting these details
 
@@ -27,6 +14,9 @@ export async function POST(req) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     try {
+        // authorization step 
+        await authorize(req, ['admin']);
+
         const newUser = await prisma.user.create({
             data: {
                 username : username,
@@ -43,6 +33,10 @@ export async function POST(req) {
             headers: { "Content-Type": "application/json" },
         });
     } catch (error) {
+
+        if (error instanceof ForbiddenError) {
+            return new Response(error.message, { status: error.statusCode });
+        }
         console.error("Error creating user:", error);
         return new Response("Internal Server Error", { status: 500 });
     } finally {

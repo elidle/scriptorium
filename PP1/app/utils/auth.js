@@ -21,7 +21,7 @@ export function generateAccessToken(obj) {
   });
 }
 
-export function generateResfreshToken(obj) {
+export function generateRefreshToken(obj) {
   return jwt.sign(obj, REFRESH_TOKEN_SECRET, {
     expiresIn: REFRESH_TOKEN_EXPIRY,
   });

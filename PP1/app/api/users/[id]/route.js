@@ -3,17 +3,18 @@
 // to update user data, or DELETE requests to remove a user.
 
 import { PrismaClient } from '@prisma/client';
-import { ForbiddenError } from '../../errors/ForbiddenError';
+import { ForbiddenError } from '../../../errors/ForbiddenError';
+import { authorize } from "../../../middleware/auth"
 
 const prisma = new PrismaClient();
 
 export async function GET(req, { params }) {
-
-    await authorize(['admin', 'user'])(req, res, () => {});
-
     const { id } = params;
 
     try {
+        // Authorize user with roles 'admin' or 'user'
+        await authorize(req, ['admin', 'user']);
+
         const user = await prisma.user.findUnique({
             where: { id: parseInt(id) },
         });
@@ -26,6 +27,7 @@ export async function GET(req, { params }) {
             status: 200,
             headers: { "Content-Type": "application/json" },
         });
+
     } catch (error) {
         if (error instanceof ForbiddenError) {
             return new Response(error.message, { status: error.statusCode });
@@ -40,12 +42,13 @@ export async function GET(req, { params }) {
 
 // A similar implementation is on the profile/route.js
 export async function PUT(req, { params }) {
-    await authorize(['admin', 'user'])(req, res, () => {});
 
     const { id } = params;
     const updateData = await req.json();
 
     try {
+        await authorize(req, ['admin', 'user']);
+
         const updatedUser = await prisma.user.update({
             where: { id: parseInt(id) },
             data: updateData,
@@ -70,11 +73,12 @@ export async function PUT(req, { params }) {
 
 // When user wants to delete their account
 export async function DELETE(req, { params }) {
-    await authorize(['admin', 'user'])(req, res, () => {});
 
     const { id } = params;
 
     try {
+        await authorize(req, ['admin', 'user']);
+
         await prisma.user.delete({
             where: { id: parseInt(id) },
         });
