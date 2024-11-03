@@ -19,7 +19,6 @@ export async function GET(req) {
       }
     });
   } catch (err) {
-    console.log(err);
     return Response.json({ status: 'error', message: 'Failed to search tags' }, { status: 500 });
   }
   return Response.json({ status: 'success', tags: tags }, { status: 200 });

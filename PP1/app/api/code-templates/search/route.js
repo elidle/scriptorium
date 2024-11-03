@@ -17,13 +17,6 @@ export async function GET(req) {
   const limit = req.nextUrl.searchParams.get('limit') ? Number(req.nextUrl.searchParams.get('limit')) : 10;
 
 
-  console.log(req.nextUrl.searchParams); // TODO: Remove this line
-  console.log("Query: " + q); // TODO: Remove this line
-  console.log("Tags: ", tags); // TODO: Remove this line
-  console.log("UserId: " + userId); // TODO: Remove this line
-  console.log("Cursor: " + cursor); // TODO: Remove this line
-  console.log("Cursor Value: " + cursorValue); // TODO: Remove this line
-  console.log("Sort By: " + sortBy); // TODO: Remove this line
   let templates;
   try{
     const getCursorCondition = () => {
@@ -52,14 +45,14 @@ export async function GET(req) {
       where: {
         // ...getCursorCondition(),
         authorId: userId ?? Prisma.skip,
-        tags: tags.length > 0 ? { // TODO: We could consider putting this in an AND block with the other OR blocks
+        tags: tags.length > 0 ? {
           some:{
             name: {
               in: tags ,
             }
           }
         } : Prisma.skip,
-        OR: [ // TODO: We want to prioritize the title, then tags, then explanation, then code
+        OR: [
           {
             title: { contains: q ?? Prisma.skip,},
           },
@@ -90,7 +83,6 @@ export async function GET(req) {
     });
   }
   catch(err) {
-    console.log(err); // TODO: Remove this line
     return Response.json({ status: 'error', message: 'Failed to fetch templates' }, { status: 400 });
   }
   if(sortBy === 'most-relevant'){

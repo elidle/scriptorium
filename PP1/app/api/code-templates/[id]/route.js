@@ -50,9 +50,6 @@ export async function PUT(req, { params }) {
   const { id } = params;
   let { title, code, language, explanation, tags, authorId, isForked} = await req.json();
 
-  console.log("Received request to update template"); // TODO: Remove this line
-  // console.log(req.headers.get("token")); // TODO: Remove this line
-
   try{
     /*
      * This will return the existing tags of the template with format:
