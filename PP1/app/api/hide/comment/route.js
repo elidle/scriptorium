@@ -44,7 +44,7 @@ export async function POST(req) {
       where: { id: commentId },
       data: {
         isHidden: true,
-        hiddenBy: userId,
+        hiddenById: userId,
         hiddenAt: new Date()
       }
     });
@@ -103,7 +103,7 @@ export async function DELETE(req) {
       where: { id: commentId },
       data: {
         isHidden: false,
-        hiddenBy: null,
+        hiddenById: null,
         hiddenAt: null
       }
     });

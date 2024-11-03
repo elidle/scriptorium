@@ -41,7 +41,7 @@ export async function POST(req) {
     }
 
     const hiddenPost = await prisma.blogPost.update({
-      where: { id: commentId },
+      where: { id: postId },
       data: { 
         isHidden: true,
         hiddenById: userId,
@@ -100,7 +100,7 @@ export async function DELETE(req) {
     }
 
     const unhiddenPost = await prisma.blogPost.update({
-      where: { id: commentId },
+      where: { id: postId },
       data: { 
         isHidden: false,
         hiddenById: null,
