@@ -45,7 +45,7 @@ export async function GET(req, { params }) {
 export async function PUT(req, { params }) {
   // const user = await verifyToken(req.headers.get("authorization"));
   // if (!user) {
-  //     return Response.json({ status: 'error', message: 'Unauthorized' }, { status: 401 });
+  //     return response.json({ status: 'error', message: 'unauthorized' }, { status: 401 });
   // }
   const { id } = params;
   let { title, code, language, explanation, tags, authorId, isForked} = await req.json();
