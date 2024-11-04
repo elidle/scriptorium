@@ -80,7 +80,8 @@ export async function GET(req) {
             }
           },
         }),
-        isDeleted: false
+        isDeleted: false,
+        isHidden: false
       },
       include: {
         author: {

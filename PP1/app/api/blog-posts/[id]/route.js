@@ -143,6 +143,11 @@ export async function GET(req, { params }) {
       );
     }
 
+    if (post.isHidden) {
+      post.title = "[Hidden post]";
+      post.content = "This post has been hidden by a moderator.";
+    }
+
     const postWithMetrics = itemRatingsToMetrics(post);
 
     return Response.json(postWithMetrics, {status: 200} );

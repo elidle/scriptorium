@@ -127,11 +127,15 @@ export async function GET(req) {
             value: true
           }
         }
-      },
-      orderBy: {
-        createdAt: 'desc'
       }
     });
+
+    const transformedComments = comments.map(comment => ({
+      ...comment,
+      content: comment.isHidden 
+        ? '[This comment has been hidden by a moderator.]' 
+        : comment.content
+    }));
 
     const commentsWithMetrics = itemsRatingsToMetrics(comments);
 
@@ -144,8 +148,9 @@ export async function GET(req) {
     const allSortedComments = [...sortedTopLevelComments, ...sortedReplies];
 
     const commentTree = buildCommentTree(allSortedComments);
+    const commentTreeHidden = commentTree.map(comment => hideContent(comment));
 
-    return Response.json(commentTree, { status: 200 });
+    return Response.json(commentTreeHidden, { status: 200 });
   } catch (error) {
     console.error(error);
     return Response.json(
@@ -176,4 +181,14 @@ function buildCommentTree(comments) {
   });
 
   return rootComments;
+}
+
+function hideContent(comment) {
+  return {
+    ...comment,
+    content: comment.isHidden 
+      ? '[This comment has been hidden by a moderator.]' 
+      : comment.content,
+    replies: comment.replies.map(reply => hideContent(reply))
+  };
 }
