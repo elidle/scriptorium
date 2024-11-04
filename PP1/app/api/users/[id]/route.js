@@ -1,10 +1,10 @@
 // the route.js file within the [id] folder would typically handle requests related to a specific user 
 // identified by their id. This could include handling GET requests to fetch user data, PUT requests 
 // to update user data, or DELETE requests to remove a user.
-
-import { ForbiddenError } from '@/errors/ForbiddenError';
+import { ForbiddenError } from '../../../../errors/ForbiddenError';
 import { authorize } from '../../../middleware/auth';
-import {prisma} from "@/utils/db";
+import {prisma} from "../../../../utils/db";
+import {hashPassword} from "../../../../utils/auth.js";
 
 export async function GET(req, { params }) {
     const { id } = params;
@@ -19,23 +19,18 @@ export async function GET(req, { params }) {
         });
 
         if (!user) {
-            return new Response("User not found", { status: 404 });
+            return Response.json({status: "error", message: "User not found"}, { status: 404 });
         }
 
-        return new Response(JSON.stringify(user), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-        });
+        return Response.json(user,{ status: 200 });
 
     } catch (error) {
         if (error instanceof ForbiddenError) {
-            return new Response(error.message, { status: error.statusCode });
+            return Response.json({ status: "error", message: error.message }, { status: error.statusCode });
         }
 
         console.error("Error fetching user:", error);
-        return new Response("Internal Server Error", { status: 500 });
-    } finally {
-        await prisma.$disconnect();
+        return Response.json({ status: "error", message: "Internal server error" }, { status: 500 });
     }
 }
 
@@ -44,16 +39,16 @@ export async function PUT(req, { params }) {
 
     const { id } = params;
     const updateData = await req.json();
-
     try {
         await authorize(req, ['admin', 'user'], parseInt(id));
-
+        updateData.hashedPassword = updateData.password ? await hashPassword(updateData.password) : undefined;
+        delete updateData.password;
         const user = await prisma.user.findUnique({
             where: { id: parseInt(id) },
         });
 
         if (!user) {
-            return new Response("User not found", { status: 404 });
+            return Response.json({ status: "error", message: "User not found" }, { status: 404 });
         }
 
         // Validate that the updateData doesn't contain a change to the 'id' field
@@ -86,19 +81,15 @@ export async function PUT(req, { params }) {
             data: updateData,
         });
 
-        return new Response(JSON.stringify(updatedUser), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-        });
+        return Response.json(updatedUser, { status: 200 });
     } catch (error) {
 
         if (error instanceof ForbiddenError) {
-            return new Response(error.message, { status: error.statusCode });
+            return Response.json({ status: "error", message: error.message }, { status: error.statusCode });
         }
 
         console.error("Error updating user:", error);
-        return new Response("Internal Server Error", { status: 500 });
-    } finally {
-        await prisma.$disconnect();
+        return Response.json({ status: "error", message: "Internal server error" }, { status: 500 });
     }
 }
+

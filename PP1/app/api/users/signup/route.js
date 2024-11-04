@@ -1,5 +1,5 @@
-import {prisma} from "@/utils/db";
-import { hashPassword } from "../../../../utils/auth";
+import { hashPassword } from '../../../../utils/auth';
+import {prisma} from "../../../../utils/db";
 
 export async function POST(req) {
 
@@ -7,18 +7,18 @@ export async function POST(req) {
 
     // Validate input
     if (!username || !email || !password || !firstname || !lastname ||!phoneNumber) {
-        return new Response("Missing username, email, or password", { status: 400 });
+        return Response.json({ status: "error", message: "Missing fields" }, { status: 400 });
     }
 
     if (password.length < 6) {
-        return new Response("Password must be at least 6 characters long", { status: 400 });
+        return Response.json({ status: "error", message: "Password must be at least 6 characters long" }, { status: 400 });
     }
 
     // Regular expression for validating a phone number (simple example)
-    const phoneNumberPattern = /^\+?[1-9]\d{1,14}$/; // This allows optional '+' and ensures valid international format
+    const phoneNumberPattern = /^\+?[0-9]\d{1,14}$/; // This allows optional '+' and ensures valid international format
 
     if (!phoneNumberPattern.test(phoneNumber)) {
-        return new Response("Invalid phone number", { status: 400 });
+        return Response.json({ status: "error", message: "Invalid phone number" }, { status: 400 });
     }
 
     // Hash the password
@@ -29,8 +29,8 @@ export async function POST(req) {
             where: { email },
         });
 
-        if (existingUserByEmail) {
-            return new Response("User already exists with this email", { status: 400 });
+        if (existingUser) {
+            return Response.json({ status: "error", message: "User already exists with this email" }, { status: 400 });
         }
 
         // Check if username already exists
@@ -55,21 +55,18 @@ export async function POST(req) {
         });
 
         // Respond with the created user information (omit sensitive data)
-        return new Response(JSON.stringify({
+        return Response.json({
             message: "User created successfully",
             user: {
                 id: newUser.id,
                 username: newUser.username,
                 email: newUser.email,
             },
-        }), {
+        }, {
             status: 201,
-            headers: { "Content-Type": "application/json" },
         });
     } catch (error) {
         console.error("Error creating user:", error);
-        return new Response("Internal Server Error", { status: 500 });
-    } finally {
-        await prisma.$disconnect(); // Ensure that Prisma Client disconnects
+        return Response.json({ status: "error", message: "Internal server error" }, { status: 500 });
     }
 }
