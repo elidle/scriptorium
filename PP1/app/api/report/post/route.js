@@ -1,11 +1,10 @@
 import { prisma } from '../../../../utils/db';
+import {authorize} from "../../../middleware/auth";
 
 // This function is used to report a post.
 export async function POST(req) {
-  // const user = verifyToken(req.headers.get("authorization"));
-  // if (!user) {
-  //   return new Response(JSON.stringify({ status: 'error', message: 'Unauthorized' }), { status: 401 });
-  // }
+  await authorize(req);
+
   const { reporterId, postId, reason } = await req.json();
 
   if(!reporterId || !postId || !reason){

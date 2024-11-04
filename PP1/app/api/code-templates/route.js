@@ -1,21 +1,17 @@
 import { prisma } from '../../../utils/db';
-import {generateAccessToken, verifyToken} from "../../../utils/auth";
+import {authorize} from "../../middleware/auth";
 
 /*
  * This function is used to create or fork a new code template.
  */
 export async function POST(req) {
-  // const user = verifyToken(req.headers.get("authorization"));
-  // if (!user) {
-  //     return Response.json({ status: 'error', message: 'Unauthorized' }, { status: 401 });
-  // }
+  await authorize(req);
 
   let { title, code, language , explanation, tags, authorId, isForked, parentTemplateId } = await req.json();
 
   /*
    * Note:
    * Here <tags> is a list of strings.
-   * Need to confirm what the format of <tags> is.
    */
   if(!title || !code || !authorId){
     return Response.json({ status: 'error', message: 'Missing required fields' }, { status: 400 });
