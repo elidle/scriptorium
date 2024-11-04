@@ -1,5 +1,4 @@
-import { prisma } from '../../../../utils/db'
-import {Prisma} from "@prisma/client";
+import { prisma, Prisma } from '../../../../utils/db'
 import {verifyToken} from "../../../../utils/auth";
 
 /*

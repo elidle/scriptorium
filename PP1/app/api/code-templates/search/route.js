@@ -1,5 +1,4 @@
-import { prisma } from '../../../../utils/db';
-import { Prisma } from '@prisma/client';
+import { prisma, Prisma } from '../../../../utils/db';
 import { sortMostRelevantFirst } from "../../../../utils/code-template/sorts";
 import { fetchCurrentPage } from "../../../../utils/pagination";
 
@@ -90,5 +89,5 @@ export async function GET(req) {
     curPage = retObj.curPage;
     hasMore = retObj.hasMore;
   }
-  return Response.json({ template: curPage, hasMore: hasMore, page: hasMore ? Number(page) + 1 : null }, { status: 200 });
+  return Response.json({ template: curPage, hasMore: hasMore, nextPage: hasMore ? Number(page) + 1 : null }, { status: 200 });
 }

@@ -24,13 +24,15 @@ model User {
   role            String           @default("user") // "user" or "admin"
   phoneNumber     String           @default("0")
   email           String           @unique
-  posts           BlogPost[]
-  comments        Comment[]
+  posts           BlogPost[]    @relation("author")
+  comments        Comment[]      @relation("author")
   postRatings     PostRating[]
   commentRatings  CommentRating[]
   codeTemplates   CodeTemplate[]
   reportPosts     PostReport[]
   reportComments  CommentReport[]
+  hiddenPosts     BlogPost[]      @relation("moderator")
+  hiddenComments  Comment[]       @relation("moderator")
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 }
@@ -38,11 +40,15 @@ model User {
 model BlogPost {
   id              Int            @id @default(autoincrement())
   authorId        Int?
-  author          User?            @relation(fields: [authorId], references: [id])
+  author          User?            @relation("author", fields: [authorId], references: [id])
   title           String?
   content         String?
   isDeleted       Boolean          @default(false)
   deletedAt       DateTime?
+  isHidden        Boolean          @default(false)
+  hiddenAt        DateTime?
+  hiddenById      Int?
+  hiddenBy        User?            @relation("moderator", fields: [hiddenById], references: [id])
   tags            Tag[]
   codeTemplates   CodeTemplate[]
   comments        Comment[]
@@ -81,7 +87,7 @@ model Comment {
   id            Int             @id @default(autoincrement())
   content       String
   authorId      Int
-  author        User            @relation(fields: [authorId], references: [id])
+  author        User            @relation("author", fields: [authorId], references: [id])
   postId        Int
   post          BlogPost        @relation(fields: [postId], references: [id])
   parent        Comment?        @relation("CommentReplies", fields: [parentId], references: [id])
@@ -89,11 +95,14 @@ model Comment {
   replies       Comment[]       @relation("CommentReplies")
   ratings       CommentRating[]
   reports       CommentReport[]
-  isDeleted   Boolean           @default(false)
-  deletedAt   DateTime?
+  isDeleted     Boolean           @default(false)
+  deletedAt     DateTime?
+  isHidden      Boolean           @default(false)
+  hiddenAt      DateTime?
+  hiddenById    Int?
+  hiddenBy      User?            @relation("moderator", fields: [hiddenById], references: [id])
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
-
 }
 
 model PostRating {
