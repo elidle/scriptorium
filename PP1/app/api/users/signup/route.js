@@ -1,4 +1,5 @@
 import {prisma} from "@/utils/db";
+import { hashPassword } from "../../../../utils/auth";
 
 export async function POST(req) {
 
@@ -21,15 +22,24 @@ export async function POST(req) {
     }
 
     // Hash the password
-    const hashedPassword = await hashedPassword(password);
+    const hashedPassword = await hashPassword(password);
     try {
-        // Check if user already exists
-        const existingUser = await prisma.user.findUnique({
+        // Check if email already exists
+        const existingUserByEmail = await prisma.user.findUnique({
             where: { email },
         });
 
-        if (existingUser) {
+        if (existingUserByEmail) {
             return new Response("User already exists with this email", { status: 400 });
+        }
+
+        // Check if username already exists
+        const existingUserByUsername = await prisma.user.findUnique({
+            where: { username },
+        });
+
+        if (existingUserByUsername) {
+            return new Response("User already exists with this username", { status: 400 });
         }
 
         // Create a new user in the database

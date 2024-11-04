@@ -7,7 +7,7 @@ export async function authorize(req, roles = [], owner = -1) {
     }
 
     // Extract the token from headers
-    const authorizationHeader = req.headers.get('accesstoken');
+    const authorizationHeader = req.headers.get('access-token');
 
     if (!authorizationHeader) {
         throw new ForbiddenError("Forbidden: No token provided.");

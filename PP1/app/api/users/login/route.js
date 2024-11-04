@@ -42,8 +42,8 @@ export async function POST(req) {
                 firstname: user.firstname,
                 lastname: user.lastname,
             },
-            refreshtoken : RefreshToken,
-            accesstoken : Accesstoken
+            "refresh-token" : RefreshToken,
+            "access-token" : Accesstoken
         }), {
             status: 200,
             headers: { "Content-Type": "application/json" },

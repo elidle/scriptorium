@@ -56,6 +56,31 @@ export async function PUT(req, { params }) {
             return new Response("User not found", { status: 404 });
         }
 
+            // Validate that the updateData doesn't contain a change to the 'id' field
+        if (updateData.id && updateData.id !== user.id) {
+            return new Response("Changing user ID is not allowed", { status: 400 });
+        }
+
+        // Ensure the email is unique if provided in updateData
+        if (updateData.email && updateData.email !== user.email) {
+            const emailExists = await prisma.user.findUnique({
+                where: { email: updateData.email },
+            });
+            if (emailExists) {
+                return new Response("Email is already in use", { status: 400 });
+            }
+        }
+
+        // Ensure the username is unique if provided in updateData
+        if (updateData.username && updateData.username !== user.username) {
+            const usernameExists = await prisma.user.findUnique({
+                where: { username: updateData.username },
+            });
+            if (usernameExists) {
+                return new Response("Username is already in use", { status: 400 });
+            }
+        }
+
         const updatedUser = await prisma.user.update({
             where: { id: parseInt(id) },
             data: updateData,
