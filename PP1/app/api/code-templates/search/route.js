@@ -12,7 +12,7 @@ export async function GET(req) {
   const cursor = req.nextUrl.searchParams.get('cursor');
   const cursorValue = req.nextUrl.searchParams.get('cursorValue');
   const sortBy = req.nextUrl.searchParams.get('sortBy');
-  const limit = req.nextUrl.searchParams.get('limit') ? Number(req.nextUrl.searchParams.get('limit')) : 10;
+  const limit = req.nextUrl.searchParams.get('limit') ? Number(req.nextUrl.searchParams.get('limit')) : 3; // TODO: Change to 10
 
   let templates, userId;
   try{
@@ -58,7 +58,7 @@ export async function GET(req) {
     };
     templates = await prisma.codeTemplate.findMany({
       where: {
-        // ...getCursorCondition(),
+        ...getCursorCondition(),
         authorId: userId ?? Prisma.skip,
         tags: tags.length > 0 ? {
           some:{
@@ -86,8 +86,8 @@ export async function GET(req) {
           },
         ],
       },
-      // take: limit + 1,  // Fetch one extra to check for next page
-      // orderBy: sortBy === 'new' ? { createdAt: 'desc' } : { createdAt: 'asc' }
+      take: limit + 1,  // Fetch one extra to check for next page
+      orderBy: sortBy === 'new' ? { createdAt: 'desc' } : { createdAt: 'asc' },
       include: {
         tags: {
           select: {
@@ -98,10 +98,11 @@ export async function GET(req) {
     });
   }
   catch(err) {
-    return Response.json({ status: 'error', message: 'Failed to fetch templates' }, { status: 400 });
+    return Response.json({ status: 'error', message: 'Failed to fetch templates' }, { status: 500 });
   }
   if(sortBy === 'most-relevant'){
     templates = sortMostRelevantFirst(templates, q); // Sort by relevance
   }
+  const hasMore = templates.length > limit;
   return Response.json(templates, { status: 200 });
 }

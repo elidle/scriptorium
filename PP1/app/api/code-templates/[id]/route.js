@@ -156,7 +156,7 @@ try{
     });
   }
   catch(err){
-    return Response.json({ status: 'error', message: 'Failed to delete template' }, { status: 400 });
+    return Response.json({ status: 'error', message: 'Failed to delete template' }, { status: 500 });
   }
 return Response.json({ status: 'success' }, { status: 200 });
 }
