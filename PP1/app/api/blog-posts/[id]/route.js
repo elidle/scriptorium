@@ -1,9 +1,9 @@
-import { prisma } from '@/utils/db';
-import { itemRatingsToMetrics } from '@/utils/blog/metrics';
-// import { authorize } from '@/utils/auth';
+import { prisma } from '../../../../utils/db';
+import { itemRatingsToMetrics } from '../../../../utils/blog/metrics';
+import {authorize, authorizeAuthor} from '../../../../middleware/auth';
 
 export async function PUT(req, { params }) {
-  // await authorize(req, ['admin', 'user']);
+  await authorize(req, ['user', 'admin']);
 
   try {
     let { id } = params;
@@ -28,6 +28,9 @@ export async function PUT(req, { params }) {
         { status: 404 }
       );
     }
+
+    // Authorize author
+    await authorizeAuthor(req, post.authorId);
 
     const updatedPost = await prisma.blogPost.update({
       where: { id },
@@ -60,7 +63,7 @@ export async function PUT(req, { params }) {
 }
 
 export async function DELETE(req, { params }) {
-  // await authorize(req, ['admin', 'user']);
+  await authorize(req, ['user', 'admin']);
 
   try {
     let { id } = params;
@@ -82,6 +85,8 @@ export async function DELETE(req, { params }) {
         { status: 404 }
       );
     }
+
+    await authorizeAuthor(req, post.authorId);
 
     const deletedPost = await prisma.blogPost.update({
       where: { id },

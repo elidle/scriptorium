@@ -1,8 +1,8 @@
-import { prisma } from '@/utils/db';
-// import { authorize } from '@/utils/auth';
+import { prisma } from '../../../../utils/db';
+import { authorize, authorizeAuthor } from "../../../middleware/auth";
 
 export async function POST(req) {
-  // await authorize(req, ['admin', 'user']);
+  await authorize(req, ['user', 'admin']);
 
   try {
     let { value, userId, commentId } = await req.json();
@@ -23,6 +23,8 @@ export async function POST(req) {
         { status: 400 }
       );
     }
+
+    await authorizeAuthor(req, userId);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
@@ -73,7 +75,7 @@ export async function POST(req) {
 }
 
 export async function DELETE(req) {
-  // await authorize(req, ['admin', 'user']);
+  await authorize(req, ['user', 'admin']);
 
   try {
     let { userId, commentId } = await req.json();
@@ -86,6 +88,8 @@ export async function DELETE(req) {
         { status: 400 }
       );
     }
+
+    await authorizeAuthor(req, userId);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
