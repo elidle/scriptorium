@@ -1,5 +1,5 @@
-import { verifyAccessToken } from '../utils/auth'; // Adjust path as needed
-import { ForbiddenError } from '../errors/ForbiddenError';
+import { ForbiddenError } from '@/errors/ForbiddenError';
+import { verifyAccessToken } from '@/utils/auth';
 
 export async function authorize(req, roles = []) {
     if (typeof roles === 'string') {
@@ -7,20 +7,21 @@ export async function authorize(req, roles = []) {
     }
 
     // Extract the token from headers
-    const authorizationHeader = req.headers.get('authorization');
+    const authorizationHeader = req.headers.get('accesstoken');
+
     if (!authorizationHeader) {
         throw new ForbiddenError("Forbidden: No token provided.");
     }
 
     // Remove 'Bearer ' prefix if it exists
-    const token = authorizationHeader.startsWith("Bearer ")
-        ? authorizationHeader.split(" ")[1]
-        : authorizationHeader;
+    const token = authorizationHeader;
 
     try {
         // Verify and decode the token
-        const decoded = verifyAccessToken(token); // Assuming this verifies and decodes the token
+        const decoded = verifyAccessToken(token).decoded; // Assuming this verifies and decodes the token
         const userRole = decoded.role;
+
+        console.log(decoded)
 
         // Check if the user's role matches any allowed role
         if (roles.length && !roles.includes(userRole)) {
@@ -37,6 +38,6 @@ export async function authorize(req, roles = []) {
         }
 
         // Generic unauthorized access error
-        throw new ForbiddenError("Unauthorized access.");
+        throw new ForbiddenError(error.message);
     }
 }

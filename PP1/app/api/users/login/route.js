@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { comparePassword, generateAccessToken, generateRefreshToken } from '../../../utils/auth';
+import { comparePassword, generateAccessToken, generateRefreshToken } from '@/utils/auth';
 
 const prisma = new PrismaClient();
 
@@ -29,7 +29,8 @@ export async function POST(req) {
         }
 
         // Generate the token
-        const obj = { id: user.id, username: user.username }
+
+        const obj = { id: user.id, username: user.username, role: user.role}
         const Accesstoken = generateAccessToken(obj);
         const RefreshToken = generateRefreshToken(obj);
 
@@ -43,7 +44,7 @@ export async function POST(req) {
                 firstname: user.firstname,
                 lastname: user.lastname,
             },
-            refreshToken : RefreshToken,
+            refreshtoken : RefreshToken,
             accesstoken : Accesstoken
         }), {
             status: 200,

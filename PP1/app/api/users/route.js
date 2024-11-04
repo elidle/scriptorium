@@ -1,8 +1,9 @@
 // /api/users/route.js
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
-import { authorize } from "../../middleware/auth"
-import { ForbiddenError } from '../../../errors/ForbiddenError';
+import { ForbiddenError } from '@/errors/ForbiddenError';
+import { authorize } from '../../middleware/auth_user';
+import { hashPassword } from '../../../utils/auth';
 
 const prisma = new PrismaClient();
 
@@ -13,7 +14,7 @@ export async function POST(req) {
         return new Response("Missing fields", { status: 400 });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await hashPassword(password);
 
     try {
         // authorization step 

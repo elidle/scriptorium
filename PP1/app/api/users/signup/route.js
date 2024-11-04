@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
-import { isValidPhoneNumber } from '../../../utils/util';
 
 const prisma = new PrismaClient();
 
@@ -17,12 +16,15 @@ export async function POST(req) {
         return new Response("Password must be at least 6 characters long", { status: 400 });
     }
 
-    if (!isValidPhoneNumber(phoneNumber)){
-        return new Response("Invalid phone number", { status: 400 });   
+    // Regular expression for validating a phone number (simple example)
+    const phoneNumberPattern = /^\+?[1-9]\d{1,14}$/; // This allows optional '+' and ensures valid international format
+
+    if (!phoneNumberPattern.test(phoneNumber)) {
+        return new Response("Invalid phone number", { status: 400 });
     }
 
     // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await hashedPassword(password);
     try {
         // Check if user already exists
         const existingUser = await prisma.user.findUnique({

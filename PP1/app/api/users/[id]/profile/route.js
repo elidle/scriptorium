@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import { ForbiddenError } from '@/errors/ForbiddenError';
+import { authorize } from '@/app/middleware/auth_user';
 
 const prisma = new PrismaClient();
 
@@ -21,6 +23,7 @@ export async function GET(req, { params }) {
       });
     }
 
+    
     // Create an object with only the desired fields
     const { firstname, lastname, email, phoneNumber, avatar } = user;
 
@@ -51,7 +54,7 @@ export async function GET(req, { params }) {
 export async function PUT(req, { params }) {
   const userId = params.id;
 
-  const { avatar, firstName, lastName, email, phoneNumber } = await req.json();
+  const { avatar, firstname, lastname, email, phoneNumber } = await req.json();
 
   // Validate the avatar selection
 
@@ -84,12 +87,21 @@ export async function PUT(req, { params }) {
   if (avatar && validAvatars.includes(avatar)) {
     updateData.avatar = avatar;
   }
-  if (firstName) updateData.firstName = firstName;
-  if (lastName) updateData.lastName = lastName;
+  if (firstname) updateData.firstname = firstname;
+  if (lastname) updateData.lastname = lastname;
   if (email) updateData.email = email;
   if (phoneNumber) updateData.phoneNumber = phoneNumber;
 
   try {
+
+    const user = await prisma.user.findUnique({
+      where: { id: parseInt(userId) },
+    });
+
+    if (!user) {
+        return new Response("User not found", { status: 404 });
+    }
+
     // Update the user's profile
     const updatedUser = await prisma.user.update({
       where: { id: parseInt(userId) },

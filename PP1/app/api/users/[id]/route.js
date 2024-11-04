@@ -3,8 +3,8 @@
 // to update user data, or DELETE requests to remove a user.
 
 import { PrismaClient } from '@prisma/client';
-import { ForbiddenError } from '../../../errors/ForbiddenError';
-import { authorize } from "../../../middleware/auth"
+import { ForbiddenError } from '@/errors/ForbiddenError';
+import { authorize } from '../../../middleware/auth_user';
 
 const prisma = new PrismaClient();
 
@@ -50,6 +50,14 @@ export async function PUT(req, { params }) {
     try {
         await authorize(req, ['admin', 'user']);
 
+        const user = await prisma.user.findUnique({
+            where: { id: parseInt(id) },
+        });
+
+        if (!user) {
+            return new Response("User not found", { status: 404 });
+        }
+
         const updatedUser = await prisma.user.update({
             where: { id: parseInt(id) },
             data: updateData,
@@ -76,15 +84,27 @@ export async function PUT(req, { params }) {
 export async function DELETE(req, { params }) {
 
     const { id } = params;
-
     try {
         await authorize(req, ['admin', 'user']);
 
-        await prisma.user.delete({
+        const user = await prisma.user.findUnique({
             where: { id: parseInt(id) },
         });
 
-        return new Response("User deleted", { status: 204 });
+        if (!user) {
+            return new Response("User not found", { status: 404 });
+        }
+
+        const success = await prisma.user.delete({
+            where: { id: parseInt(id)},
+        });
+
+        if (success) {
+            return new Response("User deleted", { status: 200 });
+        } else {
+            throw new Error("Failed to delete user");
+        }
+
     } catch (error) {
 
         if (error instanceof ForbiddenError) {
@@ -92,8 +112,6 @@ export async function DELETE(req, { params }) {
         }
 
         console.error("Error deleting user:", error);
-        return new Response("Internal Server Error", { status: 500 });
-    } finally {
-        await prisma.$disconnect();
-    }
+        return new Response("Internal Server Error", { status: 404 });
+    } 
 }

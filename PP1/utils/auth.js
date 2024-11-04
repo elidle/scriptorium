@@ -8,7 +8,12 @@ const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY;
 
 export async function hashPassword(password) {
-  return await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+  console.log("hashing")
+  console.log(password)
+  console.log(BCRYPT_SALT_ROUNDS)
+  const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+  console.log(hashedPassword)
+  return hashedPassword
 }
 
 export async function comparePassword(password, hash) {
@@ -31,7 +36,7 @@ export function verifyAccessToken(token) {
   if (!token?.startsWith("Bearer ")) {
     return null;
   }
-
+  
   token = token.split(" ")[1];
 
   try {
@@ -46,11 +51,9 @@ export function verifyAccessToken(token) {
 }
 
 export function verifyRefreshToken(token) {
-  if (!token?.startsWith("Bearer ")) {
+  if (!token) {
     return null;
   }
-
-  token = token.split(" ")[1];
 
   try {
     const decoded = jwt.verify(token, REFRESH_TOKEN_SECRET);

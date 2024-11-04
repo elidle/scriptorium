@@ -34,7 +34,7 @@ model User {
   hiddenPosts     BlogPost[]      @relation("moderator")
   hiddenComments  Comment[]       @relation("moderator")
   createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  updatedAt       DateTime        @updatedAt 
 }
 
 model BlogPost {
