@@ -1,10 +1,11 @@
 import { prisma } from '@/utils/db';
 import { itemsRatingsToMetrics } from '@/utils/blog/metrics';
 import { sortItems } from '@/utils/blog/sorts';
-import { fetchCurrentPage } from '../../../../utils/pagination';
+import { fetchCurrentPage } from '@/utils/pagination';
+// import { authorize } from '@/utils/auth';
 
 export async function POST(req) {
-  await authorize(req, ['admin', 'user']);
+  // await authorize(req, ['admin', 'user']);
 
   try {
     let { content, authorId, parentId, postId } = await req.json();
@@ -66,7 +67,7 @@ export async function POST(req) {
         content,
         author: { connect: { id: authorId } },
         post: { connect: { id: postId } },
-        parent: parentId ? { connect: { id: parentId } } : undefined,
+        ...(parentId && { connect: { id: parentId } })
       },
       include: {
         author: {
@@ -191,7 +192,6 @@ export async function GET(req) {
     const allSortedComments = [...sortedTopLevelComments, ...sortedReplies];
 
     const commentTree = buildCommentTree(allSortedComments);
-    const paginatedCommentTree = fetchCurrentPage(commentTree.slice((page - 1) * limit, page * limit));
 
     const optimizeComment = (comment) => ({
       id: comment.id,
@@ -205,9 +205,12 @@ export async function GET(req) {
       replies: comment.replies?.map(reply => optimizeComment(reply)) || []
     });
 
-    const responseCommentTree = paginatedCommentTree.map(comment => optimizeComment(comment));
+    const paginatedCommentTree = fetchCurrentPage(commentTree, page, limit);
+    const curPage = paginatedCommentTree.curPage.map(comment => optimizeComment(comment));
+    const hasMore = paginatedCommentTree.hasMore;
+    const nextPage = hasMore ? page + 1 : null;
 
-    return Response.json(responseCommentTree, { status: 200 });
+    return Response.json( { comments: curPage, hasMore: hasMore, nextPage: nextPage}, { status: 200 });
   } catch (error) {
     console.error(error);
     return Response.json(
@@ -238,14 +241,4 @@ function buildCommentTree(comments) {
   });
 
   return rootComments;
-}
-
-function hideContent(comment) {
-  return {
-    ...comment,
-    content: comment.isHidden 
-      ? '[This comment has been hidden by a moderator.]' 
-      : comment.content,
-    replies: comment.replies.map(reply => hideContent(reply))
-  };
 }
