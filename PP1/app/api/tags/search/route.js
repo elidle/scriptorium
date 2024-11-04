@@ -1,4 +1,4 @@
-import { prisma } from '../../../../utils/db';
+import { prisma, Prisma } from '../../../../utils/db';
 
 /* This function is used to search for tags.
  * If the query parameter 'q' is provided, it will search for tags that contain the query string.

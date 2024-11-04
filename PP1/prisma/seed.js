@@ -18,8 +18,6 @@ async function main() {
       role: "admin"
     },
   })
-
-  console.log({ admin })
 }
 main()
   .then(async () => {
