@@ -1,5 +1,5 @@
-import { prisma, Prisma } from '../../../../utils/db';
-import {verifyToken} from "../../../../utils/auth";
+import { prisma, Prisma } from '../../../../utils/db'
+import {authorize, authorizeAuthor} from "../../../middleware/auth";
 
 /*
   * This function is used to retrieve existing code template.
@@ -42,6 +42,9 @@ export async function GET(req, { params }) {
   * This function is used to update a code template.
  */
 export async function PUT(req, { params }) {
+  // Authorize user
+  await authorize(req);
+
   const { id } = params;
   let { title, code, language, explanation, tags, authorId, isForked} = await req.json();
 
