@@ -31,7 +31,7 @@ export function verifyAccessToken(token) {
   if (!token?.startsWith("Bearer ")) {
     return null;
   }
-
+  
   token = token.split(" ")[1];
 
   try {
@@ -46,11 +46,9 @@ export function verifyAccessToken(token) {
 }
 
 export function verifyRefreshToken(token) {
-  if (!token?.startsWith("Bearer ")) {
+  if (!token) {
     return null;
   }
-
-  token = token.split(" ")[1];
 
   try {
     const decoded = jwt.verify(token, REFRESH_TOKEN_SECRET);
@@ -62,7 +60,4 @@ export function verifyRefreshToken(token) {
     return { valid: false, reason: "Invalid token." };
   }
 }
-
-
-
 
