@@ -76,7 +76,7 @@ export async function POST(req) {
   }
   catch(err){
     console.log(err)
-    return Response.json({ status: 'error', message: 'Failed to create new template' }, { status: 400 });
+    return Response.json({ status: 'error', message: 'Failed to create new template' }, { status: 500 });
   }
-  return Response.json({ status: 'success' }, { status: 200 });
+  return Response.json({ status: 'success' }, { status: 201 });
 }

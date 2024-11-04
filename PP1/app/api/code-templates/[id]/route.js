@@ -1,5 +1,4 @@
-import { prisma } from '../../../../utils/db'
-import { Prisma } from "@prisma/client";
+import { prisma, Prisma } from '../../../../utils/db'
 import {verifyToken} from "../../../../utils/auth";
 
 /*
@@ -43,6 +42,10 @@ export async function GET(req, { params }) {
   * This function is used to update a code template.
  */
 export async function PUT(req, { params }) {
+  // const user = await verifyToken(req.headers.get("authorization"));
+  // if (!user) {
+  //     return response.json({ status: 'error', message: 'unauthorized' }, { status: 401 });
+  // }
   const { id } = params;
   let { title, code, language, explanation, tags, authorId, isForked} = await req.json();
 
@@ -110,7 +113,7 @@ try{
     });
   }
   catch(err){
-    return Response.json({ status: 'error', message: 'Failed to delete template' }, { status: 400 });
+    return Response.json({ status: 'error', message: 'Failed to delete template' }, { status: 500 });
   }
 return Response.json({ status: 'success' }, { status: 200 });
 }

@@ -40,8 +40,7 @@ export async function POST(req) {
     });
   }
   catch(err){
-    // return new Response(JSON.stringify({ status: 'error', message: 'Failed to report post' }), { status: 500 });
     return Response.json({ status: 'error', message: 'Failed to report post' }, { status: 500 });
   }
-  return Response.json({ status: 'success' }, { status: 200 });
+  return Response.json({ status: 'success' }, { status: 201 });
 }

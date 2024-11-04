@@ -41,5 +41,5 @@ export async function POST(req) {
   catch(err){
     return Response.json({ status: 'error', message: 'Failed to report comment' }, { status: 500 });
   }
-  return Response.json({ status: 'success' }, { status: 200 });
+  return Response.json({ status: 'success' }, { status: 201 });
 }

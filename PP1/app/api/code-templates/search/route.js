@@ -1,6 +1,6 @@
-import { prisma } from '../../../../utils/db';
-import { Prisma } from '@prisma/client';
+import { prisma, Prisma } from '../../../../utils/db';
 import { sortMostRelevantFirst } from "../../../../utils/code-template/sorts";
+import { fetchCurrentPage } from "../../../../utils/pagination";
 
 /*
  * This function is used to search for code templates.
@@ -9,10 +9,9 @@ export async function GET(req) {
   const q = req.nextUrl.searchParams.get('q');
   const tags = req.nextUrl.searchParams.getAll('tags'); // Format: /search?q=...&tags=tag1&tags=tag2
   const username = req.nextUrl.searchParams.get('username');
-  const cursor = req.nextUrl.searchParams.get('cursor');
-  const cursorValue = req.nextUrl.searchParams.get('cursorValue');
+  const page = req.nextUrl.searchParams.get('page');
   const sortBy = req.nextUrl.searchParams.get('sortBy');
-  const limit = req.nextUrl.searchParams.get('limit') ? Number(req.nextUrl.searchParams.get('limit')) : 10;
+  const limit = req.nextUrl.searchParams.get('limit') ? Number(req.nextUrl.searchParams.get('limit')) : 2; // TODO: Change to 10
 
   let templates, userId;
   try{
@@ -34,31 +33,8 @@ export async function GET(req) {
       }
       userId = existingUser.id;
     }
-    const getCursorCondition = () => {
-      if (!cursor || !cursorValue) return {};  // No cursor
-
-      switch (sortBy) {
-        case 'new':
-        case 'old':
-          return {
-            AND: [
-              {
-                createdAt: sortBy === 'new'
-                  ? { lt: new Date(cursorValue) }
-                  : { gt: new Date(cursorValue) }
-              },
-              { NOT: { id: parseInt(cursor) } }  // Exclude the cursor item
-            ]
-          };
-        case 'most-relevant': // Will be sorted by relevance later
-          return {}
-        default:
-          return {};
-      }
-    };
     templates = await prisma.codeTemplate.findMany({
       where: {
-        // ...getCursorCondition(),
         authorId: userId ?? Prisma.skip,
         tags: tags.length > 0 ? {
           some:{
@@ -86,8 +62,7 @@ export async function GET(req) {
           },
         ],
       },
-      // take: limit + 1,  // Fetch one extra to check for next page
-      // orderBy: sortBy === 'new' ? { createdAt: 'desc' } : { createdAt: 'asc' }
+      orderBy: sortBy === 'old' ? { createdAt: 'asc' } : (sortBy === 'new' ? { createdAt: 'desc' } : Prisma.skip),
       include: {
         tags: {
           select: {
@@ -98,10 +73,21 @@ export async function GET(req) {
     });
   }
   catch(err) {
-    return Response.json({ status: 'error', message: 'Failed to fetch templates' }, { status: 400 });
+    return Response.json({ status: 'error', message: 'Failed to fetch templates' }, { status: 500 });
   }
-  if(sortBy === 'most-relevant'){
-    templates = sortMostRelevantFirst(templates, q); // Sort by relevance
+  if(!templates){
+    return Response.json({ status: 'error', message: 'No templates found' }, { status: 404 });
   }
-  return Response.json(templates, { status: 200 });
+  let curPage, hasMore;
+  if(sortBy === 'most-relevant') {
+    const retObj= fetchCurrentPage(templates, page ? page : 1, limit, sortMostRelevantFirst, [q]);
+    curPage = retObj.curPage;
+    hasMore = retObj.hasMore;
+  }
+  else {
+    const retObj = fetchCurrentPage(templates, page ? page : 1, limit);
+    curPage = retObj.curPage;
+    hasMore = retObj.hasMore;
+  }
+  return Response.json({ template: curPage, hasMore: hasMore, nextPage: hasMore ? Number(page) + 1 : null }, { status: 200 });
 }
