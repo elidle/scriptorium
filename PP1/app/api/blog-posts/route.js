@@ -1,9 +1,8 @@
 import { prisma } from '../../../utils/db';
-// import { authorize } from "../../middleware/auth";
+import { authorize } from "../../middleware/auth";
+import { ForbiddenError } from "../../../errors/ForbiddenError";
 
 export async function POST(req) {
-  // await authorize(req, ['user', 'admin']);
-
   try {
     let { authorId, title, content, tags = [] } = await req.json();
     authorId = Number(authorId);
@@ -14,6 +13,8 @@ export async function POST(req) {
         { status: 400 }
       );
     }
+
+    await authorize(req, ['user', 'admin'], authorId);
 
     const author = await prisma.user.findUnique({
       where: {
@@ -44,6 +45,10 @@ export async function POST(req) {
 
     return Response.json(newPost, { status: 201 });
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return Response.json({ status: "error", message: error.message }, { status: error.statusCode });
+    }
+
     console.error(error);
     return Response.json(
       { status: 'error', error: 'Failed to create blog post' },

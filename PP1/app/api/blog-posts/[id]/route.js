@@ -1,10 +1,9 @@
 import { prisma } from '../../../../utils/db';
 import { itemRatingsToMetrics } from '../../../../utils/blog/metrics';
-import {authorize, authorizeAuthor} from '../../../middleware/auth';
+import { authorize } from '../../../middleware/auth';
+import { ForbiddenError } from "../../../../errors/ForbiddenError";
 
 export async function PUT(req, { params }) {
-  // await authorize(req, ['user', 'admin']);
-
   try {
     let { id } = params;
     id = Number(id);
@@ -29,7 +28,7 @@ export async function PUT(req, { params }) {
       );
     }
 
-    // await authorizeAuthor(req, post.authorId);
+    await authorize(req, ['user', 'admin'], post.authorId);
 
     const updatedPost = await prisma.blogPost.update({
       where: { id },
@@ -61,6 +60,9 @@ export async function PUT(req, { params }) {
     return Response.json(updatedPost, { status: 200 });
   } catch (error) {
     console.error(error);
+    if (error instanceof ForbiddenError) {
+      return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
+    }
     return Response.json(
       { status: 'error', error: 'Failed to update blog posts' },
       { status: 500 }
@@ -69,8 +71,6 @@ export async function PUT(req, { params }) {
 }
 
 export async function DELETE(req, { params }) {
-  // await authorize(req, ['user', 'admin']);
-
   try {
     let { id } = params;
     id = Number(id);
@@ -92,7 +92,7 @@ export async function DELETE(req, { params }) {
       );
     }
 
-    // await authorizeAuthor(req, post.authorId);
+    await authorize(req, ['user', 'admin'], post.authorId);
 
     const deletedPost = await prisma.blogPost.update({
       where: { id },
@@ -118,6 +118,9 @@ export async function DELETE(req, { params }) {
     return Response.json({ status: 'success' }, { status: 200 });
   } catch (error) {
     console.error(error);
+    if (error instanceof ForbiddenError) {
+      return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
+    }
     return Response.json(
       { status: 'error', error: 'Failed to delete blog post' },
       { status: 500 }

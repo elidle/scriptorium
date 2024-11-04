@@ -1,9 +1,8 @@
 import { prisma } from '../../../../utils/db';
-import { authorize, authorizeAuthor } from "../../../middleware/auth";
+import { authorize } from "../../../middleware/auth";
+import { ForbiddenError } from '../../../../errors/ForbiddenError';
 
 export async function POST(req) {
-  // await authorize(req, ['admin']);
-
   try {
     let { userId, commentId } = await req.json();
     userId = Number(userId);
@@ -16,7 +15,7 @@ export async function POST(req) {
       );
     }
 
-    // await authorizeAuthor(req, userId);
+    await authorize(req, ['admin'], userId);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
@@ -67,6 +66,9 @@ export async function POST(req) {
     return Response.json(hiddenComment, { status: 200 });
   } catch (error) {
     console.error(error);
+    if (error instanceof ForbiddenError) {
+      return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
+    }
     return Response.json(
       { status: 'error', error: 'Failed to hide comment' },
       { status: 500 }
@@ -75,8 +77,6 @@ export async function POST(req) {
 }
 
 export async function DELETE(req) {
-  // await authorize(req, ['admin']);
-
   try {
     let { userId, commentId } = await req.json();
     userId = Number(userId);
@@ -89,7 +89,7 @@ export async function DELETE(req) {
       );
     }
 
-    // await authorizeAuthor(req, userId);
+    await authorize(req, ['admin'], userId);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
@@ -140,6 +140,9 @@ export async function DELETE(req) {
     return Response.json( unhiddenComment, { status: 200 } );
   } catch (error) {
     console.error(error);
+    if (error instanceof ForbiddenError) {
+      return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
+    }
     return Response.json(
       { status: 'error', error: 'Failed to unhide comment' },
       { status: 500 }
