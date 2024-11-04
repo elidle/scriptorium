@@ -13,10 +13,10 @@ export async function POST(req) {
     const verification = verifyRefreshToken(refreshToken);
 
     // Check if the refresh token is invalid or expired
-    if (!verification) {
+    if (!verification || (!verification.valid && verification.reason === "Invalid token.")) {
       return Response.json({ status: "error", message: 'Invalid refresh token' }, { status: 403 });
     }
-    else if(!verification.valid){
+    else if(!verification.valid && verification.reason === "Token has expired.") {
       return Response.json({ status: "error", message: 'Expired refresh token' }, { status: 403 });
     }
 

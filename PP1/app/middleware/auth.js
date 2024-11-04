@@ -16,10 +16,10 @@ export async function authorize(req, roles = [], owner = -1) {
     try {
         // Verify and decode the token
         const verification = verifyAccessToken(authorizationHeader);
-        if (!verification) {
+        if (!verification || (!verification.valid && verification.reason === "Invalid token.")) {
             throw new ForbiddenError("Invalid token.");
         }
-        else if(!verification.valid){
+        else if(!verification.valid && verification.reason === "Token has expired.") {
             throw new ForbiddenError("Token has expired");
         }
 

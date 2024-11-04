@@ -1,5 +1,6 @@
 import { ForbiddenError } from '../../../../../errors/ForbiddenError';
 import {prisma} from "../../../../../utils/db";
+
 export async function GET(req, { params }) {
   const userId = params.id;
   try {
@@ -9,12 +10,9 @@ export async function GET(req, { params }) {
     });
 
     if (!user) {
-      return Response.json({ status: "error", message: "User not found." }, {
-        status: 404,
-      });
+      return Response.json({ status: "error", message: "User not found." }, { status: 404 });
     }
 
-    
     // Create an object with only the desired fields
     const { firstname, lastname, email, phoneNumber, avatar } = user;
 
@@ -33,9 +31,7 @@ export async function GET(req, { params }) {
       return Response.json({ status: "error", message: error.message }, { status: error.statusCode });
     }
     console.error("Error retrieving user profile:", error);
-    return Response.json({ status: "error", message: "Internal server error" }, {
-      status: 500,
-    });
+    return Response.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }
 }
 

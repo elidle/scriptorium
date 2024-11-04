@@ -26,7 +26,7 @@ export async function POST(req) {
     const { code, input = "", language } = await req.json();
 
     if (!code || !language) {
-        return Response.json({ error: "Code and language are required." }, { status: 400 });
+        return Response.json({ status: "error", message: "Code and language are required." }, { status: 400 });
     }
 
     const fileName = generateFileName(language);
@@ -59,7 +59,7 @@ export async function POST(req) {
             args.push(filePath);
             break;
         default:
-            return Response.json({ error: "Unsupported language." }, { status: 400 });
+            return Response.json({status: "error", message: "Unsupported language."}, { status: 400 });
     }
 
     return new Promise((resolve) => {
