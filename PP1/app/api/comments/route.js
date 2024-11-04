@@ -2,10 +2,10 @@ import { prisma } from '../../../utils/db';
 import { itemsRatingsToMetrics } from '../../../utils/blog/metrics';
 import { sortItems } from '../../../utils/blog/sorts';
 import { fetchCurrentPage } from '../../../utils/pagination';
-// import { authorize } from '@/utils/auth';
+import { authorize } from "../../middleware/auth";
 
 export async function POST(req) {
-  // await authorize(req, ['admin', 'user']);
+  await authorize(req);
 
   try {
     let { content, authorId, parentId, postId } = await req.json();

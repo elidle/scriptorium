@@ -1,8 +1,8 @@
 import { prisma } from '../../../../utils/db';
-// import { authorize } from '@/utils/auth';
+import { authorize, authorizeAuthor } from "../../../middleware/auth";
 
 export async function PUT(req, { params }) {
-  // await authorize(req, ['admin', 'user']);
+  await authorize(req);
 
   try {
     let { content } = await req.json();
@@ -26,6 +26,8 @@ export async function PUT(req, { params }) {
       );
     }
 
+    await authorizeAuthor(req, comment.authorId);
+
     const updatedComment = await prisma.comment.update({
       where: { id },
       data: { content }
@@ -42,7 +44,7 @@ export async function PUT(req, { params }) {
 }
 
 export async function DELETE(req, { params }) {
-  // await authorize(req, ['admin', 'user']);
+  await authorize(req);
 
   try {
     let { id } = params;
@@ -62,6 +64,8 @@ export async function DELETE(req, { params }) {
         { status: 404 }
       );
     }
+
+    await authorizeAuthor(req, comment.authorId);
 
     const deletedComment = await prisma.comment.update({
       where: { id },
