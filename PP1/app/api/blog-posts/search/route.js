@@ -1,4 +1,4 @@
-import { prisma } from '../../../../utils/db';
+import {Prisma, prisma} from '../../../../utils/db';
 import { itemsRatingsToMetrics } from '../../../../utils/blog/metrics';
 import { sortItems } from '../../../../utils/blog/sorts';
 import { fetchCurrentPage } from '../../../../utils/pagination';
@@ -51,7 +51,38 @@ export async function GET(req) {
           },
         }),
         isDeleted: false,
-        isHidden: false
+        isHidden: false,
+        codeTemplates: {
+          where: {
+          ...(tags.length > 0 && {
+              tags: {
+                some: {
+                  name: {
+                    in: tags,
+                  }
+                }
+              }
+            }),
+            OR: [
+              {
+                title: { contains: q },
+              },
+              {
+                tags: {
+                  some:{
+                    name: { contains: q }
+                  },
+                },
+              },
+              {
+                explanation: { contains: q },
+              },
+              {
+                code: { contains: q },
+              },
+            ],
+          }
+        }
       },
       select: {
         id: true,
@@ -75,7 +106,12 @@ export async function GET(req) {
             value: true
           }
         },
-        // TODO: Implement code template fetching
+        codeTemplates: {
+          select: {
+            id: true,
+            title: true,
+          }
+        }
       }
     });
 
