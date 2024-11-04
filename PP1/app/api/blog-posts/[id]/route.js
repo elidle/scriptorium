@@ -9,7 +9,7 @@ export async function PUT(req, { params }) {
 
     if (!id) {
       return Response.json(
-        { error: 'Missing or invalid ID' },
+        { status: 'error', error: 'Missing or invalid ID' },
         { status: 400 }
       );
     }
@@ -21,7 +21,7 @@ export async function PUT(req, { params }) {
 
     if (!post || post.isDeleted) {
       return Response.json(
-        { error: 'Post not found' },
+        { status: 'error', error: 'Post not found' },
         { status: 404 }
       );
     }
@@ -50,7 +50,7 @@ export async function PUT(req, { params }) {
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to update blog posts' },
+      { status: 'error', error: 'Failed to update blog posts' },
       { status: 500 }
     );
   }
@@ -64,7 +64,7 @@ export async function DELETE(req, { params }) {
 
     if (!id) {
       return Response.json(
-        { error: 'Missing or invalid ID' },
+        { status: 'error', error: 'Missing or invalid ID' },
         { status: 400 }
       );
     }
@@ -73,7 +73,7 @@ export async function DELETE(req, { params }) {
 
     if (!post || post.isDeleted) {
       return Response.json(
-        { error: 'Post not found' },
+        { status: 'error', error: 'Post not found' },
         { status: 404 }
       );
     }
@@ -91,15 +91,18 @@ export async function DELETE(req, { params }) {
         },
         codeTemplates: {
           set: []
-        }
+        },
+        isHidden: false,
+        hiddenAt: null,
+        hiddenById: null
       }
     });
 
-    return Response.json(deletedPost, { status: 200 });
+    return Response.json({ status: 'success' }, { status: 200 });
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to delete blog post' },
+      { status: 'error', error: 'Failed to delete blog post' },
       { status: 500 }
     );
   }
@@ -112,7 +115,7 @@ export async function GET(req, { params }) {
 
   if (!id) {
     return Response.json(
-        { error: 'Invalid post ID' }, 
+        { status: 'error', error: 'Invalid post ID' }, 
         { status: 400 }
     );
   }
@@ -120,36 +123,57 @@ export async function GET(req, { params }) {
   try {
     const post = await prisma.blogPost.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        createdAt: true,
+        isHidden: true,
         author: {
           select: {
-            id: true
+            id: true,
+            username: true
           }
         },
-        tags: true,
+        tags: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
         ratings: {
           select: {
             value: true
           }
         }
-        // TODO: Implement fetching code templates
       }
     });
 
     if (!post) {
       return Response.json(
-        { error: 'Post not found' },
+        { status: 'error', error: 'Post not found' },
         { status: 404 }
       );
     }
 
     const postWithMetrics = itemRatingsToMetrics(post);
 
-    return Response.json(postWithMetrics, {status: 200} );
+    const responsePost = {
+      id: postWithMetrics.id,
+      title: post.isHidden ? "[Hidden post]" : postWithMetrics.title,
+      content: post.isHidden ? "This post has been hidden by a moderator." : postWithMetrics.content,
+      authorId: postWithMetrics.author?.id,
+      authorUsername: postWithMetrics.author?.username,
+      tags: postWithMetrics.tags.map(tag => ({ id: tag.id, name: tag.name })),
+      createdAt: postWithMetrics.createdAt,
+      score: postWithMetrics.metrics.totalScore
+    }
+
+    return Response.json(responsePost, {status: 200} );
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to fetch blog post' },
+      { status: 'error', error: 'Failed to fetch blog post' },
       { status: 500 }
     );
   }

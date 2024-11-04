@@ -1,6 +1,4 @@
 import { prisma } from '@/utils/db';
-import { itemsRatingsToMetrics } from '@/utils/blog/metrics';
-import { sortItems } from '@/utils/blog/sorts';
 
 export async function POST(req) {
   try {
@@ -9,7 +7,7 @@ export async function POST(req) {
 
     if (!authorId || !title || !content) {
       return Response.json(
-        { error: 'Invalid or missing required fields' },
+        { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
       );
     }
@@ -22,7 +20,7 @@ export async function POST(req) {
 
     if (!author) {
       return Response.json(
-        { error: 'Author not found' },
+        { status: 'error', error: 'Author not found' },
         { status: 404 }
       );
     }
@@ -45,66 +43,7 @@ export async function POST(req) {
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to create blog post' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(req) {
-  const searchParams = req.nextUrl.searchParams;
-
-  // Filter parameters
-  const q = searchParams.get('q') || '';
-  const tags = req.nextUrl.searchParams.getAll('tags');
-  // TODO: Implement filtering by code template
-
-  // Sorting parameter
-  const sortBy = searchParams.get('sortBy') || 'new';
-
-  try {
-    const posts = await prisma.blogPost.findMany({
-      where: {
-        ...(q && { 
-          OR: [
-            { title: { contains: q } },
-            { content: { contains: q } }
-          ]
-        }),
-        ...(tags.length > 0 && {
-          tags: {
-            some: {
-              name: {
-                in: tags
-              }
-            }
-          },
-        }),
-        isDeleted: false
-      },
-      include: {
-        author: {
-          select: {
-            username: true
-          }
-        },
-        tags: true,
-        ratings: {
-          select: {
-            value: true
-          }
-        }
-      }
-    });
-
-    const postsWithMetrics = itemsRatingsToMetrics(posts);
-    const sortedPosts = sortItems(postsWithMetrics, sortBy);
-
-    return Response.json(sortedPosts, { status: 200 });
-  } catch (error) {
-    console.error(error);
-    return Response.json(
-      { error: 'Failed to fetch blog posts' },
+      { status: 'error', error: 'Failed to create blog post' },
       { status: 500 }
     );
   }

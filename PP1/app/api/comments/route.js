@@ -11,7 +11,7 @@ export async function POST(req) {
 
     if (!content || !authorId || !postId) {
       return Response.json(
-        { error: 'Invalid or missing required fields' },
+        { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
       );
     }
@@ -22,7 +22,7 @@ export async function POST(req) {
 
     if (!author) {
       return Response.json(
-        { error: 'Author not found' },
+        { status: 'error', error: 'Author not found' },
         { status: 404 }
       );
     }
@@ -33,7 +33,7 @@ export async function POST(req) {
 
     if (!blogPost) {
       return Response.json(
-        { error: 'Blog post not found' },
+        { status: 'error', error: 'Blog post not found' },
         { status: 404 }
       );
     }
@@ -45,14 +45,14 @@ export async function POST(req) {
 
       if (!parentComment) {
         return Response.json(
-          { error: 'Parent comment not found' },
+          { status: 'error', error: 'Parent comment not found' },
           { status: 404 }
         );
       }
 
       if (parentComment.postId !== postId) {
         return Response.json(
-          { error: 'Parent comment does not belong to the specified blog post' },
+          { status: 'error', error: 'Parent comment does not belong to the specified blog post' },
           { status: 400 }
         );
       }
@@ -80,7 +80,7 @@ export async function POST(req) {
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to add comment' },
+      { status: 'error', error: 'Failed to add comment' },
       { status: 500 }
     );
   }
@@ -97,7 +97,7 @@ export async function GET(req) {
 
     if (!postId) {
       return Response.json(
-        { error: 'Invalid or missing postId' },
+        { status: 'error', error: 'Invalid or missing postId' },
         { status: 400 }
       );
     }
@@ -108,28 +108,54 @@ export async function GET(req) {
 
     if (!blogPost) {
       return Response.json(
-        { error: 'Blog post not found' },
+        { status: 'error', error: 'Blog post not found' },
         { status: 404 }
       );
     }
 
     const comments = await prisma.comment.findMany({
       where: { postId },
-      include: {
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        postId: true,
+        parentId: true,
+        isHidden: true,
         author: {
           select: {
+            id: true,
             username: true
           }
         },
-        parent: true,
+        // Get immediate replies only (can be paginated/fetched separately if needed)
+        replies: {
+          where: {
+            isDeleted: false,
+            isHidden: false
+          },
+          select: {
+            id: true,
+            content: true,
+            createdAt: true,
+            author: {
+              select: {
+                id: true,
+                username: true
+              }
+            },
+            ratings: {
+              select: {
+                value: true
+              }
+            }
+          }
+        },
         ratings: {
           select: {
             value: true
           }
         }
-      },
-      orderBy: {
-        createdAt: 'desc'
       }
     });
 
@@ -144,12 +170,26 @@ export async function GET(req) {
     const allSortedComments = [...sortedTopLevelComments, ...sortedReplies];
 
     const commentTree = buildCommentTree(allSortedComments);
+    
+    const optimizeComment = (comment) => ({
+      id: comment.id,
+      content: comment.isHidden 
+        ? "This comment has been hidden by a moderator."
+        : comment.content,
+      authorId: comment.author.id,
+      authorUsername: comment.author.username,
+      createdAt: comment.createdAt,
+      score: comment.metrics.totalScore,
+      replies: comment.replies?.map(reply => optimizeComment(reply)) || []
+    });
 
-    return Response.json(commentTree, { status: 200 });
+    const responseCommentTree = commentTree.map(comment => optimizeComment(comment));
+
+    return Response.json(responseCommentTree, { status: 200 });
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to fetch comments' },
+      { status: 'error', error: 'Failed to fetch comments' },
       { status: 500 }
     );
   }
@@ -176,4 +216,14 @@ function buildCommentTree(comments) {
   });
 
   return rootComments;
+}
+
+function hideContent(comment) {
+  return {
+    ...comment,
+    content: comment.isHidden 
+      ? '[This comment has been hidden by a moderator.]' 
+      : comment.content,
+    replies: comment.replies.map(reply => hideContent(reply))
+  };
 }
