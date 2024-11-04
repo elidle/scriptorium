@@ -1,7 +1,7 @@
-import { prisma } from '@/utils/db';
-import { itemsRatingsToMetrics } from '@/utils/blog/metrics';
-import { sortItems } from '@/utils/blog/sorts';
-import { fetchCurrentPage } from '@/utils/pagination';
+import { prisma } from '../../../../utils/db';
+import { itemsRatingsToMetrics } from '../../../../utils/blog/metrics';
+import { sortItems } from '../../../../utils/blog/sorts';
+import { fetchCurrentPage } from '../../../../utils/pagination';
 
 export async function GET(req) {
   const searchParams = req.nextUrl.searchParams;
