@@ -183,8 +183,8 @@ export async function GET(req, { params }) {
       id: postWithMetrics.id,
       title: post.isHidden ? "[Hidden post]" : postWithMetrics.title,
       content: post.isHidden ? "This post has been hidden by a moderator." : postWithMetrics.content,
-      authorId: postWithMetrics.author?.id,
-      authorUsername: postWithMetrics.author?.username,
+      authorId: postWithMetrics.author?.id ?? null,
+      authorUsername: postWithMetrics.author?.username ?? "[deleted]",
       tags: postWithMetrics.tags.map(tag => ({ id: tag.id, name: tag.name })),
       createdAt: postWithMetrics.createdAt,
       score: postWithMetrics.metrics.totalScore
