@@ -43,16 +43,9 @@ export async function POST(req) {
                 firstname: user.firstname,
                 lastname: user.lastname,
             },
-<<<<<<< HEAD
-            "refresh-token" : RefreshToken,
-            "access-token" : Accesstoken
-        }), {
-=======
-            'refresh-token' : refreshToken,
-            'access-token' : accessToken
-        }, {
->>>>>>> 2c458075b84fd8acfde218c0af422d6b4fc261f2
-            status: 200,
+            "refresh-token" : refreshToken,
+            "access-token" : accessToken
+            }, {status: 200,
         });
     } catch (error) {
         
