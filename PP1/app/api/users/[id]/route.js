@@ -56,7 +56,7 @@ export async function PUT(req, { params }) {
             return new Response("User not found", { status: 404 });
         }
 
-            // Validate that the updateData doesn't contain a change to the 'id' field
+        // Validate that the updateData doesn't contain a change to the 'id' field
         if (updateData.id && updateData.id !== user.id) {
             return new Response("Changing user ID is not allowed", { status: 400 });
         }
