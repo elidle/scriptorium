@@ -1,18 +1,21 @@
-const { PrismaClient } = require('@prisma/client');
-const { hashPassword } = require('../utils/auth');
+import { PrismaClient } from '@prisma/client';
+import { hashPassword } from '../utils/auth.js';
 
 const prisma = new PrismaClient();
 
 async function main() {
+  await hashPassword("test");
+  console.log("Creating admin");
   const admin = await prisma.user.upsert({
-    where: { username: 'admin'},
+    where: { username: 'danidani'},
     update: {},
     create: {
-      firstname: 'Admin',
-      lastname: 'Admin',
-      username: 'admin',
-      password: await hashPassword('admin'),
+      firstname: 'dani',
+      lastname: 'mardani',
+      username: 'danidani',
+      hashedPassword: await hashPassword('admin'),
       email: 'admin@gmail.com',
+      role: "admin"
     },
   })
 
