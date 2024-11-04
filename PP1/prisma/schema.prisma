@@ -85,9 +85,9 @@ model CodeTemplate {
 
 model Comment {
   id            Int             @id @default(autoincrement())
-  content       String
-  authorId      Int
-  author        User             @relation("author", fields: [authorId], references: [id])
+  content       String?
+  authorId      Int?
+  author        User?            @relation("author", fields: [authorId], references: [id])
   postId        Int
   post          BlogPost         @relation(fields: [postId], references: [id])
   parent        Comment?         @relation("CommentReplies", fields: [parentId], references: [id])
