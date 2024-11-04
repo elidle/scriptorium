@@ -11,7 +11,7 @@ export async function GET(req) {
   const username = req.nextUrl.searchParams.get('username');
   const page = req.nextUrl.searchParams.get('page');
   const sortBy = req.nextUrl.searchParams.get('sortBy');
-  const limit = req.nextUrl.searchParams.get('limit') ? Number(req.nextUrl.searchParams.get('limit')) : 2; // TODO: Change to 10
+  const limit = req.nextUrl.searchParams.get('limit') ? Number(req.nextUrl.searchParams.get('limit')) : 10;
 
   let templates, userId;
   try{
@@ -29,7 +29,7 @@ export async function GET(req) {
         },
       });
       if (!existingUser) {
-        return Response.json({ status: 'error', message: 'User not found' }, { status: 400 });
+        return Response.json({ status: 'error', message: 'User not found' }, { status: 404 });
       }
       userId = existingUser.id;
     }

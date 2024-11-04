@@ -33,7 +33,7 @@ export async function GET(req, { params }) {
     return Response.json({ status: 'error', message: 'Failed to fetch template' }, { status: 400 });
   }
   if(!template){
-    return Response.json({ status: 'error', message: 'Template not found' }, { status: 400 });
+    return Response.json({ status: 'error', message: 'Template not found' }, { status: 404 });
   }
   return Response.json({ status: 'success', template: template }, { status: 200 });
 }
@@ -56,7 +56,7 @@ export async function PUT(req, { params }) {
       },
     });
     if(!existingTemplate){
-      return Response.json({ status: 'error', message: 'Template not found' }, { status: 400 });
+      return Response.json({ status: 'error', message: 'Template not found' }, { status: 404 });
     }
     const template = await prisma.codeTemplate.update({
       where: {
@@ -104,7 +104,7 @@ try{
     },
   });
   if(!existingTemplate){
-    return Response.json({ status: 'error', message: 'Template not found' }, { status: 400 });
+    return Response.json({ status: 'error', message: 'Template not found' }, { status: 404 });
   }
   const template = await prisma.codeTemplate.delete({
       where: {

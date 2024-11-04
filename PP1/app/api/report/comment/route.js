@@ -20,7 +20,7 @@ export async function POST(req) {
       }
     });
     if(!reporter){
-      return Response.json({ status: 'error', message: 'Reporter not found' }, { status: 400 });
+      return Response.json({ status: 'error', message: 'Reporter not found' }, { status: 404 });
     }
     const existingComment = await prisma.comment.findUnique({
       where: {
@@ -28,7 +28,7 @@ export async function POST(req) {
       }
     });
     if (!existingComment || existingComment.isDeleted) {
-      return Response.json({ status: 'error', message: 'Comment not found' }, { status: 400 });
+      return Response.json({ status: 'error', message: 'Comment not found' }, { status: 404 });
     }
     const report = await prisma.commentReport.create({
       data: {

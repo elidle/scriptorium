@@ -70,7 +70,7 @@ export async function POST(req) {
         },
       });
       if(!parentTemplate){
-        return Response.json({ status: 'error', message: 'Parent template not found' }, { status: 400 });
+        return Response.json({ status: 'error', message: 'Parent template not found' }, { status: 404 });
       }
     }
   }
