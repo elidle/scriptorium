@@ -7,8 +7,6 @@ export async function GET(req, { params }) {
 
   try {
 
-    await authorize(req, ['admin', 'user'], parseInt(userId));
-
     // Retrieve the user's profile information
     const user = await prisma.user.findUnique({
       where: { id: parseInt(userId) },
@@ -36,10 +34,6 @@ export async function GET(req, { params }) {
         headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-
-    if (error instanceof ForbiddenError) {
-      return new Response(error.message, { status: error.statusCode });
-    }
 
     console.error("Error retrieving user profile:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {

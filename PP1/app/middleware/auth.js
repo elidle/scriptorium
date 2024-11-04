@@ -37,8 +37,6 @@ export async function authorize(req, roles = [], owner = -1) {
             throw new ForbiddenError("You do not have ownership of this resource.");
         }
 
-        console.log("something")
-
         return true; // Authorized
     } catch (error) {
         // Handle specific token errors
