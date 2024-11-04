@@ -1,15 +1,13 @@
-import { PrismaClient } from '@prisma/client';
 import { ForbiddenError } from '@/errors/ForbiddenError';
-import { authorize } from '@/app/middleware/auth_user';
-
-const prisma = new PrismaClient();
+import { authorize } from '@/app/middleware/auth';
+import {prisma} from "@/utils/db";
 
 export async function GET(req, { params }) {
   const userId = params.id;
-  console.log(userId);  
+
   try {
 
-    await authorize(req, ['admin', 'user']);
+    await authorize(req, ['admin', 'user'], parseInt(userId));
 
     // Retrieve the user's profile information
     const user = await prisma.user.findUnique({
@@ -52,7 +50,11 @@ export async function GET(req, { params }) {
 }
 
 export async function PUT(req, { params }) {
+
+try {
+
   const userId = params.id;
+  await authorize(req, ['admin', 'user'], parseInt(userId));
 
   const { avatar, firstname, lastname, email, phoneNumber } = await req.json();
 
@@ -92,7 +94,6 @@ export async function PUT(req, { params }) {
   if (email) updateData.email = email;
   if (phoneNumber) updateData.phoneNumber = phoneNumber;
 
-  try {
 
     const user = await prisma.user.findUnique({
       where: { id: parseInt(userId) },
@@ -113,6 +114,10 @@ export async function PUT(req, { params }) {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return new Response(error.message, { status: error.statusCode });
+    }
+
     console.error("Error updating profile:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,

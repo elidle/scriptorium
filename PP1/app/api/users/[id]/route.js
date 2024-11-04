@@ -2,11 +2,9 @@
 // identified by their id. This could include handling GET requests to fetch user data, PUT requests 
 // to update user data, or DELETE requests to remove a user.
 
-import { PrismaClient } from '@prisma/client';
 import { ForbiddenError } from '@/errors/ForbiddenError';
 import { authorize } from '../../../middleware/auth';
-
-const prisma = new PrismaClient();
+import {prisma} from "@/utils/db";
 
 export async function GET(req, { params }) {
     const { id } = params;
@@ -14,7 +12,7 @@ export async function GET(req, { params }) {
     try {
         // Authorize user with roles 'admin' or 'user'
         // also checks whether the access token is still valid
-        await authorize(req, ['admin', 'user']);
+        await authorize(req, ['admin', 'user'], parseInt(id));
 
         const user = await prisma.user.findUnique({
             where: { id: parseInt(id) },
@@ -48,7 +46,7 @@ export async function PUT(req, { params }) {
     const updateData = await req.json();
 
     try {
-        await authorize(req, ['admin', 'user']);
+        await authorize(req, ['admin', 'user'], parseInt(id));
 
         const user = await prisma.user.findUnique({
             where: { id: parseInt(id) },
@@ -85,7 +83,7 @@ export async function DELETE(req, { params }) {
 
     const { id } = params;
     try {
-        await authorize(req, ['admin', 'user']);
+        await authorize(req, ['admin', 'user'], parseInt(id));
 
         const user = await prisma.user.findUnique({
             where: { id: parseInt(id) },

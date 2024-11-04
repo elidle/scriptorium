@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { comparePassword, generateAccessToken, generateRefreshToken } from '@/utils/auth';
-
-const prisma = new PrismaClient();
+import {prisma} from "@/utils/db";
 
 export async function POST(req) {
     const { username, password } = await req.json(); // Parse JSON body

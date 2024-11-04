@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
@@ -27,7 +26,7 @@ export async function POST(req) {
     const { code, input = "", language } = await req.json();
 
     if (!code || !language) {
-        return NextResponse.json({ error: "Code and language are required." }, { status: 400 });
+        return Response.json({ error: "Code and language are required." }, { status: 400 });
     }
 
     const fileName = generateFileName(language);
@@ -60,7 +59,7 @@ export async function POST(req) {
             args.push(filePath);
             break;
         default:
-            return NextResponse.json({ error: "Unsupported language." }, { status: 400 });
+            return Response.json({ error: "Unsupported language." }, { status: 400 });
     }
 
     return new Promise((resolve) => {
@@ -132,13 +131,13 @@ export async function POST(req) {
                     fs.unlinkSync(path.join(process.cwd(), 'output')); // Clean up the compiled file
                     if (execCode !== 0) {
                         return resolve(
-                            NextResponse.json({
+                            Response.json({
                                 error: "Error executing code",
                                 details: errorOutput || "Unknown error"
                             }, { status: 500 })
                         );
                     }
-                    resolve(NextResponse.json({ output }));
+                    resolve(Response.json({ output }));
                 });
                 return; // Prevent further code execution
             }
@@ -147,7 +146,7 @@ export async function POST(req) {
                 const classFilePath = path.join(process.cwd(), 'Main.class');
                 if (!fs.existsSync(classFilePath)) {
                     return resolve(
-                        NextResponse.json({
+                        Response.json({
                             error: "Compilation error",
                             details: errorOutput || "Failed to compile Java code"
                         }, { status: 500 })
@@ -183,27 +182,27 @@ export async function POST(req) {
 
                     if (execCode !== 0) {
                         return resolve(
-                            NextResponse.json({
+                            Response.json({
                                 error: "Error executing code",
                                 details: errorOutput || "Unknown error"
                             }, { status: 500 })
                         );
                     }
-                    resolve(NextResponse.json({ output }));
+                    resolve(Response.json({ output }));
                 });
                 return;
             }
 
             if (code !== 0) {
                 return resolve(
-                    NextResponse.json({
+                    Response.json({
                         error: "Error executing code",
                         details: errorOutput || "Unknown error"
                     }, { status: 500 })
                 );
             }
 
-            resolve(NextResponse.json({ output }));
+            resolve(Response.json({ output }));
         });
     });
 }
