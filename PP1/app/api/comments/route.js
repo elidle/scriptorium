@@ -1,6 +1,7 @@
 import { prisma } from '@/utils/db';
 import { itemsRatingsToMetrics } from '@/utils/blog/metrics';
 import { sortItems } from '@/utils/blog/sorts';
+import { fetchCurrentPage } from '../../../../utils/pagination';
 
 export async function POST(req) {
   await authorize(req, ['admin', 'user']);
@@ -97,6 +98,24 @@ export async function GET(req) {
     // Sorting parameter
     const sortBy = searchParams.get('sortBy') || 'new';
 
+    if (!['new', 'old', 'top', 'controversial'].includes(sortBy)) {
+      return Response.json(
+        { status: 'error', error: 'Invalid sort parameter' },
+        { status: 400 }
+      );
+    }
+
+    // Pagination parameters
+    const page = Number(searchParams.get('page') || '1');
+    const limit = Number(searchParams.get('limit') || '10');
+
+    if (!page || !limit) {
+      return Response.json(
+        { status: 'error', error: 'Invalid page parameter' },
+        { status: 400 }
+      );
+    }
+
     if (!postId) {
       return Response.json(
         { status: 'error', error: 'Invalid or missing postId' },
@@ -172,7 +191,8 @@ export async function GET(req) {
     const allSortedComments = [...sortedTopLevelComments, ...sortedReplies];
 
     const commentTree = buildCommentTree(allSortedComments);
-    
+    const paginatedCommentTree = fetchCurrentPage(commentTree.slice((page - 1) * limit, page * limit));
+
     const optimizeComment = (comment) => ({
       id: comment.id,
       content: comment.isHidden 
@@ -185,7 +205,7 @@ export async function GET(req) {
       replies: comment.replies?.map(reply => optimizeComment(reply)) || []
     });
 
-    const responseCommentTree = commentTree.map(comment => optimizeComment(comment));
+    const responseCommentTree = paginatedCommentTree.map(comment => optimizeComment(comment));
 
     return Response.json(responseCommentTree, { status: 200 });
   } catch (error) {
