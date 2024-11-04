@@ -13,6 +13,7 @@ export async function GET(req, { params }) {
 
     try {
         // Authorize user with roles 'admin' or 'user'
+        // also checks whether the access token is still valid
         await authorize(req, ['admin', 'user']);
 
         const user = await prisma.user.findUnique({

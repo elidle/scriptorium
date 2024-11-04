@@ -1,6 +1,8 @@
 // /api/users/route.js
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { authorize } from "../../middleware/auth"
+import { ForbiddenError } from '../../../errors/ForbiddenError';
 
 const prisma = new PrismaClient();
 

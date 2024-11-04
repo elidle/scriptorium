@@ -29,7 +29,7 @@ export async function POST(req) {
         }
 
         // Generate the token
-        const obj = { userId: user.id, username: user.username }
+        const obj = { id: user.id, username: user.username }
         const Accesstoken = generateAccessToken(obj);
         const RefreshToken = generateRefreshToken(obj);
 
