@@ -3,7 +3,7 @@ import {authorize} from "../../../middleware/auth";
 
 // This function is used to report a comment.
 export async function POST(req) {
-  await authorize(req);
+  await authorize(req, ['user', 'admin']);
 
   const { reporterId, commentId, reason } = await req.json();
   if(!reporterId || !commentId || !reason){

@@ -43,7 +43,7 @@ export async function GET(req, { params }) {
  */
 export async function PUT(req, { params }) {
   // Authorize user
-  await authorize(req);
+  await authorize(req, ['user', 'admin']);
 
   const { id } = params;
   let { title, code, language, explanation, tags, authorId, isForked} = await req.json();
@@ -94,7 +94,7 @@ export async function PUT(req, { params }) {
  */
 export async function DELETE(req, { params }) {
   // Authorize user
-  await authorize(req);
+  await authorize(req, ['user', 'admin']);
 
   const { id } = params;
 

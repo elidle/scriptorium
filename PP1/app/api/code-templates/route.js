@@ -5,7 +5,7 @@ import {authorize} from "../../middleware/auth";
  * This function is used to create or fork a new code template.
  */
 export async function POST(req) {
-  await authorize(req);
+  await authorize(req, ['user', 'admin']);
 
   let { title, code, language , explanation, tags, authorId, isForked, parentTemplateId } = await req.json();
 

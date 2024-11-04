@@ -50,7 +50,7 @@ export async function authorizeAuthor(req, authorId) {
 
     try {
         // Verify and decode the token
-        const decoded = verifyAccessToken(authorizationHeader); // Assuming this verifies and decodes the token
+        const decoded = verifyAccessToken(authorizationHeader).decoded; // Assuming this verifies and decodes the token
         const userId = decoded.id;
 
         // Check if the user is the author
