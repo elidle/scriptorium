@@ -120,19 +120,29 @@ export async function GET(req, { params }) {
   try {
     const post = await prisma.blogPost.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        createdAt: true,
+        isHidden: true,
         author: {
           select: {
-            id: true
+            id: true,
+            username: true
           }
         },
-        tags: true,
+        tags: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
         ratings: {
           select: {
             value: true
           }
         }
-        // TODO: Implement fetching code templates
       }
     });
 
@@ -143,14 +153,20 @@ export async function GET(req, { params }) {
       );
     }
 
-    if (post.isHidden) {
-      post.title = "[Hidden post]";
-      post.content = "This post has been hidden by a moderator.";
-    }
-
     const postWithMetrics = itemRatingsToMetrics(post);
 
-    return Response.json(postWithMetrics, {status: 200} );
+    const responsePost = {
+      id: postWithMetrics.id,
+      title: post.isHidden ? "[Hidden post]" : postWithMetrics.title,
+      content: post.isHidden ? "This post has been hidden by a moderator." : postWithMetrics.content,
+      authorId: postWithMetrics.author?.id,
+      authorUsername: postWithMetrics.author?.username,
+      tags: postWithMetrics.tags.map(tag => ({ id: tag.id, name: tag.name })),
+      createdAt: postWithMetrics.createdAt,
+      score: postWithMetrics.metrics.totalScore
+    }
+
+    return Response.json(responsePost, {status: 200} );
   } catch (error) {
     console.error(error);
     return Response.json(

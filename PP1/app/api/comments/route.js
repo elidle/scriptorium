@@ -115,13 +115,42 @@ export async function GET(req) {
 
     const comments = await prisma.comment.findMany({
       where: { postId },
-      include: {
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        postId: true,
+        parentId: true,
+        isHidden: true,
         author: {
           select: {
+            id: true,
             username: true
           }
         },
-        parent: true,
+        // Get immediate replies only (can be paginated/fetched separately if needed)
+        replies: {
+          where: {
+            isDeleted: false,
+            isHidden: false
+          },
+          select: {
+            id: true,
+            content: true,
+            createdAt: true,
+            author: {
+              select: {
+                id: true,
+                username: true
+              }
+            },
+            ratings: {
+              select: {
+                value: true
+              }
+            }
+          }
+        },
         ratings: {
           select: {
             value: true
@@ -129,13 +158,6 @@ export async function GET(req) {
         }
       }
     });
-
-    const transformedComments = comments.map(comment => ({
-      ...comment,
-      content: comment.isHidden 
-        ? '[This comment has been hidden by a moderator.]' 
-        : comment.content
-    }));
 
     const commentsWithMetrics = itemsRatingsToMetrics(comments);
 
@@ -148,9 +170,22 @@ export async function GET(req) {
     const allSortedComments = [...sortedTopLevelComments, ...sortedReplies];
 
     const commentTree = buildCommentTree(allSortedComments);
-    const commentTreeHidden = commentTree.map(comment => hideContent(comment));
+    
+    const optimizeComment = (comment) => ({
+      id: comment.id,
+      content: comment.isHidden 
+        ? "This comment has been hidden by a moderator."
+        : comment.content,
+      authorId: comment.author.id,
+      authorUsername: comment.author.username,
+      createdAt: comment.createdAt,
+      score: comment.metrics.totalScore,
+      replies: comment.replies?.map(reply => optimizeComment(reply)) || []
+    });
 
-    return Response.json(commentTreeHidden, { status: 200 });
+    const responseCommentTree = commentTree.map(comment => optimizeComment(comment));
+
+    return Response.json(responseCommentTree, { status: 200 });
   } catch (error) {
     console.error(error);
     return Response.json(

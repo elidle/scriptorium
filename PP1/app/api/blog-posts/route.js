@@ -83,13 +83,23 @@ export async function GET(req) {
         isDeleted: false,
         isHidden: false
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        createdAt: true,
         author: {
           select: {
+            id: true,
             username: true
           }
         },
-        tags: true,
+        tags: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
         ratings: {
           select: {
             value: true
@@ -101,7 +111,18 @@ export async function GET(req) {
     const postsWithMetrics = itemsRatingsToMetrics(posts);
     const sortedPosts = sortItems(postsWithMetrics, sortBy);
 
-    return Response.json(sortedPosts, { status: 200 });
+    const responsePosts = sortedPosts.map(post => ({
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      authorId: post.author?.id,
+      authorUsername: post.author?.username,
+      tags: post.tags.map(tag => ({ id: tag.id, name: tag.name })),
+      createdAt: post.createdAt,
+      score: post.metrics.totalScore
+    }));
+
+    return Response.json(responsePosts, { status: 200 });
   } catch (error) {
     console.error(error);
     return Response.json(
