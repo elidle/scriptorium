@@ -8,7 +8,7 @@ export async function POST(req) {
 
     if (!userId || !commentId) {
       return Response.json(
-        { error: 'Invalid or missing required fields' },
+        { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
       );
     }
@@ -17,7 +17,7 @@ export async function POST(req) {
 
     if (!user) {
       return Response.json(
-        { error: 'User not found' },
+        { status: 'error', error: 'User not found' },
         { status: 404 }
       );
     }
@@ -28,14 +28,14 @@ export async function POST(req) {
 
     if (!comment || comment.isDeleted) {
       return Response.json(
-        { error: 'Comment not found' },
+        { status: 'error', error: 'Comment not found' },
         { status: 404 }
       );
     }
 
     if (comment.isHidden) {
       return Response.json(
-        { error: 'Comment is already hidden' },
+        { status: 'error', error: 'Comment is already hidden' },
         { status: 400 }
       );
     }
@@ -53,7 +53,7 @@ export async function POST(req) {
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to hide comment' },
+      { status: 'error', error: 'Failed to hide comment' },
       { status: 500 }
     );
   }
@@ -67,7 +67,7 @@ export async function DELETE(req) {
 
     if (!userId || !commentId) {
       return Response.json(
-        { error: 'Invalid or missing required fields' },
+        { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
       );
     }
@@ -76,7 +76,7 @@ export async function DELETE(req) {
 
     if (!user) {
       return Response.json(
-        { error: 'User not found' },
+        { status: 'error', error: 'User not found' },
         { status: 404 }
       );
     }
@@ -87,14 +87,14 @@ export async function DELETE(req) {
 
     if (!comment || comment.isDeleted) {
       return Response.json(
-        { error: 'Comment not found' },
+        { status: 'error', error: 'Comment not found' },
         { status: 404 }
       );
     }
 
     if (!comment.isHidden) {
       return Response.json(
-        { error: 'Comment is not hidden' },
+        { status: 'error', error: 'Comment is not hidden' },
         { status: 400 }
       );
     }
@@ -112,7 +112,7 @@ export async function DELETE(req) {
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to unhide comment' },
+      { status: 'error', error: 'Failed to unhide comment' },
       { status: 500 }
     );
   }

@@ -11,7 +11,7 @@ export async function POST(req) {
 
     if (!content || !authorId || !postId) {
       return Response.json(
-        { error: 'Invalid or missing required fields' },
+        { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
       );
     }
@@ -22,7 +22,7 @@ export async function POST(req) {
 
     if (!author) {
       return Response.json(
-        { error: 'Author not found' },
+        { status: 'error', error: 'Author not found' },
         { status: 404 }
       );
     }
@@ -33,7 +33,7 @@ export async function POST(req) {
 
     if (!blogPost) {
       return Response.json(
-        { error: 'Blog post not found' },
+        { status: 'error', error: 'Blog post not found' },
         { status: 404 }
       );
     }
@@ -45,14 +45,14 @@ export async function POST(req) {
 
       if (!parentComment) {
         return Response.json(
-          { error: 'Parent comment not found' },
+          { status: 'error', error: 'Parent comment not found' },
           { status: 404 }
         );
       }
 
       if (parentComment.postId !== postId) {
         return Response.json(
-          { error: 'Parent comment does not belong to the specified blog post' },
+          { status: 'error', error: 'Parent comment does not belong to the specified blog post' },
           { status: 400 }
         );
       }
@@ -80,7 +80,7 @@ export async function POST(req) {
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to add comment' },
+      { status: 'error', error: 'Failed to add comment' },
       { status: 500 }
     );
   }
@@ -97,7 +97,7 @@ export async function GET(req) {
 
     if (!postId) {
       return Response.json(
-        { error: 'Invalid or missing postId' },
+        { status: 'error', error: 'Invalid or missing postId' },
         { status: 400 }
       );
     }
@@ -108,7 +108,7 @@ export async function GET(req) {
 
     if (!blogPost) {
       return Response.json(
-        { error: 'Blog post not found' },
+        { status: 'error', error: 'Blog post not found' },
         { status: 404 }
       );
     }
@@ -189,7 +189,7 @@ export async function GET(req) {
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to fetch comments' },
+      { status: 'error', error: 'Failed to fetch comments' },
       { status: 500 }
     );
   }

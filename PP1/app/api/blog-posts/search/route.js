@@ -77,7 +77,7 @@ export async function GET(req) {
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to fetch blog posts' },
+      { status: 'error', error: 'Failed to fetch blog posts' },
       { status: 500 }
     );
   }

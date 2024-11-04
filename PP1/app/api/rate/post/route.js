@@ -9,14 +9,14 @@ export async function POST(req) {
 
     if (!value || !userId || !postId) {
       return Response.json(
-        { error: 'Invalid or missing required fields' },
+        { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
       );
     }
     
     if (value !== -1 && value !== 1) {
       return Response.json(
-        { error: 'Invalid rating value (must be 1 for upvote or -1 for downvote)' },
+        { status: 'error', error: 'Invalid rating value (must be 1 for upvote or -1 for downvote)' },
         { status: 400 }
       );
     }
@@ -25,7 +25,7 @@ export async function POST(req) {
 
     if (!user) {
       return Response.json(
-        { error: 'User not found' },
+        { status: 'error', error: 'User not found' },
         { status: 404 }
       );
     }
@@ -34,7 +34,7 @@ export async function POST(req) {
 
     if (!post || post.isDeleted) {
       return Response.json(
-        { error: 'Post not found' },
+        { status: 'error', error: 'Post not found' },
         { status: 404 }
       );
     }
@@ -63,7 +63,7 @@ export async function POST(req) {
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to create rating' },
+      { status: 'error', error: 'Failed to create rating' },
       { status: 500 }
     );
   }
@@ -77,7 +77,7 @@ export async function DELETE(req) {
 
     if (!userId || !postId) {
       return Response.json(
-        { error: 'Missing or invalid ID field' },
+        { status: 'error', error: 'Missing or invalid ID field' },
         { status: 400 }
       );
     }
@@ -86,7 +86,7 @@ export async function DELETE(req) {
 
     if (!user) {
       return Response.json(
-        { error: 'User not found' },
+        { status: 'error', error: 'User not found' },
         { status: 404 }
       );
     }
@@ -95,7 +95,7 @@ export async function DELETE(req) {
 
     if (!post || post.isDeleted) {
       return Response.json(
-        { error: 'Post not found' },
+        { status: 'error', error: 'Post not found' },
         { status: 404 }
       );
     }
@@ -109,7 +109,7 @@ export async function DELETE(req) {
 
     if (!rating) {
       return Response.json(
-        { error: 'Rating not found' },
+        { status: 'error', error: 'Rating not found' },
         { status: 404 }
       );
     }
@@ -119,11 +119,11 @@ export async function DELETE(req) {
       data: { value: 0 }
     });
 
-    return Response.json( deletedRating, { status: 200 } );
+    return Response.json( { status: 'success' }, { status: 200 } );
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to delete rating' },
+      { status: 'error', error: 'Failed to delete rating' },
       { status: 500 }
     );
   }

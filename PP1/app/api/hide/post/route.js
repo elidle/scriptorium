@@ -8,7 +8,7 @@ export async function POST(req) {
 
     if (!userId || !postId) {
       return Response.json(
-        { error: 'Invalid or missing required fields' },
+        { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
       );
     }
@@ -17,7 +17,7 @@ export async function POST(req) {
 
     if (!user) {
       return Response.json(
-        { error: 'User not found' },
+        { status: 'error', error: 'User not found' },
         { status: 404 }
       );
     }
@@ -28,14 +28,14 @@ export async function POST(req) {
 
     if (!post || post.isDeleted) {
       return Response.json(
-        { error: 'Post not found' },
+        { status: 'error', error: 'Post not found' },
         { status: 404 }
       );
     }
 
     if (post.isHidden) {
       return Response.json(
-        { error: 'Post is already hidden' },
+        { status: 'error', error: 'Post is already hidden' },
         { status: 400 }
       );
     }
@@ -53,7 +53,7 @@ export async function POST(req) {
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to hide post' },
+      { status: 'error', error: 'Failed to hide post' },
       { status: 500 }
     );
   }
@@ -67,7 +67,7 @@ export async function DELETE(req) {
 
     if (!userId || !postId) {
       return Response.json(
-        { error: 'Invalid or missing required fields' },
+        { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
       );
     }
@@ -76,7 +76,7 @@ export async function DELETE(req) {
 
     if (!user) {
       return Response.json(
-        { error: 'User not found' },
+        { status: 'error', error: 'User not found' },
         { status: 404 }
       );
     }
@@ -87,14 +87,14 @@ export async function DELETE(req) {
 
     if (!post || post.isDeleted) {
       return Response.json(
-        { error: 'Post not found' },
+        { status: 'error', error: 'Post not found' },
         { status: 404 }
       );
     }
 
     if (!post.isHidden) {
       return Response.json(
-        { error: 'Post is not hidden' },
+        { status: 'error', error: 'Post is not hidden' },
         { status: 400 }
       );
     }
@@ -112,7 +112,7 @@ export async function DELETE(req) {
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to unhide post' },
+      { status: 'error', error: 'Failed to unhide post' },
       { status: 500 }
     );
   }

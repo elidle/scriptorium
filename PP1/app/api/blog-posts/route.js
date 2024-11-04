@@ -7,7 +7,7 @@ export async function POST(req) {
 
     if (!authorId || !title || !content) {
       return Response.json(
-        { error: 'Invalid or missing required fields' },
+        { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
       );
     }
@@ -20,7 +20,7 @@ export async function POST(req) {
 
     if (!author) {
       return Response.json(
-        { error: 'Author not found' },
+        { status: 'error', error: 'Author not found' },
         { status: 404 }
       );
     }
@@ -43,7 +43,7 @@ export async function POST(req) {
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to create blog post' },
+      { status: 'error', error: 'Failed to create blog post' },
       { status: 500 }
     );
   }

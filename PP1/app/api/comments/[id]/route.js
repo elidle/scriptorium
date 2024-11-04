@@ -9,7 +9,7 @@ export async function PUT(req, { params }) {
 
     if (!id || !content ) {
       return Response.json(
-        { error: 'Invalid or missing required fields' },
+        { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
       );
     }
@@ -18,7 +18,7 @@ export async function PUT(req, { params }) {
 
     if (!comment || comment.isDeleted) {
       return Response.json(
-        { error: 'Comment not found' },
+        { status: 'error', error: 'Comment not found' },
         { status: 404 }
       );
     }
@@ -32,7 +32,7 @@ export async function PUT(req, { params }) {
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to update comment' },
+      { status: 'error', error: 'Failed to update comment' },
       { status: 500 }
     );
   }
@@ -46,14 +46,14 @@ export async function DELETE(req, { params }) {
 
     if (!id) {
       return Response.json(
-        { error: 'Missing or invalid ID' },
+        { status: 'error', error: 'Missing or invalid ID' },
         { status: 400 }
       );
     }
 
     if (!comment || comment.isDeleted) {
       return Response.json(
-        { error: 'Comment not found' },
+        { status: 'error', error: 'Comment not found' },
         { status: 404 }
       );
     }
@@ -71,11 +71,11 @@ export async function DELETE(req, { params }) {
       }
     });
 
-    return Response.json(deletedComment, { status: 200 });
+    return Response.json( { status: 'success' }, { status: 200 });
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to delete comment' },
+      { status: 'error', error: 'Failed to delete comment' },
       { status: 500 }
     );
   }
