@@ -17,7 +17,7 @@ export async function PUT(req, { params }) {
       );
     }
 
-    const { title, content, tags } = await req.json();
+    const { title, content, tags, codeTemplateIds} = await req.json();
     // TODO: Implement updating code templates on post
 
     const post = await prisma.blogPost.findUnique({ where: { id } });
@@ -44,6 +44,10 @@ export async function PUT(req, { params }) {
               where: { name: tag },
               create: { name: tag }
             }))
+          },
+          codeTemplates: {
+            set: [],
+            connect: codeTemplateIds.map(id => ({ id: id }))
           }
         })
       },
@@ -155,8 +159,13 @@ export async function GET(req, { params }) {
           select: {
             value: true
           }
+        },
+        codeTemplates: {
+          select: {
+            id: true,
+            title: true
+          }
         }
-        // TODO: Implement code template fetching
       }
     });
 
