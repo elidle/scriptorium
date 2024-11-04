@@ -131,6 +131,9 @@ export async function DELETE(req) {
     return Response.json( { status: 'success' }, { status: 200 } );
   } catch (error) {
     console.error(error);
+    if (error instanceof ForbiddenError) {
+      return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
+    }
     return Response.json(
       { status: 'error', error: 'Failed to delete rating' },
       { status: 500 }

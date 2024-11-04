@@ -1,7 +1,7 @@
 import { prisma } from '../../../../utils/db';
 import { itemRatingsToMetrics } from '../../../../utils/blog/metrics';
 import { authorize } from '../../../middleware/auth';
-import { ForbiddenError } from "../../../../errors/ForbiddenError";
+import { ForbiddenError } from '../../../../errors/ForbiddenError';
 
 export async function PUT(req, { params }) {
   try {
@@ -92,7 +92,7 @@ export async function DELETE(req, { params }) {
       );
     }
 
-    await authorize(req, ['user', 'admin'], post.authorId);
+    await authorize(req, ['user', 'admin'], { userId: post.authorId });
 
     const deletedPost = await prisma.blogPost.update({
       where: { id },
