@@ -91,7 +91,10 @@ export async function DELETE(req, { params }) {
         },
         codeTemplates: {
           set: []
-        }
+        },
+        isHidden: false,
+        hiddenAt: null,
+        hiddenById: null
       }
     });
 

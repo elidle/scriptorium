@@ -64,7 +64,10 @@ export async function DELETE(req, { params }) {
         isDeleted: true,
         deletedAt: new Date(),
         content: null,
-        authorId: null
+        authorId: null,
+        isHidden: false,
+        hiddenAt: null,
+        hiddenById: null
       }
     });
 
