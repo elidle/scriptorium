@@ -1,4 +1,4 @@
-import { prisma } from '../../../../../utils/db';
+import { prisma } from '../../../../utils/db';
 
 // This function is used to report a post.
 export async function POST(req) {
@@ -28,7 +28,7 @@ export async function POST(req) {
         id: Number(postId),
       }
     });
-    if (!existingPost) {
+    if (!existingPost || existingPost.isDeleted) {
       return Response.json({ status: 'error', message: 'Post not found' }, { status: 400 });
     }
     const report = await prisma.postReport.create({

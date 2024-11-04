@@ -1,4 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
+const { hashPassword } = require('../utils/auth');
+
 const prisma = new PrismaClient();
 
 async function main() {
@@ -6,8 +8,10 @@ async function main() {
     where: { username: 'admin'},
     update: {},
     create: {
-      name: 'Admin',
+      firstname: 'Admin',
+      lastname: 'Admin',
       username: 'admin',
+      password: await hashPassword('admin'),
       email: 'admin@gmail.com',
     },
   })

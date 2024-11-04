@@ -1,4 +1,4 @@
-import { prisma } from '../../../../../utils/db';
+import { prisma } from '../../../../utils/db';
 
 // This function is used to report a comment.
 export async function POST(req) {
@@ -27,7 +27,7 @@ export async function POST(req) {
         id: Number(commentId),
       }
     });
-    if (!existingComment) {
+    if (!existingComment || existingComment.isDeleted) {
       return Response.json({ status: 'error', message: 'Comment not found' }, { status: 400 });
     }
     const report = await prisma.commentReport.create({
