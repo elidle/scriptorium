@@ -2,7 +2,7 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { ForbiddenError } from '@/errors/ForbiddenError';
-import { authorize } from '../../middleware/auth_user';
+import { authorize } from '../../middleware/auth';
 import { hashPassword } from '../../../utils/auth';
 
 const prisma = new PrismaClient();

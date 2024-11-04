@@ -4,7 +4,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { ForbiddenError } from '@/errors/ForbiddenError';
-import { authorize } from '../../../middleware/auth_user';
+import { authorize } from '../../../middleware/auth';
 
 const prisma = new PrismaClient();
 

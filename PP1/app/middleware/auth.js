@@ -21,8 +21,6 @@ export async function authorize(req, roles = []) {
         const decoded = verifyAccessToken(token).decoded; // Assuming this verifies and decodes the token
         const userRole = decoded.role;
 
-        console.log(decoded)
-
         // Check if the user's role matches any allowed role
         if (roles.length && !roles.includes(userRole)) {
             throw new ForbiddenError("You do not have permission to access this resource.");
