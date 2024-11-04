@@ -38,3 +38,42 @@ export async function GET(req, { params }) {
         await prisma.$disconnect();
     }
 }
+
+// A similar implementation is on the profile/route.js
+export async function PUT(req, { params }) {
+
+    const { id } = params;
+    const updateData = await req.json();
+
+    try {
+        await authorize(req, ['admin', 'user'], parseInt(id));
+
+        const user = await prisma.user.findUnique({
+            where: { id: parseInt(id) },
+        });
+
+        if (!user) {
+            return new Response("User not found", { status: 404 });
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: parseInt(id) },
+            data: updateData,
+        });
+
+        return new Response(JSON.stringify(updatedUser), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+        });
+    } catch (error) {
+
+        if (error instanceof ForbiddenError) {
+            return new Response(error.message, { status: error.statusCode });
+        }
+
+        console.error("Error updating user:", error);
+        return new Response("Internal Server Error", { status: 500 });
+    } finally {
+        await prisma.$disconnect();
+    }
+}
