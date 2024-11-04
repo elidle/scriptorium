@@ -35,7 +35,7 @@ export async function GET(req, { params }) {
   if(!template){
     return Response.json({ status: 'error', message: 'Template not found' }, { status: 404 });
   }
-  return Response.json({ status: 'success', template: template }, { status: 200 });
+  return Response.json(template, { status: 200 });
 }
 
 /*
@@ -48,6 +48,7 @@ export async function PUT(req, { params }) {
   const { id } = params;
   let { title, code, language, explanation, tags, authorId, isForked} = await req.json();
 
+  let template;
   try{
     const existingTemplate = await prisma.codeTemplate.findUnique({
       where: {
@@ -60,7 +61,7 @@ export async function PUT(req, { params }) {
     // Authorize author
     await authorizeAuthor(req, existingTemplate.authorId);
 
-    const template = await prisma.codeTemplate.update({
+    template = await prisma.codeTemplate.update({
       where: {
         id: parseInt(id),
       },
@@ -85,7 +86,7 @@ export async function PUT(req, { params }) {
     console.log(err);
     return Response.json({ status: 'error', message: 'Failed to update template' }, { status: 400 });
   }
-  return Response.json({ status: 'success' }, { status: 200 });
+  return Response.json(template, { status: 200 });
 }
 
 /*
@@ -98,23 +99,23 @@ export async function DELETE(req, { params }) {
   const { id } = params;
 
 
-try{
-  const existingTemplate = await prisma.codeTemplate.findUnique({
-    where: {
-      id: parseInt(id),
-    },
-  });
-  if(!existingTemplate){
-    return Response.json({ status: 'error', message: 'Template not found' }, { status: 404 });
-  }
-  // Authorize author
-  await authorizeAuthor(req, existingTemplate.authorId);
-
-  const template = await prisma.codeTemplate.delete({
+  try{
+    const existingTemplate = await prisma.codeTemplate.findUnique({
       where: {
         id: parseInt(id),
       },
     });
+    if(!existingTemplate){
+      return Response.json({ status: 'error', message: 'Template not found' }, { status: 404 });
+    }
+    // Authorize author
+    await authorizeAuthor(req, existingTemplate.authorId);
+
+    const template = await prisma.codeTemplate.delete({
+        where: {
+          id: parseInt(id),
+        },
+      });
   }
   catch(err){
     return Response.json({ status: 'error', message: 'Failed to delete template' }, { status: 500 });
