@@ -13,6 +13,9 @@ export async function GET(req) {
   // Sorting parameter
   const sortBy = searchParams.get('sortBy') || 'new';
 
+  // Pagination parameters
+  const page = searchParams.get('page');
+
   try {
     const posts = await prisma.blogPost.findMany({
       where: {

@@ -3,6 +3,8 @@ import { itemsRatingsToMetrics } from '@/utils/blog/metrics';
 import { sortItems } from '@/utils/blog/sorts';
 
 export async function POST(req) {
+  await authorize(req, ['admin', 'user']);
+
   try {
     let { content, authorId, parentId, postId } = await req.json();
     authorId = Number(authorId);

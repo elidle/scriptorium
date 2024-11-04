@@ -1,6 +1,8 @@
 import { prisma } from '@/utils/db';
 
 export async function PUT(req, { params }) {
+  await authorize(req, ['admin', 'user']);
+
   try {
     let { content } = await req.json();
     let { id } = params;
@@ -39,6 +41,8 @@ export async function PUT(req, { params }) {
 }
 
 export async function DELETE(req, { params }) {
+  await authorize(req, ['admin', 'user']);
+
   try {
     let { id } = params;
     id = Number(id);
