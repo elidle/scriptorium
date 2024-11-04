@@ -12,8 +12,5 @@ export async function POST(req) {
     // You could log the logout event if needed.
     // Optionally handle any server-side cleanup logic here.
 
-    return new Response(JSON.stringify({ message: "Logout successful, directing to Sign-up page" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-    });
+    return Response.json({ message: "Logout successful, directing to Sign-up page" }, { status: 200 });
 }
