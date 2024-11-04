@@ -1,8 +1,8 @@
 import { prisma } from '../../../../utils/db';
-import { authorize } from "../../middleware/auth";
+import { authorize, authorizeAuthor } from "../../../middleware/auth";
 
 export async function POST(req) {
-  await authorize(req, ['admin']);
+  // await authorize(req, ['admin']);
 
   try {
     let { userId, postId } = await req.json();
@@ -15,6 +15,8 @@ export async function POST(req) {
         { status: 400 }
       );
     }
+
+    // await authorizeAuthor(req, userId);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
@@ -46,7 +48,20 @@ export async function POST(req) {
       data: { 
         isHidden: true,
         hiddenById: userId,
-        hiddenAt: new Date()
+        hiddenAt: new Date(),
+        updatedAt: new Date()
+      },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        authorId: true,
+        author: {select: { username: true }},
+        isHidden: true,
+        hiddenAt: true,
+        hiddenById: true,
+        createdAt: true,
+        updatedAt: true
       }
     });
 
@@ -61,7 +76,7 @@ export async function POST(req) {
 }
 
 export async function DELETE(req) {
-  await authorize(req, ['admin']);
+  // await authorize(req, ['admin']);
 
   try {
     let { userId, postId } = await req.json();
@@ -74,6 +89,8 @@ export async function DELETE(req) {
         { status: 400 }
       );
     }
+
+    // authorizeAuthor(req, userId);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
@@ -105,7 +122,20 @@ export async function DELETE(req) {
       data: { 
         isHidden: false,
         hiddenById: null,
-        hiddenAt: null
+        hiddenAt: null,
+        updatedAt: new Date()
+      },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        authorId: true,
+        author: {select: { username: true }},
+        isHidden: true,
+        hiddenAt: true,
+        hiddenById: true,
+        createdAt: true,
+        updatedAt: true
       }
     });
 
