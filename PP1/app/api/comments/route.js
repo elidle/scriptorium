@@ -150,12 +150,7 @@ export async function GET(req) {
             username: true
           }
         },
-        // Get immediate replies only (can be paginated/fetched separately if needed)
         replies: {
-          where: {
-            isDeleted: false,
-            isHidden: false
-          },
           select: {
             id: true,
             content: true,
