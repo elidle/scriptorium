@@ -8,12 +8,7 @@ const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY;
 
 export async function hashPassword(password) {
-  console.log("hashing")
-  console.log(password)
-  console.log(BCRYPT_SALT_ROUNDS)
-  const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
-  console.log(hashedPassword)
-  return hashedPassword
+  return await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 }
 
 export async function comparePassword(password, hash) {

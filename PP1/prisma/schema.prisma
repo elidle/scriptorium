@@ -22,7 +22,7 @@ model User {
   hashedPassword  String
   avatar          String?
   role            String           @default("user") // "user" or "admin"
-  phoneNumber     String           @default("0")
+  phoneNumber     String
   email           String           @unique
   posts           BlogPost[]    @relation("author")
   comments        Comment[]      @relation("author")

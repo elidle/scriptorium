@@ -1,5 +1,5 @@
-import { ForbiddenError } from '@/errors/ForbiddenError';
-import { verifyAccessToken } from '@/utils/auth';
+import { ForbiddenError } from '../../errors/ForbiddenError';
+import { verifyAccessToken } from '../../utils/auth';
 
 export async function authorize(req, roles = []) {
     if (typeof roles === 'string') {
@@ -7,19 +7,23 @@ export async function authorize(req, roles = []) {
     }
 
     // Extract the token from headers
-    const authorizationHeader = req.headers.get('accesstoken');
+    const authorizationHeader = req.headers.get('access-token');
 
     if (!authorizationHeader) {
         throw new ForbiddenError("Forbidden: No token provided.");
     }
 
-    // Remove 'Bearer ' prefix if it exists
-    const token = authorizationHeader;
-
     try {
         // Verify and decode the token
-        const decoded = verifyAccessToken(token).decoded; // Assuming this verifies and decodes the token
-        const userRole = decoded.role;
+        const verification = verifyAccessToken(authorizationHeader);
+        if (!verification) {
+            throw new ForbiddenError("Invalid token.");
+        }
+        else if(!verification.valid){
+            throw new ForbiddenError("Token has expired");
+        }
+
+        const userRole = verification.decoded.role;
 
         // Check if the user's role matches any allowed role
         if (roles.length && !roles.includes(userRole)) {

@@ -1,9 +1,8 @@
 // the route.js file within the [id] folder would typically handle requests related to a specific user 
 // identified by their id. This could include handling GET requests to fetch user data, PUT requests 
 // to update user data, or DELETE requests to remove a user.
-
 import { PrismaClient } from '@prisma/client';
-import { ForbiddenError } from '@/errors/ForbiddenError';
+import { ForbiddenError } from '../../../../errors/ForbiddenError';
 import { authorize } from '../../../middleware/auth';
 
 const prisma = new PrismaClient();
@@ -21,26 +20,25 @@ export async function GET(req, { params }) {
         });
 
         if (!user) {
-            return new Response("User not found", { status: 404 });
+            return Response.json({status: "error", message: "User not found"}, { status: 404 });
         }
 
-        return new Response(JSON.stringify(user), {
+
+        return Response.json(user,{
             status: 200,
-            headers: { "Content-Type": "application/json" },
         });
 
     } catch (error) {
         if (error instanceof ForbiddenError) {
-            return new Response(error.message, { status: error.statusCode });
+            return Response.json({ status: "error", message: error.message }, { status: error.statusCode });
         }
 
         console.error("Error fetching user:", error);
-        return new Response("Internal Server Error", { status: 500 });
-    } finally {
-        await prisma.$disconnect();
+        return Response.json({ status: "error", message: "Internal server error" }, { status: 500 });
     }
 }
-
+// TODO: If a user wants to update their profile information, they can send a PUT request to profile/route.js.
+//  Why this function is needed?
 // A similar implementation is on the profile/route.js
 export async function PUT(req, { params }) {
 
@@ -55,7 +53,7 @@ export async function PUT(req, { params }) {
         });
 
         if (!user) {
-            return new Response("User not found", { status: 404 });
+            return Response.json({ status: "error", message: "User not found" }, { status: 404 });
         }
 
         const updatedUser = await prisma.user.update({
@@ -63,10 +61,10 @@ export async function PUT(req, { params }) {
             data: updateData,
         });
 
-        return new Response(JSON.stringify(updatedUser), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-        });
+        // TODO: Authorize the request with the owner's ID
+        // await authorizeAuthor(req, user.id);
+
+        return Response.json(updatedUser, { status: 200 });
     } catch (error) {
 
         if (error instanceof ForbiddenError) {
@@ -75,11 +73,9 @@ export async function PUT(req, { params }) {
 
         console.error("Error updating user:", error);
         return new Response("Internal Server Error", { status: 500 });
-    } finally {
-        await prisma.$disconnect();
     }
 }
-
+// TODO: Technically we can only delete a user from profile/route.js, this function should be removed
 // When user wants to delete their account
 export async function DELETE(req, { params }) {
 
@@ -112,6 +108,6 @@ export async function DELETE(req, { params }) {
         }
 
         console.error("Error deleting user:", error);
-        return new Response("Internal Server Error", { status: 404 });
+        return new Response("Internal Server Error", { status: 500 });
     } 
 }
