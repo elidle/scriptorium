@@ -6,7 +6,7 @@ export function fetchCurrentPage(obj, page, limit, sortFunction, args) {
     return {curPage: obj.slice(start, end), hasMore: end < obj.length};
   }
 
-  const sorted = sortFunction(obj, args);
+  const sorted = sortFunction(obj, ...args);
   
   return {curPage: sorted.slice(start, end), hasMore: end < sorted.length};
 }

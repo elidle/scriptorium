@@ -29,7 +29,7 @@ export async function POST(req) {
         name: name,
       }
     });
-    return Response.json({ status: 'success', message: 'Tag created successfully', tag: tag }, { status: 200 });
+    return Response.json({ status: 'success', message: 'Tag created successfully', tag: tag }, { status: 201 });
   } catch (err) {
     console.log(err);
     return Response.json({ status: 'error', message: 'Failed to create tag' }, { status: 500 });
