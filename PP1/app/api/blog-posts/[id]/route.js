@@ -3,7 +3,7 @@ import { itemRatingsToMetrics } from '../../../../utils/blog/metrics';
 import {authorize, authorizeAuthor} from '../../../../middleware/auth';
 
 export async function PUT(req, { params }) {
-  await authorize(req);
+  await authorize(req, ['user', 'admin']);
 
   try {
     let { id } = params;
@@ -63,7 +63,7 @@ export async function PUT(req, { params }) {
 }
 
 export async function DELETE(req, { params }) {
-  await authorize(req);
+  await authorize(req, ['user', 'admin']);
 
   try {
     let { id } = params;

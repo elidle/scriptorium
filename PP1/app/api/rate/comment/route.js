@@ -2,7 +2,7 @@ import { prisma } from '../../../../utils/db';
 import { authorize, authorizeAuthor } from "../../../middleware/auth";
 
 export async function POST(req) {
-  await authorize(req);
+  await authorize(req, ['user', 'admin']);
 
   try {
     let { value, userId, commentId } = await req.json();
@@ -75,7 +75,7 @@ export async function POST(req) {
 }
 
 export async function DELETE(req) {
-  await authorize(req);
+  await authorize(req, ['user', 'admin']);
 
   try {
     let { userId, commentId } = await req.json();

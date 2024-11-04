@@ -1,7 +1,8 @@
 import { prisma } from '../../../../utils/db';
+import { authorize } from "../../middleware/auth";
 
 export async function POST(req) {
-  // await authorize(req, ['admin']);
+  await authorize(req, ['admin']);
 
   try {
     let { userId, postId } = await req.json();
@@ -23,8 +24,6 @@ export async function POST(req) {
         { status: 404 }
       );
     }
-
-    // TODO: Authorize user
 
     const post = await prisma.blogPost.findUnique({ where: { id: postId } });
 
@@ -62,7 +61,7 @@ export async function POST(req) {
 }
 
 export async function DELETE(req) {
-  // await authorize(req, ['admin']);
+  await authorize(req, ['admin']);
 
   try {
     let { userId, postId } = await req.json();
@@ -84,8 +83,6 @@ export async function DELETE(req) {
         { status: 404 }
       );
     }
-
-    // TODO: Authorize user
 
     const post = await prisma.blogPost.findUnique({ where: { id: postId } });
 

@@ -2,7 +2,7 @@ import { prisma } from '../../../../utils/db';
 import { authorize, authorizeAuthor } from "../../../middleware/auth";
 
 export async function PUT(req, { params }) {
-  await authorize(req);
+  await authorize(req, ['user', 'admin']);
 
   try {
     let { content } = await req.json();

@@ -5,7 +5,7 @@ import { fetchCurrentPage } from '../../../utils/pagination';
 import { authorize } from "../../middleware/auth";
 
 export async function POST(req) {
-  await authorize(req);
+  await authorize(req, ['user', 'admin']);
 
   try {
     let { content, authorId, parentId, postId } = await req.json();
