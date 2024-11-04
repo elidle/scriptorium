@@ -1,78 +1,7 @@
 import { prisma } from '@/utils/db';
 
 export async function POST(req) {
-  await authorize(req, ['admin', 'user']);
-
-  try {
-    let { value, userId, postId } = await req.json();
-    value = Number(value);
-    userId = Number(userId);
-    postId = Number(postId);
-
-    if (!value || !userId || !postId) {
-      return Response.json(
-        { status: 'error', error: 'Invalid or missing required fields' },
-        { status: 400 }
-      );
-    }
-    
-    if (value !== -1 && value !== 1) {
-      return Response.json(
-        { status: 'error', error: 'Invalid rating value (must be 1 for upvote or -1 for downvote)' },
-        { status: 400 }
-      );
-    }
-
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-
-    if (!user) {
-      return Response.json(
-        { status: 'error', error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    const post = await prisma.blogPost.findUnique({ where: { id: postId } });
-
-    if (!post || post.isDeleted) {
-      return Response.json(
-        { status: 'error', error: 'Post not found' },
-        { status: 404 }
-      );
-    }
-
-    const existingRating = await prisma.postRating.findFirst({
-      where: {
-        userId,
-        postId
-      }
-    });
-    
-    const newRating = existingRating 
-      ? await prisma.postRating.update({
-          where: { id: existingRating.id },
-          data: { value }
-        })
-      : await prisma.postRating.create({
-          data: {
-            value,
-            user: { connect: { id: userId } },
-            post: { connect: { id: postId } }
-          }
-        });
-
-    return Response.json(newRating, { status: 201 });
-  } catch (error) {
-    console.error(error);
-    return Response.json(
-      { status: 'error', error: 'Failed to create rating' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(req) {
-  await authorize(req, ['admin', 'user']);
+  // await authorize(req, ['admin']);
 
   try {
     let { userId, postId } = await req.json();
@@ -81,7 +10,7 @@ export async function DELETE(req) {
 
     if (!userId || !postId) {
       return Response.json(
-        { status: 'error', error: 'Missing or invalid ID field' },
+        { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
       );
     }
@@ -95,6 +24,8 @@ export async function DELETE(req) {
       );
     }
 
+    // TODO: Authorize user
+
     const post = await prisma.blogPost.findUnique({ where: { id: postId } });
 
     if (!post || post.isDeleted) {
@@ -104,30 +35,88 @@ export async function DELETE(req) {
       );
     }
 
-    const rating = await prisma.postRating.findFirst({ 
-      where: { 
-        userId,
-        postId
-      } 
+    if (post.isHidden) {
+      return Response.json(
+        { status: 'error', error: 'Post is already hidden' },
+        { status: 400 }
+      );
+    }
+
+    const hiddenPost = await prisma.blogPost.update({
+      where: { id: postId },
+      data: { 
+        isHidden: true,
+        hiddenById: userId,
+        hiddenAt: new Date()
+      }
     });
 
-    if (!rating) {
+    return Response.json(hiddenPost, { status: 200 });
+  } catch (error) {
+    console.error(error);
+    return Response.json(
+      { status: 'error', error: 'Failed to hide post' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req) {
+  // await authorize(req, ['admin']);
+
+  try {
+    let { userId, postId } = await req.json();
+    userId = Number(userId);
+    postId = Number(postId);
+
+    if (!userId || !postId) {
       return Response.json(
-        { status: 'error', error: 'Rating not found' },
+        { status: 'error', error: 'Invalid or missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user) {
+      return Response.json(
+        { status: 'error', error: 'User not found' },
         { status: 404 }
       );
     }
 
-    const deletedRating = await prisma.postRating.update({
-      where: { id: rating.id },
-      data: { value: 0 }
+    // TODO: Authorize user
+
+    const post = await prisma.blogPost.findUnique({ where: { id: postId } });
+
+    if (!post || post.isDeleted) {
+      return Response.json(
+        { status: 'error', error: 'Post not found' },
+        { status: 404 }
+      );
+    }
+
+    if (!post.isHidden) {
+      return Response.json(
+        { status: 'error', error: 'Post is not hidden' },
+        { status: 400 }
+      );
+    }
+
+    const unhiddenPost = await prisma.blogPost.update({
+      where: { id: postId },
+      data: { 
+        isHidden: false,
+        hiddenById: null,
+        hiddenAt: null
+      }
     });
 
-    return Response.json( { status: 'success' }, { status: 200 } );
+    return Response.json(unhiddenPost, { status: 200 });
   } catch (error) {
     console.error(error);
     return Response.json(
-      { status: 'error', error: 'Failed to delete rating' },
+      { status: 'error', error: 'Failed to unhide post' },
       { status: 500 }
     );
   }

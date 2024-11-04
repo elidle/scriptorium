@@ -1,8 +1,12 @@
 import { prisma } from '@/utils/db';
 import { itemsRatingsToMetrics } from '@/utils/blog/metrics';
 import { sortItems } from '@/utils/blog/sorts';
+import { fetchCurrentPage } from '@/utils/pagination';
+// import { authorize } from '@/utils/auth';
 
 export async function POST(req) {
+  // await authorize(req, ['admin', 'user']);
+
   try {
     let { content, authorId, parentId, postId } = await req.json();
     authorId = Number(authorId);
@@ -11,7 +15,7 @@ export async function POST(req) {
 
     if (!content || !authorId || !postId) {
       return Response.json(
-        { error: 'Invalid or missing required fields' },
+        { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
       );
     }
@@ -22,7 +26,7 @@ export async function POST(req) {
 
     if (!author) {
       return Response.json(
-        { error: 'Author not found' },
+        { status: 'error', error: 'Author not found' },
         { status: 404 }
       );
     }
@@ -33,7 +37,7 @@ export async function POST(req) {
 
     if (!blogPost) {
       return Response.json(
-        { error: 'Blog post not found' },
+        { status: 'error', error: 'Blog post not found' },
         { status: 404 }
       );
     }
@@ -45,14 +49,14 @@ export async function POST(req) {
 
       if (!parentComment) {
         return Response.json(
-          { error: 'Parent comment not found' },
+          { status: 'error', error: 'Parent comment not found' },
           { status: 404 }
         );
       }
 
       if (parentComment.postId !== postId) {
         return Response.json(
-          { error: 'Parent comment does not belong to the specified blog post' },
+          { status: 'error', error: 'Parent comment does not belong to the specified blog post' },
           { status: 400 }
         );
       }
@@ -63,7 +67,7 @@ export async function POST(req) {
         content,
         author: { connect: { id: authorId } },
         post: { connect: { id: postId } },
-        parent: parentId ? { connect: { id: parentId } } : undefined,
+        ...(parentId && { connect: { id: parentId } })
       },
       include: {
         author: {
@@ -80,7 +84,7 @@ export async function POST(req) {
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to add comment' },
+      { status: 'error', error: 'Failed to add comment' },
       { status: 500 }
     );
   }
@@ -95,9 +99,27 @@ export async function GET(req) {
     // Sorting parameter
     const sortBy = searchParams.get('sortBy') || 'new';
 
+    if (!['new', 'old', 'top', 'controversial'].includes(sortBy)) {
+      return Response.json(
+        { status: 'error', error: 'Invalid sort parameter' },
+        { status: 400 }
+      );
+    }
+
+    // Pagination parameters
+    const page = Number(searchParams.get('page') || '1');
+    const limit = Number(searchParams.get('limit') || '10');
+
+    if (!page || !limit) {
+      return Response.json(
+        { status: 'error', error: 'Invalid page parameter' },
+        { status: 400 }
+      );
+    }
+
     if (!postId) {
       return Response.json(
-        { error: 'Invalid or missing postId' },
+        { status: 'error', error: 'Invalid or missing postId' },
         { status: 400 }
       );
     }
@@ -108,28 +130,49 @@ export async function GET(req) {
 
     if (!blogPost) {
       return Response.json(
-        { error: 'Blog post not found' },
+        { status: 'error', error: 'Blog post not found' },
         { status: 404 }
       );
     }
 
     const comments = await prisma.comment.findMany({
       where: { postId },
-      include: {
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        postId: true,
+        parentId: true,
+        isHidden: true,
         author: {
           select: {
+            id: true,
             username: true
           }
         },
-        parent: true,
+        replies: {
+          select: {
+            id: true,
+            content: true,
+            createdAt: true,
+            author: {
+              select: {
+                id: true,
+                username: true
+              }
+            },
+            ratings: {
+              select: {
+                value: true
+              }
+            }
+          }
+        },
         ratings: {
           select: {
             value: true
           }
         }
-      },
-      orderBy: {
-        createdAt: 'desc'
       }
     });
 
@@ -145,11 +188,28 @@ export async function GET(req) {
 
     const commentTree = buildCommentTree(allSortedComments);
 
-    return Response.json(commentTree, { status: 200 });
+    const optimizeComment = (comment) => ({
+      id: comment.id,
+      content: comment.isHidden 
+        ? "This comment has been hidden by a moderator."
+        : comment.content,
+      authorId: comment.author.id,
+      authorUsername: comment.author.username,
+      createdAt: comment.createdAt,
+      score: comment.metrics.totalScore,
+      replies: comment.replies?.map(reply => optimizeComment(reply)) || []
+    });
+
+    const paginatedCommentTree = fetchCurrentPage(commentTree, page, limit);
+    const curPage = paginatedCommentTree.curPage.map(comment => optimizeComment(comment));
+    const hasMore = paginatedCommentTree.hasMore;
+    const nextPage = hasMore ? page + 1 : null;
+
+    return Response.json( { comments: curPage, hasMore: hasMore, nextPage: nextPage}, { status: 200 });
   } catch (error) {
     console.error(error);
     return Response.json(
-      { error: 'Failed to fetch comments' },
+      { status: 'error', error: 'Failed to fetch comments' },
       { status: 500 }
     );
   }
