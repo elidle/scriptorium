@@ -43,8 +43,7 @@ export async function PUT(req, { params }) {
               create: { name: tag }
             }))
           }
-        }),
-        updatedAt: new Date()
+        })
       },
       select: {
         id: true,
@@ -110,8 +109,7 @@ export async function DELETE(req, { params }) {
         },
         isHidden: false,
         hiddenAt: null,
-        hiddenById: null,
-        updatedAt: new Date()
+        hiddenById: null
       }
     });
 

@@ -29,10 +29,7 @@ export async function PUT(req, { params }) {
 
     const updatedComment = await prisma.comment.update({
       where: { id },
-      data: { 
-        content, 
-        updatedAt: new Date() 
-      },
+      data: { content },
       select: {
         id: true,
         authorId: true,
@@ -91,8 +88,7 @@ export async function DELETE(req, { params }) {
         deletedAt: new Date(),
         isHidden: false,
         hiddenAt: null,
-        hiddenById: null,
-        updatedAt: new Date(),
+        hiddenById: null
       }
     });
 

@@ -47,8 +47,7 @@ export async function POST(req) {
       data: {
         isHidden: true,
         hiddenById: userId,
-        hiddenAt: new Date(),
-        updatedAt: new Date()
+        hiddenAt: new Date()
       },
       select: {
         id: true,
@@ -121,8 +120,7 @@ export async function DELETE(req) {
       data: {
         isHidden: false,
         hiddenById: null,
-        hiddenAt: null,
-        updatedAt: new Date()
+        hiddenAt: null
       },
       select: {
         id: true,
