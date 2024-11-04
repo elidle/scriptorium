@@ -1,6 +1,9 @@
 import { prisma } from '@/utils/db';
+// import { authorize } from '@/utils/auth';
 
 export async function POST(req) {
+  // await authorize(req, ['admin', 'user']);
+
   try {
     let { authorId, title, content, tags = [] } = await req.json();
     authorId = Number(authorId);

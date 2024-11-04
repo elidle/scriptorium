@@ -1,5 +1,5 @@
 import { prisma } from '../../../../utils/db'
-import {Prisma} from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import {verifyToken} from "../../../../utils/auth";
 
 /*
@@ -43,56 +43,10 @@ export async function GET(req, { params }) {
   * This function is used to update a code template.
  */
 export async function PUT(req, { params }) {
-  // const user = await verifyToken(req.headers.get("authorization"));
-  // if (!user) {
-  //     return Response.json({ status: 'error', message: 'Unauthorized' }, { status: 401 });
-  // }
   const { id } = params;
   let { title, code, language, explanation, tags, authorId, isForked} = await req.json();
 
   try{
-    /*
-     * This will return the existing tags of the template with format:
-     * {
-     *  tags: [
-     *   {
-     *     tag: {
-     *      name: <tag-name>
-     *     },
-     *   }
-     *  ]
-     * }
-     */
-    // const existingTags = await prisma.codeTemplate.findUnique({
-    //   where: {
-    //     id: parseInt(id),
-    //   },
-    //   select: {
-    //     tags: {
-    //       select: {
-    //         tag: {
-    //           select: {
-    //             name: true,
-    //           }
-    //         }
-    //       }
-    //     }
-    //   }
-    // });
-    // if(!existingTags){
-    //     return Response.json({ status: 'error', message: 'Template not found' }, { status: 400 });
-    // }
-    // console.log(existingTags["tags"]);
-    // const existingTagNames = existingTags["tags"].map((tagObj) => tagObj.tag.name);
-    // const newTags = tags.filter((tagName) => !existingTagNames.includes(tagName)); // Get the tags that are not already present in the template
-
-    // if(tags) {
-    //   await prisma.tagsOnTemplates.deleteMany({
-    //     where: {
-    //       templateId: parseInt(id),
-    //     }
-    //   });
-    // }
     const existingTemplate = await prisma.codeTemplate.findUnique({
       where: {
         id: parseInt(id),
@@ -160,9 +114,3 @@ try{
   }
 return Response.json({ status: 'success' }, { status: 200 });
 }
-
-
-
-
-
-

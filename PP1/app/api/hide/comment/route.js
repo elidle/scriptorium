@@ -1,6 +1,9 @@
 import { prisma } from '@/utils/db';
+// import { authorize } from '@/utils/auth';
 
 export async function POST(req) {
+  // await authorize(req, ['admin']);
+
   try {
     let { userId, commentId } = await req.json();
     userId = Number(userId);
@@ -60,6 +63,8 @@ export async function POST(req) {
 }
 
 export async function DELETE(req) {
+  // await authorize(req, ['admin']);
+
   try {
     let { userId, commentId } = await req.json();
     userId = Number(userId);

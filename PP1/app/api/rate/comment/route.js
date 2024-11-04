@@ -1,6 +1,9 @@
 import { prisma } from '@/utils/db';
+// import { authorize } from '@/utils/auth';
 
 export async function POST(req) {
+  // await authorize(req, ['admin', 'user']);
+
   try {
     let { value, userId, commentId } = await req.json();
     value = Number(value);
@@ -70,6 +73,8 @@ export async function POST(req) {
 }
 
 export async function DELETE(req) {
+  // await authorize(req, ['admin', 'user']);
+
   try {
     let { userId, commentId } = await req.json();
     userId = Number(userId);
@@ -119,7 +124,7 @@ export async function DELETE(req) {
       data: { value: 0 }
     });
 
-    return Response.json( deletedRating, { status: 200 } );
+    return Response.json( { status: 'success' }, { status: 200 } );
   } catch (error) {
     console.error(error);
     return Response.json(
