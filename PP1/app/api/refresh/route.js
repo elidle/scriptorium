@@ -1,10 +1,8 @@
-import { decode } from "punycode";
 import { generateAccessToken, verifyRefreshToken } from "../../../utils/auth";
 
 export async function POST(req) {
   const refreshToken = req.headers.get('refresh-token'); // Adjusted header name to be more conventional
   const {id, username, role} = await req.json();
-    console.log(refreshToken)
 
   if (!refreshToken) {
     return Response.json({ status: "error", message: 'Refresh token missing' }, { status: 400 });
