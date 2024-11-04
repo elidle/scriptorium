@@ -2,21 +2,13 @@ import { prisma } from '@/utils/db';
 
 export async function POST(req) {
   try {
-    let { value, userId, commentId } = await req.json();
-    value = Number(value);
+    let { userId, commentId } = await req.json();
     userId = Number(userId);
     commentId = Number(commentId);
 
-    if (!value || !userId || !commentId) {
+    if (!userId || !commentId) {
       return Response.json(
         { status: 'error', error: 'Invalid or missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    if (value !== -1 && value !== 1) {
-      return Response.json(
-        { status: 'error', error: 'Invalid rating value (must be 1 for upvote or -1 for downvote)' },
         { status: 400 }
       );
     }
@@ -30,6 +22,8 @@ export async function POST(req) {
       );
     }
 
+    // TODO: Authorize user
+
     const comment = await prisma.comment.findUnique({ where: { id: commentId } });
 
     if (!comment || comment.isDeleted) {
@@ -39,31 +33,27 @@ export async function POST(req) {
       );
     }
 
-    const existingRating = await prisma.commentRating.findFirst({
-      where: {
-        userId,
-        commentId
+    if (comment.isHidden) {
+      return Response.json(
+        { status: 'error', error: 'Comment is already hidden' },
+        { status: 400 }
+      );
+    }
+
+    const hiddenComment = await prisma.comment.update({
+      where: { id: commentId },
+      data: {
+        isHidden: true,
+        hiddenById: userId,
+        hiddenAt: new Date()
       }
     });
 
-    const newRating = existingRating 
-      ? await prisma.commentRating.update({
-          where: { id: existingRating.id },
-          data: { value }
-        })
-      : await prisma.commentRating.create({
-          data: {
-            value,
-            user: { connect: { id: userId } },
-            comment: { connect: { id: commentId } }
-          }
-        });
-
-    return Response.json(newRating, { status: 201 });
+    return Response.json(hiddenComment, { status: 200 });
   } catch (error) {
     console.error(error);
     return Response.json(
-      { status: 'error', error: 'Failed to create rating' },
+      { status: 'error', error: 'Failed to hide comment' },
       { status: 500 }
     );
   }
@@ -77,7 +67,7 @@ export async function DELETE(req) {
 
     if (!userId || !commentId) {
       return Response.json(
-        { status: 'error', error: 'Missing or invalid ID field' },
+        { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
       );
     }
@@ -91,6 +81,8 @@ export async function DELETE(req) {
       );
     }
 
+    // TODO: Authorize user
+
     const comment = await prisma.comment.findUnique({ where: { id: commentId } });
 
     if (!comment || comment.isDeleted) {
@@ -100,32 +92,28 @@ export async function DELETE(req) {
       );
     }
 
-    const rating = await prisma.commentRating.findFirst({ 
-      where: { 
-        userId,
-        commentId
-      } 
-    });
-
-    if (!rating) {
+    if (!comment.isHidden) {
       return Response.json(
-        { status: 'error', error: 'Rating not found' },
-        { status: 404 }
+        { status: 'error', error: 'Comment is not hidden' },
+        { status: 400 }
       );
     }
 
-    const deletedRating = await prisma.commentRating.update({
-      where: { id: rating.id },
-      data: { value: 0 }
+    const unhiddenComment = await prisma.comment.update({
+      where: { id: commentId },
+      data: {
+        isHidden: false,
+        hiddenById: null,
+        hiddenAt: null
+      }
     });
 
-    return Response.json( deletedRating, { status: 200 } );
+    return Response.json( unhiddenComment, { status: 200 } );
   } catch (error) {
     console.error(error);
     return Response.json(
-      { status: 'error', error: 'Failed to delete rating' },
+      { status: 'error', error: 'Failed to unhide comment' },
       { status: 500 }
     );
   }
 }
-
