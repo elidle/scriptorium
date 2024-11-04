@@ -1,5 +1,5 @@
-import { prisma } from '@/utils/db';
-import { itemRatingsToMetrics } from '@/utils/blog/metrics';
+import { prisma } from '../../../../utils/db';
+import { itemRatingsToMetrics } from '../../../../utils/blog/metrics';
 // import { authorize } from '@/utils/auth';
 
 export async function PUT(req, { params }) {

@@ -1,4 +1,4 @@
-import { prisma } from '@/utils/db';
+import { prisma } from '../../../../utils/db';
 // import { authorize } from '@/utils/auth';
 
 export async function POST(req) {

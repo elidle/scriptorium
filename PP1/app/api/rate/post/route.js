@@ -1,7 +1,8 @@
-import { prisma } from '@/utils/db';
+import { prisma } from '../../../../utils/db';
+// import { authorize } from '@/utils/auth';
 
 export async function POST(req) {
-  await authorize(req, ['admin', 'user']);
+  // await authorize(req, ['admin', 'user']);
 
   try {
     let { value, userId, postId } = await req.json();
@@ -72,7 +73,7 @@ export async function POST(req) {
 }
 
 export async function DELETE(req) {
-  await authorize(req, ['admin', 'user']);
+  // await authorize(req, ['admin', 'user']);
 
   try {
     let { userId, postId } = await req.json();
