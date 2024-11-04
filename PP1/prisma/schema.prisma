@@ -30,11 +30,6 @@ model User {
   posts          BlogPost[]
   comments       Comment[]
   ratings        Rating[]
-  codeTemplates  CodeTemplate[]
-  hashedPassword String
-  avatar         String?  @default("avatar0")
-  role           String   @default("user")  // either "user" or "admin"
-  phoneNumber    String   @default("0")
   codeTemplates   CodeTemplate[]
   reportPosts     PostReport[]
   reportComments  CommentReport[]
