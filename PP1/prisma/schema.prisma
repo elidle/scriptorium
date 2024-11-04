@@ -24,8 +24,8 @@ model User {
   role            String           @default("user") // "user" or "admin"
   phoneNumber     String
   email           String           @unique
-  posts           BlogPost[]    @relation("author")
-  comments        Comment[]      @relation("author")
+  posts           BlogPost[]       @relation("author")
+  comments        Comment[]        @relation("author")
   postRatings     PostRating[]
   commentRatings  CommentRating[]
   codeTemplates   CodeTemplate[]
@@ -38,7 +38,7 @@ model User {
 }
 
 model BlogPost {
-  id              Int            @id @default(autoincrement())
+  id              Int             @id @default(autoincrement())
   authorId        Int?
   author          User?            @relation("author", fields: [authorId], references: [id])
   title           String?
@@ -54,13 +54,13 @@ model BlogPost {
   comments        Comment[]
   ratings         PostRating[]
   report          PostReport[]
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
 model Tag {
-  id        Int               @id @default(autoincrement())
-  name      String            @unique
+  id        Int                 @id @default(autoincrement())
+  name      String               @unique
   posts     BlogPost[]
   templates CodeTemplate[]
 }
@@ -87,22 +87,22 @@ model Comment {
   id            Int             @id @default(autoincrement())
   content       String
   authorId      Int
-  author        User            @relation("author", fields: [authorId], references: [id])
+  author        User             @relation("author", fields: [authorId], references: [id])
   postId        Int
-  post          BlogPost        @relation(fields: [postId], references: [id])
-  parent        Comment?        @relation("CommentReplies", fields: [parentId], references: [id])
+  post          BlogPost         @relation(fields: [postId], references: [id])
+  parent        Comment?         @relation("CommentReplies", fields: [parentId], references: [id])
   parentId      Int?
-  replies       Comment[]       @relation("CommentReplies")
+  replies       Comment[]        @relation("CommentReplies")
   ratings       CommentRating[]
   reports       CommentReport[]
-  isDeleted     Boolean           @default(false)
+  isDeleted     Boolean          @default(false)
   deletedAt     DateTime?
-  isHidden      Boolean           @default(false)
+  isHidden      Boolean          @default(false)
   hiddenAt      DateTime?
   hiddenById    Int?
   hiddenBy      User?            @relation("moderator", fields: [hiddenById], references: [id])
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 }
 
 model PostRating {

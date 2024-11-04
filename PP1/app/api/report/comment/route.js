@@ -1,11 +1,10 @@
 import { prisma } from '../../../../utils/db';
+import {authorize} from "../../../middleware/auth";
 
 // This function is used to report a comment.
 export async function POST(req) {
-  // const user = verifyToken(req.headers.get("authorization"));
-  // if (!user) {
-  //   return Response.json({ status: 'error', message: 'Unauthorized' }, { status: 401 });
-  // }
+  await authorize(req);
+
   const { reporterId, commentId, reason } = await req.json();
   if(!reporterId || !commentId || !reason){
     return Response.json({ status: 'error', message: 'Missing required fields' }, { status: 400 });
@@ -20,7 +19,7 @@ export async function POST(req) {
       }
     });
     if(!reporter){
-      return Response.json({ status: 'error', message: 'Reporter not found' }, { status: 400 });
+      return Response.json({ status: 'error', message: 'Reporter not found' }, { status: 404 });
     }
     const existingComment = await prisma.comment.findUnique({
       where: {
@@ -28,7 +27,7 @@ export async function POST(req) {
       }
     });
     if (!existingComment || existingComment.isDeleted) {
-      return Response.json({ status: 'error', message: 'Comment not found' }, { status: 400 });
+      return Response.json({ status: 'error', message: 'Comment not found' }, { status: 404 });
     }
     const report = await prisma.commentReport.create({
       data: {
@@ -41,5 +40,5 @@ export async function POST(req) {
   catch(err){
     return Response.json({ status: 'error', message: 'Failed to report comment' }, { status: 500 });
   }
-  return Response.json({ status: 'success' }, { status: 200 });
+  return Response.json({ status: 'success' }, { status: 201 });
 }

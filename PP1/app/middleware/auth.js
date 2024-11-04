@@ -1,7 +1,7 @@
 import { ForbiddenError } from '../../errors/ForbiddenError';
 import { verifyAccessToken } from '../../utils/auth';
 
-export async function authorize(req, roles = []) {
+export async function authorize(req, roles = [], owner = -1) {
     if (typeof roles === 'string') {
         roles = [roles];
     }
@@ -24,10 +24,15 @@ export async function authorize(req, roles = []) {
         }
 
         const userRole = verification.decoded.role;
+        const userId = verification.decoded.id;
 
         // Check if the user's role matches any allowed role
         if (roles.length && !roles.includes(userRole)) {
             throw new ForbiddenError("You do not have permission to access this resource.");
+        }
+
+        if (owner !== -1 && userId !== owner) {
+            throw new ForbiddenError("You do not have ownership of this resource.");
         }
 
         return true; // Authorized

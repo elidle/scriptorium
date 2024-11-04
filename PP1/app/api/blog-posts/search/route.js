@@ -1,6 +1,7 @@
-import { prisma } from '@/utils/db';
-import { itemsRatingsToMetrics } from '@/utils/blog/metrics';
-import { sortItems } from '@/utils/blog/sorts';
+import { prisma } from '../../../../utils/db';
+import { itemsRatingsToMetrics } from '../../../../utils/blog/metrics';
+import { sortItems } from '../../../../utils/blog/sorts';
+import { fetchCurrentPage } from '../../../../utils/pagination';
 
 export async function GET(req) {
   const searchParams = req.nextUrl.searchParams;
@@ -12,6 +13,24 @@ export async function GET(req) {
 
   // Sorting parameter
   const sortBy = searchParams.get('sortBy') || 'new';
+
+  if (!['new', 'old', 'top', 'controversial'].includes(sortBy)) {
+    return Response.json(
+      { status: 'error', error: 'Invalid sort parameter' },
+      { status: 400 }
+    );
+  }
+
+  // Pagination parameters
+  const page = Number(searchParams.get('page') || '1');
+  const limit = Number(searchParams.get('limit') || '10');
+
+  if (!page || !limit) {
+    return Response.json(
+      { status: 'error', error: 'Invalid page parameter' },
+      { status: 400 }
+    );
+  }
 
   try {
     const posts = await prisma.blogPost.findMany({
@@ -55,14 +74,15 @@ export async function GET(req) {
           select: {
             value: true
           }
-        }
+        },
+        // TODO: Implement code template fetching
       }
     });
 
     const postsWithMetrics = itemsRatingsToMetrics(posts);
     const sortedPosts = sortItems(postsWithMetrics, sortBy);
-
-    const responsePosts = sortedPosts.map(post => ({
+    const paginatedPosts = fetchCurrentPage(sortedPosts, page, limit);
+    const curPage = paginatedPosts.curPage.map(post => ({
       id: post.id,
       title: post.title,
       content: post.content,
@@ -72,8 +92,10 @@ export async function GET(req) {
       createdAt: post.createdAt,
       score: post.metrics.totalScore
     }));
+    const hasMore = paginatedPosts.hasMore;
+    const nextPage = hasMore ? page + 1 : null;
 
-    return Response.json(responsePosts, { status: 200 });
+    return Response.json( { posts: curPage, hasMore: hasMore, nextPage: nextPage }, { status: 200 });
   } catch (error) {
     console.error(error);
     return Response.json(

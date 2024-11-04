@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { hashPassword } from '../../../../utils/auth';
-
-const prisma = new PrismaClient();
+import {prisma} from "../../../../utils/db";
 
 export async function POST(req) {
 

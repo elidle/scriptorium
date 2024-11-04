@@ -1,12 +1,8 @@
-import { PrismaClient } from '@prisma/client';
 import { ForbiddenError } from '../../../../../errors/ForbiddenError';
-
-const prisma = new PrismaClient();
-
+import {prisma} from "../../../../../utils/db";
 export async function GET(req, { params }) {
   const userId = params.id;
   try {
-
     // Retrieve the user's profile information
     const user = await prisma.user.findUnique({
       where: { id: parseInt(userId) },
@@ -36,10 +32,10 @@ export async function GET(req, { params }) {
     if (error instanceof ForbiddenError) {
       return Response.json({ status: "error", message: error.message }, { status: error.statusCode });
     }
-
     console.error("Error retrieving user profile:", error);
     return Response.json({ status: "error", message: "Internal server error" }, {
       status: 500,
     });
   }
 }
+
