@@ -31,10 +31,10 @@ model User {
   codeTemplates   CodeTemplate[]
   reportPosts     PostReport[]
   reportComments  CommentReport[]
-  hiddenPosts     BlogPost[]       @relation("moderator")
-  hiddenComments  Comment[]        @relation("moderator")
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  hiddenPosts     BlogPost[]      @relation("moderator")
+  hiddenComments  Comment[]       @relation("moderator")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }
 
 model BlogPost {
@@ -87,7 +87,11 @@ model Comment {
   id            Int             @id @default(autoincrement())
   content       String
   authorId      Int
+<<<<<<< HEAD
+  author        User            @relation("author", fields: [authorId], references: [id])
+=======
   author        User             @relation("author", fields: [authorId], references: [id])
+>>>>>>> c604f3ff37551727b61ea4e687b214c90f35b0c1
   postId        Int
   post          BlogPost         @relation(fields: [postId], references: [id])
   parent        Comment?         @relation("CommentReplies", fields: [parentId], references: [id])

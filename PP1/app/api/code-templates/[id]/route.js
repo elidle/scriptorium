@@ -1,6 +1,5 @@
-import { prisma } from '../../../../utils/db'
-import { Prisma } from "@prisma/client";
-import {verifyToken} from "../../../../utils/auth";
+import { prisma, Prisma } from '../../../../utils/db'
+import {authorize, authorizeAuthor} from "../../../middleware/auth";
 
 /*
   * This function is used to retrieve existing code template.
@@ -34,7 +33,7 @@ export async function GET(req, { params }) {
     return Response.json({ status: 'error', message: 'Failed to fetch template' }, { status: 400 });
   }
   if(!template){
-    return Response.json({ status: 'error', message: 'Template not found' }, { status: 400 });
+    return Response.json({ status: 'error', message: 'Template not found' }, { status: 404 });
   }
   return Response.json({ status: 'success', template: template }, { status: 200 });
 }
@@ -43,6 +42,9 @@ export async function GET(req, { params }) {
   * This function is used to update a code template.
  */
 export async function PUT(req, { params }) {
+  // Authorize user
+  await authorize(req);
+
   const { id } = params;
   let { title, code, language, explanation, tags, authorId, isForked} = await req.json();
 
@@ -53,8 +55,11 @@ export async function PUT(req, { params }) {
       },
     });
     if(!existingTemplate){
-      return Response.json({ status: 'error', message: 'Template not found' }, { status: 400 });
+      return Response.json({ status: 'error', message: 'Template not found' }, { status: 404 });
     }
+    // Authorize author
+    await authorizeAuthor(req, existingTemplate.authorId);
+
     const template = await prisma.codeTemplate.update({
       where: {
         id: parseInt(id),
@@ -87,10 +92,9 @@ export async function PUT(req, { params }) {
   * This function is used to delete a code template.
  */
 export async function DELETE(req, { params }) {
-  // const user = verifyToken(req.headers.get("authorization"));
-  // if (!user) {
-  //   return Response.json({ status: 'error', message: 'Unauthorized' }, { status: 401 });
-  // }
+  // Authorize user
+  await authorize(req);
+
   const { id } = params;
 
 
@@ -101,8 +105,11 @@ try{
     },
   });
   if(!existingTemplate){
-    return Response.json({ status: 'error', message: 'Template not found' }, { status: 400 });
+    return Response.json({ status: 'error', message: 'Template not found' }, { status: 404 });
   }
+  // Authorize author
+  await authorizeAuthor(req, existingTemplate.authorId);
+
   const template = await prisma.codeTemplate.delete({
       where: {
         id: parseInt(id),
@@ -110,7 +117,7 @@ try{
     });
   }
   catch(err){
-    return Response.json({ status: 'error', message: 'Failed to delete template' }, { status: 400 });
+    return Response.json({ status: 'error', message: 'Failed to delete template' }, { status: 500 });
   }
-return Response.json({ status: 'success' }, { status: 200 });
+  return Response.json({ status: 'success' }, { status: 200 });
 }
