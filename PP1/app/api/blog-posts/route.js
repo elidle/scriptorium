@@ -1,6 +1,9 @@
-import { prisma } from '@/utils/db';
+import { prisma } from '../../../utils/db';
+import { authorize } from "../../middleware/auth";
 
 export async function POST(req) {
+  await authorize(req, ['user', 'admin']);
+
   try {
     let { authorId, title, content, tags = [] } = await req.json();
     authorId = Number(authorId);

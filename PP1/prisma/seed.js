@@ -15,8 +15,6 @@ async function main() {
       email: 'admin@gmail.com',
     },
   })
-
-  console.log({ admin })
 }
 main()
   .then(async () => {

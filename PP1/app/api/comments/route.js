@@ -1,8 +1,12 @@
-import { prisma } from '@/utils/db';
-import { itemsRatingsToMetrics } from '@/utils/blog/metrics';
-import { sortItems } from '@/utils/blog/sorts';
+import { prisma } from '../../../utils/db';
+import { itemsRatingsToMetrics } from '../../../utils/blog/metrics';
+import { sortItems } from '../../../utils/blog/sorts';
+import { fetchCurrentPage } from '../../../utils/pagination';
+import { authorize } from "../../middleware/auth";
 
 export async function POST(req) {
+  await authorize(req, ['user', 'admin']);
+
   try {
     let { content, authorId, parentId, postId } = await req.json();
     authorId = Number(authorId);
@@ -63,7 +67,7 @@ export async function POST(req) {
         content,
         author: { connect: { id: authorId } },
         post: { connect: { id: postId } },
-        parent: parentId ? { connect: { id: parentId } } : undefined,
+        ...(parentId && { connect: { id: parentId } })
       },
       include: {
         author: {
@@ -94,6 +98,24 @@ export async function GET(req) {
 
     // Sorting parameter
     const sortBy = searchParams.get('sortBy') || 'new';
+
+    if (!['new', 'old', 'top', 'controversial'].includes(sortBy)) {
+      return Response.json(
+        { status: 'error', error: 'Invalid sort parameter' },
+        { status: 400 }
+      );
+    }
+
+    // Pagination parameters
+    const page = Number(searchParams.get('page') || '1');
+    const limit = Number(searchParams.get('limit') || '10');
+
+    if (!page || !limit) {
+      return Response.json(
+        { status: 'error', error: 'Invalid page parameter' },
+        { status: 400 }
+      );
+    }
 
     if (!postId) {
       return Response.json(
@@ -128,12 +150,7 @@ export async function GET(req) {
             username: true
           }
         },
-        // Get immediate replies only (can be paginated/fetched separately if needed)
         replies: {
-          where: {
-            isDeleted: false,
-            isHidden: false
-          },
           select: {
             id: true,
             content: true,
@@ -170,7 +187,7 @@ export async function GET(req) {
     const allSortedComments = [...sortedTopLevelComments, ...sortedReplies];
 
     const commentTree = buildCommentTree(allSortedComments);
-    
+
     const optimizeComment = (comment) => ({
       id: comment.id,
       content: comment.isHidden 
@@ -183,9 +200,12 @@ export async function GET(req) {
       replies: comment.replies?.map(reply => optimizeComment(reply)) || []
     });
 
-    const responseCommentTree = commentTree.map(comment => optimizeComment(comment));
+    const paginatedCommentTree = fetchCurrentPage(commentTree, page, limit);
+    const curPage = paginatedCommentTree.curPage.map(comment => optimizeComment(comment));
+    const hasMore = paginatedCommentTree.hasMore;
+    const nextPage = hasMore ? page + 1 : null;
 
-    return Response.json(responseCommentTree, { status: 200 });
+    return Response.json( { comments: curPage, hasMore: hasMore, nextPage: nextPage}, { status: 200 });
   } catch (error) {
     console.error(error);
     return Response.json(
@@ -216,14 +236,4 @@ function buildCommentTree(comments) {
   });
 
   return rootComments;
-}
-
-function hideContent(comment) {
-  return {
-    ...comment,
-    content: comment.isHidden 
-      ? '[This comment has been hidden by a moderator.]' 
-      : comment.content,
-    replies: comment.replies.map(reply => hideContent(reply))
-  };
 }
