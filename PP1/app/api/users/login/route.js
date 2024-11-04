@@ -4,7 +4,6 @@ import { prisma } from "../../../../utils/db";
 
 export async function POST(req) {
     const { username, password } = await req.json(); // Parse JSON body
-
     // Validate input
     if (!username || !password) {
         return Response.json({ status: "error", message: "Missing fields" }, { status: 400 });

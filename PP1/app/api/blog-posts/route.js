@@ -35,8 +35,8 @@ export async function POST(req) {
         content,
         tags: {
           connectOrCreate: tags.map(tagName => ({
-            where: { name: tagName },
-            create: { name: tagName }
+            where: { name: tagName.toLowerCase() },
+            create: { name: tagName.toLowerCase() }
           }))
         }
       }

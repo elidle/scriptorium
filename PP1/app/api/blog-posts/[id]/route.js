@@ -1,6 +1,6 @@
 import { prisma } from '../../../../utils/db';
 import { itemRatingsToMetrics } from '../../../../utils/blog/metrics';
-import {authorize, authorizeAuthor} from '../../../../middleware/auth';
+import { authorize } from '../../../middleware/auth';
 
 export async function PUT(req, { params }) {
   await authorize(req, ['user', 'admin']);
@@ -18,7 +18,6 @@ export async function PUT(req, { params }) {
     }
 
     const { title, content, tags, codeTemplateIds} = await req.json();
-    // TODO: Implement updating code templates on post
 
     const post = await prisma.blogPost.findUnique({ where: { id } });
 
@@ -41,8 +40,8 @@ export async function PUT(req, { params }) {
           tags: {
             set: [],
             connectOrCreate: tags.map(tag => ({
-              where: { name: tag },
-              create: { name: tag }
+              where: { name: tag.toLowerCase() },
+              create: { name: tag.toLowerCase() }
             }))
           },
           codeTemplates: {

@@ -1,9 +1,9 @@
 import { prisma } from '../../../../utils/db';
 import {authorize} from "../../../middleware/auth";
+import {ForbiddenError} from "../../../../errors/ForbiddenError.js";
 
 // This function is used to report a comment.
 export async function POST(req) {
-  await authorize(req, ['user', 'admin']);
 
   const { reporterId, commentId, reason } = await req.json();
   if(!reporterId || !commentId || !reason){
@@ -13,6 +13,8 @@ export async function POST(req) {
     return Response.json({ status: 'error', message: 'Invalid commentId' }, { status: 400 });
   }
   try{
+    // Authorize user
+    await authorize(req, ['user', 'admin']);
     const reporter = await prisma.user.findUnique({
       where: {
         id: reporterId,
@@ -38,6 +40,9 @@ export async function POST(req) {
     });
   }
   catch(err){
+    if (err instanceof ForbiddenError) {
+      return Response.json({ status: "error", message: err.message }, { status: err.statusCode });
+    }
     return Response.json({ status: 'error', message: 'Failed to report comment' }, { status: 500 });
   }
   return Response.json({ status: 'success' }, { status: 201 });

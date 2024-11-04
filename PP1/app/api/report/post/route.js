@@ -1,9 +1,9 @@
 import { prisma } from '../../../../utils/db';
 import {authorize} from "../../../middleware/auth";
+import {ForbiddenError} from "../../../../errors/ForbiddenError.js";
 
 // This function is used to report a post.
 export async function POST(req) {
-  await authorize(req, ['user', 'admin']);
 
   const { reporterId, postId, reason } = await req.json();
 
@@ -14,6 +14,8 @@ export async function POST(req) {
     return Response.json({ status: 'error', message: 'Invalid postId' }, { status: 400 });
   }
   try{
+    // Authorize user
+    await authorize(req, ['user', 'admin']);
     const reporter = await prisma.user.findUnique({
       where: {
         id: reporterId,
@@ -39,6 +41,9 @@ export async function POST(req) {
     });
   }
   catch(err){
+    if (err instanceof ForbiddenError) {
+      return Response.json({ status: "error", message: err.message }, { status: err.statusCode });
+    }
     return Response.json({ status: 'error', message: 'Failed to report post' }, { status: 500 });
   }
   return Response.json({ status: 'success' }, { status: 201 });
