@@ -197,8 +197,8 @@ export async function GET(req) {
       content: comment.isHidden 
         ? "This comment has been hidden by a moderator."
         : comment.content,
-      authorId: comment.author.id,
-      authorUsername: comment.author.username,
+      authorId: comment.author?.id ?? null,
+      authorUsername: comment.author?.username ?? "[deleted]",
       createdAt: comment.createdAt,
       score: comment.metrics.totalScore,
       replies: comment.replies?.map(reply => optimizeComment(reply)) || []

@@ -89,7 +89,7 @@ export async function DELETE(req) {
       );
     }
 
-    await authorize(req, ['iser', 'admin'], userId);
+    await authorize(req, ['user', 'admin'], userId);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
 

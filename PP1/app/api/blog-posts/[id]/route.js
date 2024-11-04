@@ -92,7 +92,7 @@ export async function DELETE(req, { params }) {
       );
     }
 
-    await authorize(req, ['user', 'admin'], { userId: post.authorId });
+    await authorize(req, ['user', 'admin'], post.authorId);
 
     const deletedPost = await prisma.blogPost.update({
       where: { id },
