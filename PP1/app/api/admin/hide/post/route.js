@@ -1,6 +1,6 @@
-import { prisma } from '../../../../utils/db';
-import { authorize } from "../../../middleware/auth";
-import { ForbiddenError } from '../../../../errors/ForbiddenError';
+import { prisma } from '../../../../../utils/db';
+import { authorize } from "../../../../middleware/auth";
+import { ForbiddenError } from '../../../../../errors/ForbiddenError';
 
 export async function POST(req) {
   try {
@@ -15,7 +15,7 @@ export async function POST(req) {
       );
     }
 
-    await authorize(req, ['admin'], userId);
+    await authorize(req, ['admin']);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
@@ -89,7 +89,7 @@ export async function DELETE(req) {
       );
     }
 
-    await authorize(req, ['admin'], userId);
+    await authorize(req, ['admin']);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
