@@ -1,18 +1,18 @@
 import { prisma } from '../../../utils/db';
 import {authorize} from "../../middleware/auth";
+import {ForbiddenError} from "../../../errors/ForbiddenError.js";
 
 /*
  * This function is used to create or fork a new code template.
  */
 export async function POST(req) {
-  await authorize(req);
-
   let { title, code, language , explanation, tags, authorId, isForked, parentTemplateId } = await req.json();
 
   /*
    * Note:
    * Here <tags> is a list of strings.
    */
+
   if(!title || !code || !authorId){
     return Response.json({ status: 'error', message: 'Missing required fields' }, { status: 400 });
   }
@@ -33,8 +33,11 @@ export async function POST(req) {
   if (!isForked) {
     isForked = false;
   }
+  let template;
   try {
-    const template = await prisma.codeTemplate.create({
+    // Authorize user
+    await authorize(req, ['user', 'admin']);
+    template = await prisma.codeTemplate.create({
       data: {
         title: title,
         code: code,
@@ -42,8 +45,8 @@ export async function POST(req) {
         explanation: explanation,
         tags: {
           connectOrCreate: tags.map((tagName) => ({
-            where: {name: tagName},
-            create: {name: tagName},
+            where: {name: tagName.toLowerCase()},
+            create: {name: tagName.toLowerCase()},
           }))
         },
         authorId: Number(authorId),
@@ -71,8 +74,10 @@ export async function POST(req) {
     }
   }
   catch(err){
-    console.log(err)
+    if (err instanceof ForbiddenError) {
+      return Response.json({ status: "error", message: err.message }, { status: err.statusCode });
+    }
     return Response.json({ status: 'error', message: 'Failed to create new template' }, { status: 500 });
   }
-  return Response.json({ status: 'success' }, { status: 201 });
+  return Response.json(template, { status: 201 });
 }

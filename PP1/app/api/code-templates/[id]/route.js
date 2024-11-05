@@ -1,5 +1,6 @@
 import { prisma, Prisma } from '../../../../utils/db'
-import {authorize, authorizeAuthor} from "../../../middleware/auth";
+import {authorize} from "../../../middleware/auth";
+import {ForbiddenError} from "../../../../errors/ForbiddenError.js";
 
 /*
   * This function is used to retrieve existing code template.
@@ -35,20 +36,21 @@ export async function GET(req, { params }) {
   if(!template){
     return Response.json({ status: 'error', message: 'Template not found' }, { status: 404 });
   }
-  return Response.json({ status: 'success', template: template }, { status: 200 });
+  return Response.json(template, { status: 200 });
 }
 
 /*
   * This function is used to update a code template.
  */
 export async function PUT(req, { params }) {
-  // Authorize user
-  await authorize(req);
-
   const { id } = params;
-  let { title, code, language, explanation, tags, authorId, isForked} = await req.json();
+  let { title, code, language, explanation, tags, isForked} = await req.json();
 
+  let template;
   try{
+    // Authorize user
+    await authorize(req, ['user', 'admin']);
+
     const existingTemplate = await prisma.codeTemplate.findUnique({
       where: {
         id: parseInt(id),
@@ -58,9 +60,9 @@ export async function PUT(req, { params }) {
       return Response.json({ status: 'error', message: 'Template not found' }, { status: 404 });
     }
     // Authorize author
-    await authorizeAuthor(req, existingTemplate.authorId);
+    await authorize(req, ['user'], existingTemplate.authorId);
 
-    const template = await prisma.codeTemplate.update({
+    template = await prisma.codeTemplate.update({
       where: {
         id: parseInt(id),
       },
@@ -72,51 +74,56 @@ export async function PUT(req, { params }) {
         tags: tags.length > 0 ? {
           deleteMany: {},
           connectOrCreate: tags.map((tagName) => ({
-              where: { name: tagName },
-              create: { name: tagName },
+              where: { name: tagName.toLowerCase() },
+              create: { name: tagName.toLowerCase() },
           }))}
         : Prisma.skip,
-        authorId: authorId ?? Prisma.skip,
         isForked: isForked ?? Prisma.skip,
       },
     });
   }
   catch(err){
-    console.log(err);
+    if (err instanceof ForbiddenError) {
+      return Response.json({ status: "error", message: err.message }, { status: err.statusCode });
+    }
     return Response.json({ status: 'error', message: 'Failed to update template' }, { status: 400 });
   }
-  return Response.json({ status: 'success' }, { status: 200 });
+  return Response.json(template, { status: 200 });
 }
 
 /*
   * This function is used to delete a code template.
  */
 export async function DELETE(req, { params }) {
-  // Authorize user
-  await authorize(req);
-
   const { id } = params;
 
+  try{
+    // Authorize user
+    await authorize(req, ['user', 'admin']);
 
-try{
-  const existingTemplate = await prisma.codeTemplate.findUnique({
-    where: {
-      id: parseInt(id),
-    },
-  });
-  if(!existingTemplate){
-    return Response.json({ status: 'error', message: 'Template not found' }, { status: 404 });
-  }
-  // Authorize author
-  await authorizeAuthor(req, existingTemplate.authorId);
-
-  const template = await prisma.codeTemplate.delete({
+    const existingTemplate = await prisma.codeTemplate.findUnique({
       where: {
         id: parseInt(id),
       },
     });
+    if(!existingTemplate){
+      return Response.json({ status: 'error', message: 'Template not found' }, { status: 404 });
+    }
+    // Authorize author
+    await authorize(req, ['user', 'admin'], existingTemplate.authorId);
+
+    const template = await prisma.codeTemplate.delete({
+        where: {
+          id: parseInt(id),
+        },
+      });
   }
   catch(err){
+
+    if (err instanceof ForbiddenError) {
+      return Response.json({ status: "error", message: err.message }, { status: err.statusCode });
+    }
+
     return Response.json({ status: 'error', message: 'Failed to delete template' }, { status: 500 });
   }
   return Response.json({ status: 'success' }, { status: 200 });

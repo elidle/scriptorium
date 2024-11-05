@@ -22,8 +22,8 @@ export async function POST(req) {
 
     const decoded = verification.decoded;
 
-    if (decoded.id !== id || decoded.username !== username || decoded.role !== role){
-        return Response.json({ status : "error" ,message: 'Invalid refresh token' }, { status: 403 });
+    if (decoded.id !== id || decoded.username !== username || decoded.role !== role) {
+      return Response.json({ status: "error", message: 'Invalid refresh token' }, { status: 403 });
     }
 
     // Generate a new access token with the provided ID and username
