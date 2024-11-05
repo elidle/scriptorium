@@ -27,7 +27,25 @@ export async function PUT(req, { params }) {
       );
     }
 
+
     await authorize(req, ['user', 'admin'], post.authorId);
+
+    for (let i = 0; i < codeTemplateIds.length; i++) {
+      if (!Number(codeTemplateIds[i])) {
+        return Response.json(
+          { status: 'error', error: 'One or more invalid code template ID' },
+          { status: 400 }
+        );
+      }
+
+      const currentTemplate = await prisma.codeTemplate.findUnique({ where: { id: Number(codeTemplateIds[i]) } });
+      if (!currentTemplate) {
+        return Response.json(
+          { status: 'error', error: 'Code template not found' },
+          { status: 404 }
+        );
+      }
+    }
 
     const updatedPost = await prisma.blogPost.update({
       where: { id },
@@ -41,7 +59,9 @@ export async function PUT(req, { params }) {
               where: { name: tag.toLowerCase() },
               create: { name: tag.toLowerCase() }
             }))
-          },
+          }
+        }),
+        ...(codeTemplateIds && {
           codeTemplates: {
             set: [],
             connect: codeTemplateIds.map(id => ({ id: id }))
@@ -54,6 +74,12 @@ export async function PUT(req, { params }) {
         title: true,
         content: true,
         tags: true,
+        codeTemplates: {
+          select: {
+            id: true,
+            title: true
+          }
+        },
         createdAt: true,
         updatedAt: true
       }

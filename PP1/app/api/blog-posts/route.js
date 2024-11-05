@@ -4,7 +4,7 @@ import { ForbiddenError } from "../../../errors/ForbiddenError";
 
 export async function POST(req) {
   try {
-    let { authorId, title, content, tags = [] } = await req.json();
+    let { authorId, title, content, tags = [], codeTemplateIds = [] } = await req.json();
     authorId = Number(authorId);
 
     if (!authorId || !title || !content) {
@@ -12,6 +12,23 @@ export async function POST(req) {
         { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
       );
+    }
+
+    for (let i = 0; i < codeTemplateIds.length; i++) {
+      if (!Number(codeTemplateIds[i])) {
+        return Response.json(
+          { status: 'error', error: 'One or more invalid code template ID' },
+          { status: 400 }
+        );
+      }
+
+      const currentTemplate = await prisma.codeTemplate.findUnique({ where: { id: Number(codeTemplateIds[i]) } });
+      if (!currentTemplate) {
+        return Response.json(
+          { status: 'error', error: 'Code template not found' },
+          { status: 404 }
+        );
+      }
     }
 
     await authorize(req, ['user', 'admin'], authorId);
@@ -39,7 +56,14 @@ export async function POST(req) {
             where: { name: tagName.toLowerCase() },
             create: { name: tagName.toLowerCase() }
           }))
+        },
+        codeTemplates: {
+          connect: codeTemplateIds.map(id => ({ id: id }))
         }
+      },
+      include: {
+        tags: true,
+        codeTemplates: true
       }
     });
 
