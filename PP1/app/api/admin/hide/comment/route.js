@@ -1,14 +1,14 @@
-import { prisma } from '../../../../utils/db';
-import { authorize } from "../../../middleware/auth";
-import { ForbiddenError } from '../../../../errors/ForbiddenError';
+import { prisma } from '../../../../../utils/db';
+import { authorize } from "../../../../middleware/auth";
+import { ForbiddenError } from '../../../../../errors/ForbiddenError';
 
 export async function POST(req) {
   try {
-    let { userId, postId } = await req.json();
+    let { userId, commentId } = await req.json();
     userId = Number(userId);
-    postId = Number(postId);
+    commentId = Number(commentId);
 
-    if (!userId || !postId) {
+    if (!userId || !commentId) {
       return Response.json(
         { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
@@ -26,32 +26,31 @@ export async function POST(req) {
       );
     }
 
-    const post = await prisma.blogPost.findUnique({ where: { id: postId } });
+    const comment = await prisma.comment.findUnique({ where: { id: commentId } });
 
-    if (!post || post.isDeleted) {
+    if (!comment || comment.isDeleted) {
       return Response.json(
-        { status: 'error', error: 'Post not found' },
+        { status: 'error', error: 'Comment not found' },
         { status: 404 }
       );
     }
 
-    if (post.isHidden) {
+    if (comment.isHidden) {
       return Response.json(
-        { status: 'error', error: 'Post is already hidden' },
+        { status: 'error', error: 'Comment is already hidden' },
         { status: 400 }
       );
     }
 
-    const hiddenPost = await prisma.blogPost.update({
-      where: { id: postId },
-      data: { 
+    const hiddenComment = await prisma.comment.update({
+      where: { id: commentId },
+      data: {
         isHidden: true,
         hiddenById: userId,
         hiddenAt: new Date()
       },
       select: {
         id: true,
-        title: true,
         content: true,
         authorId: true,
         author: {select: { username: true }},
@@ -63,14 +62,14 @@ export async function POST(req) {
       }
     });
 
-    return Response.json(hiddenPost, { status: 200 });
+    return Response.json(hiddenComment, { status: 200 });
   } catch (error) {
     console.error(error);
     if (error instanceof ForbiddenError) {
       return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
     }
     return Response.json(
-      { status: 'error', error: 'Failed to hide post' },
+      { status: 'error', error: 'Failed to hide comment' },
       { status: 500 }
     );
   }
@@ -78,11 +77,11 @@ export async function POST(req) {
 
 export async function DELETE(req) {
   try {
-    let { userId, postId } = await req.json();
+    let { userId, commentId } = await req.json();
     userId = Number(userId);
-    postId = Number(postId);
+    commentId = Number(commentId);
 
-    if (!userId || !postId) {
+    if (!userId || !commentId) {
       return Response.json(
         { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
@@ -100,32 +99,31 @@ export async function DELETE(req) {
       );
     }
 
-    const post = await prisma.blogPost.findUnique({ where: { id: postId } });
+    const comment = await prisma.comment.findUnique({ where: { id: commentId } });
 
-    if (!post || post.isDeleted) {
+    if (!comment || comment.isDeleted) {
       return Response.json(
-        { status: 'error', error: 'Post not found' },
+        { status: 'error', error: 'Comment not found' },
         { status: 404 }
       );
     }
 
-    if (!post.isHidden) {
+    if (!comment.isHidden) {
       return Response.json(
-        { status: 'error', error: 'Post is not hidden' },
+        { status: 'error', error: 'Comment is not hidden' },
         { status: 400 }
       );
     }
 
-    const unhiddenPost = await prisma.blogPost.update({
-      where: { id: postId },
-      data: { 
+    const unhiddenComment = await prisma.comment.update({
+      where: { id: commentId },
+      data: {
         isHidden: false,
         hiddenById: null,
         hiddenAt: null
       },
       select: {
         id: true,
-        title: true,
         content: true,
         authorId: true,
         author: {select: { username: true }},
@@ -137,14 +135,14 @@ export async function DELETE(req) {
       }
     });
 
-    return Response.json(unhiddenPost, { status: 200 });
+    return Response.json( unhiddenComment, { status: 200 } );
   } catch (error) {
     console.error(error);
     if (error instanceof ForbiddenError) {
       return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
     }
     return Response.json(
-      { status: 'error', error: 'Failed to unhide post' },
+      { status: 'error', error: 'Failed to unhide comment' },
       { status: 500 }
     );
   }
