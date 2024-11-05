@@ -78,7 +78,6 @@ export async function POST(req) {
             child.stdin.end(); // Close the input stream
             // const child = spawn(command, args);
         }
-        console.log(args);
 
         let output = '';
         let errorOutput = '';

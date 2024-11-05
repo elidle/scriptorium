@@ -42,10 +42,9 @@ export async function POST(req) {
                 firstname: user.firstname,
                 lastname: user.lastname,
             },
-            'refresh-token' : refreshToken,
-            'access-token' : accessToken
-        }, {
-            status: 200,
+            "refresh-token" : refreshToken,
+            "access-token" : accessToken
+            }, {status: 200,
         });
     } catch (error) {
         
