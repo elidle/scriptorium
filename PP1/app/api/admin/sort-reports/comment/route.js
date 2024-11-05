@@ -67,8 +67,8 @@ export async function GET(req) {
     console.error(error);
     if (error instanceof ForbiddenError) {
       return Response.json(
-        { status: 'error', error: 'You are not authorized to view this page' },
-        { status: 403 }
+        { status: 'error', error: error.message },
+        { status: error.statusCode }
       );
     }
     return Response.json(
