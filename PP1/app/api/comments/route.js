@@ -3,10 +3,9 @@ import { itemsRatingsToMetrics } from '../../../utils/blog/metrics';
 import { sortItems } from '../../../utils/blog/sorts';
 import { fetchCurrentPage } from '../../../utils/pagination';
 import { authorize } from "../../middleware/auth";
+import { ForbiddenError } from "../../../errors/ForbiddenError";
 
 export async function POST(req) {
-  await authorize(req, ['user', 'admin']);
-
   try {
     let { content, authorId, parentId, postId } = await req.json();
     authorId = Number(authorId);
@@ -19,6 +18,8 @@ export async function POST(req) {
         { status: 400 }
       );
     }
+
+    await authorize(req, ['user', 'admin'], authorId);
 
     const author = await prisma.user.findUnique({
       where: { id: authorId }
@@ -47,7 +48,7 @@ export async function POST(req) {
         where: { id: parentId }
       });
 
-      if (!parentComment) {
+      if (!parentComment || parentComment.isDeleted) {
         return Response.json(
           { status: 'error', error: 'Parent comment not found' },
           { status: 404 }
@@ -67,22 +68,25 @@ export async function POST(req) {
         content,
         author: { connect: { id: authorId } },
         post: { connect: { id: postId } },
-        ...(parentId && { connect: { id: parentId } })
+        ...(parentId && { parent: { connect: { id: parentId } } })
       },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true
-          }
-        },
-        parent: true
+      select: {
+        id: true,
+        authorId: true,
+        author: { select: { username: true } }, 
+        content: true,
+        postId: true,
+        parentId: true,
+        createdAt: true,
       }
     });
 
     return Response.json(newComment, { status: 201 });
   } catch (error) {
     console.error(error);
+    if (error instanceof ForbiddenError) {
+      return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
+    }
     return Response.json(
       { status: 'error', error: 'Failed to add comment' },
       { status: 500 }
@@ -193,8 +197,8 @@ export async function GET(req) {
       content: comment.isHidden 
         ? "This comment has been hidden by a moderator."
         : comment.content,
-      authorId: comment.author.id,
-      authorUsername: comment.author.username,
+      authorId: comment.author?.id ?? null,
+      authorUsername: comment.author?.username ?? "[deleted]",
       createdAt: comment.createdAt,
       score: comment.metrics.totalScore,
       replies: comment.replies?.map(reply => optimizeComment(reply)) || []

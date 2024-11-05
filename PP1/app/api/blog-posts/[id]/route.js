@@ -1,10 +1,9 @@
 import { prisma } from '../../../../utils/db';
 import { itemRatingsToMetrics } from '../../../../utils/blog/metrics';
 import { authorize } from '../../../middleware/auth';
+import { ForbiddenError } from '../../../../errors/ForbiddenError';
 
 export async function PUT(req, { params }) {
-  await authorize(req, ['user', 'admin']);
-
   try {
     let { id } = params;
     id = Number(id);
@@ -28,8 +27,25 @@ export async function PUT(req, { params }) {
       );
     }
 
-    // Authorize author
-    await authorizeAuthor(req, post.authorId);
+
+    await authorize(req, ['user', 'admin'], post.authorId);
+
+    for (let i = 0; i < codeTemplateIds.length; i++) {
+      if (!Number(codeTemplateIds[i])) {
+        return Response.json(
+          { status: 'error', error: 'One or more invalid code template ID' },
+          { status: 400 }
+        );
+      }
+
+      const currentTemplate = await prisma.codeTemplate.findUnique({ where: { id: Number(codeTemplateIds[i]) } });
+      if (!currentTemplate) {
+        return Response.json(
+          { status: 'error', error: 'Code template not found' },
+          { status: 404 }
+        );
+      }
+    }
 
     const updatedPost = await prisma.blogPost.update({
       where: { id },
@@ -43,21 +59,38 @@ export async function PUT(req, { params }) {
               where: { name: tag.toLowerCase() },
               create: { name: tag.toLowerCase() }
             }))
-          },
+          }
+        }),
+        ...(codeTemplateIds && {
           codeTemplates: {
             set: [],
             connect: codeTemplateIds.map(id => ({ id: id }))
           }
         })
       },
-      include: {
-        tags: true
+      select: {
+        id: true,
+        authorId: true,
+        title: true,
+        content: true,
+        tags: true,
+        codeTemplates: {
+          select: {
+            id: true,
+            title: true
+          }
+        },
+        createdAt: true,
+        updatedAt: true
       }
     });
 
     return Response.json(updatedPost, { status: 200 });
   } catch (error) {
     console.error(error);
+    if (error instanceof ForbiddenError) {
+      return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
+    }
     return Response.json(
       { status: 'error', error: 'Failed to update blog posts' },
       { status: 500 }
@@ -66,8 +99,6 @@ export async function PUT(req, { params }) {
 }
 
 export async function DELETE(req, { params }) {
-  await authorize(req, ['user', 'admin']);
-
   try {
     let { id } = params;
     id = Number(id);
@@ -89,7 +120,7 @@ export async function DELETE(req, { params }) {
       );
     }
 
-    await authorizeAuthor(req, post.authorId);
+    await authorize(req, ['user', 'admin'], post.authorId);
 
     const deletedPost = await prisma.blogPost.update({
       where: { id },
@@ -114,6 +145,9 @@ export async function DELETE(req, { params }) {
     return Response.json({ status: 'success' }, { status: 200 });
   } catch (error) {
     console.error(error);
+    if (error instanceof ForbiddenError) {
+      return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
+    }
     return Response.json(
       { status: 'error', error: 'Failed to delete blog post' },
       { status: 500 }
@@ -181,8 +215,8 @@ export async function GET(req, { params }) {
       id: postWithMetrics.id,
       title: post.isHidden ? "[Hidden post]" : postWithMetrics.title,
       content: post.isHidden ? "This post has been hidden by a moderator." : postWithMetrics.content,
-      authorId: postWithMetrics.author?.id,
-      authorUsername: postWithMetrics.author?.username,
+      authorId: postWithMetrics.author?.id ?? null,
+      authorUsername: postWithMetrics.author?.username ?? "[deleted]",
       tags: postWithMetrics.tags.map(tag => ({ id: tag.id, name: tag.name })),
       createdAt: postWithMetrics.createdAt,
       score: postWithMetrics.metrics.totalScore

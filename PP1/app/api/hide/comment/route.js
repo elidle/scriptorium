@@ -1,9 +1,8 @@
 import { prisma } from '../../../../utils/db';
-import { authorize } from "../../middleware/auth";
+import { authorize } from "../../../middleware/auth";
+import { ForbiddenError } from '../../../../errors/ForbiddenError';
 
 export async function POST(req) {
-  await authorize(req, ['admin']);
-
   try {
     let { userId, commentId } = await req.json();
     userId = Number(userId);
@@ -15,6 +14,8 @@ export async function POST(req) {
         { status: 400 }
       );
     }
+
+    await authorize(req, ['admin'], userId);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
@@ -47,12 +48,26 @@ export async function POST(req) {
         isHidden: true,
         hiddenById: userId,
         hiddenAt: new Date()
+      },
+      select: {
+        id: true,
+        content: true,
+        authorId: true,
+        author: {select: { username: true }},
+        isHidden: true,
+        hiddenAt: true,
+        hiddenById: true,
+        createdAt: true,
+        updatedAt: true
       }
     });
 
     return Response.json(hiddenComment, { status: 200 });
   } catch (error) {
     console.error(error);
+    if (error instanceof ForbiddenError) {
+      return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
+    }
     return Response.json(
       { status: 'error', error: 'Failed to hide comment' },
       { status: 500 }
@@ -61,8 +76,6 @@ export async function POST(req) {
 }
 
 export async function DELETE(req) {
-  await authorize(req, ['admin']);
-
   try {
     let { userId, commentId } = await req.json();
     userId = Number(userId);
@@ -75,6 +88,8 @@ export async function DELETE(req) {
       );
     }
 
+    await authorize(req, ['admin'], userId);
+
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
     if (!user) {
@@ -83,8 +98,6 @@ export async function DELETE(req) {
         { status: 404 }
       );
     }
-
-    // TODO: Authorize user
 
     const comment = await prisma.comment.findUnique({ where: { id: commentId } });
 
@@ -108,12 +121,26 @@ export async function DELETE(req) {
         isHidden: false,
         hiddenById: null,
         hiddenAt: null
+      },
+      select: {
+        id: true,
+        content: true,
+        authorId: true,
+        author: {select: { username: true }},
+        isHidden: true,
+        hiddenAt: true,
+        hiddenById: true,
+        createdAt: true,
+        updatedAt: true
       }
     });
 
     return Response.json( unhiddenComment, { status: 200 } );
   } catch (error) {
     console.error(error);
+    if (error instanceof ForbiddenError) {
+      return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
+    }
     return Response.json(
       { status: 'error', error: 'Failed to unhide comment' },
       { status: 500 }
