@@ -15,7 +15,8 @@ async function main() {
       username: 'danidani',
       hashedPassword: await hashPassword('admin'),
       email: 'admin@gmail.com',
-      role: "admin"
+      role: "admin",
+      phoneNumber: '+1234567890',
     },
   })
 }

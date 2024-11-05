@@ -15,7 +15,7 @@ export async function POST(req) {
       );
     }
 
-    await authorize(req, ['admin'], userId);
+    await authorize(req, ['admin']);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
@@ -89,7 +89,7 @@ export async function DELETE(req) {
       );
     }
 
-    await authorize(req, ['admin'], userId);
+    await authorize(req, ['admin']);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
 

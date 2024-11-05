@@ -7,6 +7,12 @@ import {ForbiddenError} from "../../../../errors/ForbiddenError.js";
  */
 export async function GET(req, { params }) {
   const { id } = params;
+  if (!id) {
+    return Response.json({ status: 'error', message: 'Missing or invalid ID' }, { status: 400 });
+  }
+  else if(!Number(id)){
+    return Response.json({ status: 'error', message: 'Invalid ID' }, { status: 400 });
+  }
   let template;
   try {
     template = await prisma.codeTemplate.findUnique({
@@ -44,6 +50,12 @@ export async function GET(req, { params }) {
  */
 export async function PUT(req, { params }) {
   const { id } = params;
+  if (!id) {
+    return Response.json({ status: 'error', message: 'Missing or invalid ID' }, { status: 400 });
+  }
+  else if(!Number(id)){
+    return Response.json({ status: 'error', message: 'Invalid ID' }, { status: 400 });
+  }
   let { title, code, language, explanation, tags, isForked} = await req.json();
 
   let template;
@@ -60,7 +72,7 @@ export async function PUT(req, { params }) {
       return Response.json({ status: 'error', message: 'Template not found' }, { status: 404 });
     }
     // Authorize author
-    await authorize(req, ['user'], existingTemplate.authorId);
+    await authorize(req, ['user', 'admin'], existingTemplate.authorId);
 
     template = await prisma.codeTemplate.update({
       where: {
@@ -96,7 +108,12 @@ export async function PUT(req, { params }) {
  */
 export async function DELETE(req, { params }) {
   const { id } = params;
-
+  if (!id) {
+    return Response.json({ status: 'error', message: 'Missing or invalid ID' }, { status: 400 });
+  }
+  else if(!Number(id)){
+    return Response.json({ status: 'error', message: 'Invalid ID' }, { status: 400 });
+  }
   try{
     // Authorize user
     await authorize(req, ['user', 'admin']);

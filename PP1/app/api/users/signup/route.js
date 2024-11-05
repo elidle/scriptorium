@@ -29,7 +29,7 @@ export async function POST(req) {
             where: { email },
         });
 
-        if (existingUser) {
+        if (existingUserByEmail) {
             return Response.json({ status: "error", message: "User already exists with this email" }, { status: 400 });
         }
 
