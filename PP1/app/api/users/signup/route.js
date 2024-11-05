@@ -39,7 +39,7 @@ export async function POST(req) {
         });
 
         if (existingUserByUsername) {
-            return new Response("User already exists with this username", { status: 400 });
+            return Response.json({ status: "error", message: "User already exists with this username" }, { status: 400 });
         }
 
         // Create a new user in the database

@@ -53,7 +53,7 @@ export async function PUT(req, { params }) {
 
         // Validate that the updateData doesn't contain a change to the 'id' field
         if (updateData.id && updateData.id !== user.id) {
-            return new Response("Changing user ID is not allowed", { status: 400 });
+            return Response.json({ status: "error", message: "Changing user ID is not allowed" }, { status: 400 });
         }
 
         // Ensure the email is unique if provided in updateData
@@ -62,7 +62,7 @@ export async function PUT(req, { params }) {
                 where: { email: updateData.email },
             });
             if (emailExists) {
-                return new Response("Email is already in use", { status: 400 });
+                return Response.json({ status: "error", message: "Email is already in use" }, { status: 400 });
             }
         }
 
@@ -72,7 +72,7 @@ export async function PUT(req, { params }) {
                 where: { username: updateData.username },
             });
             if (usernameExists) {
-                return new Response("Username is already in use", { status: 400 });
+                return Response.json({ status: "error", message: "Username is already in use" }, { status: 400 });
             }
         }
 
