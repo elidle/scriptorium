@@ -35,12 +35,12 @@ export async function GET(req) {
         },
         _count: {
           select: {
-            report: true
+            reports: true
           }
         }
       },
       orderBy: {
-        report: {
+        reports: {
           _count: 'desc'
         }
       }
