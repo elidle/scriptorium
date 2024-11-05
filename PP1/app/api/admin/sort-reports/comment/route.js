@@ -6,7 +6,7 @@ import { ForbiddenError } from '../../../../../errors/ForbiddenError';
 export async function GET(req) {
   try {
     const searchParams = req.nextUrl.searchParams;
-    // await authorize(req, ['admin']);
+    await authorize(req, ['admin']);
 
     // Pagination parameters
     const page = Number(searchParams.get('page') || '1');
