@@ -45,34 +45,42 @@ export async function GET(req) {
         } : Prisma.skip,
         OR: [
           {
-            title: { contains: q ?? Prisma.skip,},
+            title: { contains: q ?? "",},
           },
           {
             tags: {
               some:{
-                name: { contains: q ?? Prisma.skip,}
+                name: { contains: q ?? "",}
               },
             },
           },
           {
-            explanation: { contains: q ?? Prisma.skip,},
+            explanation: { contains: q ?? "",},
           },
           {
-            code: { contains: q ?? Prisma.skip,},
+            code: { contains: q ?? "",},
           },
         ],
       },
       orderBy: sortBy === 'old' ? { createdAt: 'asc' } : (sortBy === 'new' ? { createdAt: 'desc' } : Prisma.skip),
-      include: {
-        tags: {
-          select: {
-            name: true,
-          },
-        },
+      // include: {
+      //   tags: {
+      //     select: {
+      //       name: true,
+      //     },
+      //   },
+      // },
+      select: {
+        id: true,
+        title: true,
+        explanation: true,
+        code: true,
+        tags: true,
       },
     });
   }
   catch(err) {
+    console.log(err); // TODO: Remove this line
     return Response.json({ status: 'error', message: 'Failed to fetch templates' }, { status: 500 });
   }
   if(!templates){
