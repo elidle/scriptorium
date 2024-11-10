@@ -9,7 +9,7 @@ export default function CodeExecutor() {
     const [error, setError] = useState('');
     const [language, setLanguage] = useState('python'); // Default language
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setOutput('');
         setError('');
