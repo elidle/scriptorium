@@ -9,7 +9,6 @@ export async function GET(req) {
   // Filter parameters
   const q = searchParams.get('q') || '';
   const tags = req.nextUrl.searchParams.getAll('tags');
-  // TODO: Implement filtering by code template
 
   // Sorting parameter
   const sortBy = searchParams.get('sortBy') || 'new';
@@ -53,23 +52,14 @@ export async function GET(req) {
         isDeleted: false,
         isHidden: false,
         codeTemplates: {
-          where: {
-          ...(tags.length > 0 && {
-              tags: {
-                some: {
-                  name: {
-                    in: tags,
-                  }
-                }
-              }
-            }),
+          some: {
             OR: [
               {
                 title: { contains: q },
               },
               {
                 tags: {
-                  some:{
+                  some: {
                     name: { contains: q }
                   },
                 },
@@ -81,6 +71,15 @@ export async function GET(req) {
                 code: { contains: q },
               },
             ],
+            ...(tags.length > 0 && {  // Moved inside the some object
+              tags: {
+                some: {
+                  name: {
+                    in: tags,
+                  }
+                }
+              }
+            })
           }
         }
       },
