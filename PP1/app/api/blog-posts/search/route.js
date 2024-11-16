@@ -51,37 +51,37 @@ export async function GET(req) {
         }),
         isDeleted: false,
         isHidden: false,
-        codeTemplates: {
-          some: {
-            OR: [
-              {
-                title: { contains: q },
-              },
-              {
-                tags: {
-                  some: {
-                    name: { contains: q }
-                  },
-                },
-              },
-              {
-                explanation: { contains: q },
-              },
-              {
-                code: { contains: q },
-              },
-            ],
-            ...(tags.length > 0 && {  // Moved inside the some object
-              tags: {
-                some: {
-                  name: {
-                    in: tags,
-                  }
-                }
-              }
-            })
-          }
-        }
+      //   codeTemplates: {
+      //     some: {
+      //       OR: [
+      //         {
+      //           title: { contains: q },
+      //         },
+      //         {
+      //           tags: {
+      //             some: {
+      //               name: { contains: q }
+      //             },
+      //           },
+      //         },
+      //         {
+      //           explanation: { contains: q },
+      //         },
+      //         {
+      //           code: { contains: q },
+      //         },
+      //       ],
+      //       ...(tags.length > 0 && {  // Moved inside the some object
+      //         tags: {
+      //           some: {
+      //             name: {
+      //               in: tags,
+      //             }
+      //           }
+      //         }
+      //       })
+      //     }
+      //   }
       },
       select: {
         id: true,
