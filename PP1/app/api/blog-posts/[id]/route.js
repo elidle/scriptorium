@@ -176,6 +176,7 @@ export async function GET(req, { params }) {
         content: true,
         createdAt: true,
         isHidden: true,
+        isDeleted: true,
         author: {
           select: {
             id: true,
@@ -219,7 +220,8 @@ export async function GET(req, { params }) {
       authorUsername: postWithMetrics.author?.username ?? "[deleted]",
       tags: postWithMetrics.tags.map(tag => ({ id: tag.id, name: tag.name })),
       createdAt: postWithMetrics.createdAt,
-      score: postWithMetrics.metrics.totalScore
+      score: postWithMetrics.metrics.totalScore,
+      allowVoting: !post.isDeleted && !post.isHidden,
     }
 
     return Response.json(responsePost, {status: 200} );

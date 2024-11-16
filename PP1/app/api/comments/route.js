@@ -148,6 +148,7 @@ export async function GET(req) {
         postId: true,
         parentId: true,
         isHidden: true,
+        isDeleted: true,
         author: {
           select: {
             id: true,
@@ -201,6 +202,7 @@ export async function GET(req) {
       authorUsername: comment.author?.username ?? "[deleted]",
       createdAt: comment.createdAt,
       score: comment.metrics.totalScore,
+      allowVoting: !comment.isDeleted && !comment.isHidden,
       replies: comment.replies?.map(reply => optimizeComment(reply)) || []
     });
 
