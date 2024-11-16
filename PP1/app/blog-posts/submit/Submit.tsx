@@ -11,7 +11,7 @@ import { useState, useEffect } from "react";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from "../../contexts/AuthContext";
-import { refreshToken } from "../../utils/auth";
+import { fetchAuth } from "../../utils/auth";
 
 export default function Submit() {
   const router = useRouter();
@@ -58,20 +58,8 @@ export default function Submit() {
         }),
       };
 
-      let response = await fetch(url, options);
-      if (response.status === 401) {
-        const refreshResponse = await refreshToken(user);
-        
-        if (!refreshResponse.ok && refreshResponse.status === 401) {
-          router.push('/auth/login');
-          return;
-        }
-        
-        const newToken = refreshResponse['access-token'];
-        setAccessToken(newToken);
-        
-        response = await fetch(url, options);
-      }
+      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      if (!response) return;
    
       const data = await response.json();
    

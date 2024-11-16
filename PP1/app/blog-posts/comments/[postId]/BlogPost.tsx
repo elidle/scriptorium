@@ -28,7 +28,7 @@ import InfiniteScroll from "react-infinite-scroll-component";
 import CommentItem from "./CommentItem";
 import Link from "next/link";
 import { useAuth } from "../../../contexts/AuthContext";
-import { refreshToken } from "../../../utils/auth";
+import { fetchAuth } from "../../../utils/auth";
 import { preloadStyle } from "next/dist/server/app-render/entry-base";
 import { useRouter } from "next/navigation";
 import { User } from '../../../types/auth';
@@ -133,15 +133,13 @@ export default function BlogPost({ params }: PostQueryParams) {
       return;
     }
 
+    if (!user || !accessToken) {
+      router.push('/auth/login');
+      return;
+    }
+
     try {
-      if (!accessToken) {
-        throw new Error('No access token found. Please log in again.');
-      }
-
-      const newToken = await refreshToken(user);
-      setAccessToken(newToken);
-
-      const path = reportingCommentId === null ? '/api/report/post' : '/api/report/comment';
+      const url = reportingCommentId === null ? '/api/report/post' : '/api/report/comment';
       const jsonBody = reportingCommentId === null ? {
         reporterId: user.id,
         postId: postId,
@@ -151,8 +149,7 @@ export default function BlogPost({ params }: PostQueryParams) {
         commentId: reportingCommentId,
         reason: reportReason
       };
-
-      const response = await fetch(path, {
+      const options : RequestInit = {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -160,7 +157,10 @@ export default function BlogPost({ params }: PostQueryParams) {
           'access-token': `Bearer ${accessToken}`,
         },
         body: JSON.stringify(jsonBody),
-      });
+      };
+
+      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      if (!response) return;
 
       const data = await response.json();
 
@@ -313,30 +313,12 @@ export default function BlogPost({ params }: PostQueryParams) {
       return;
     }
 
+    if (!user || !accessToken) {
+      router.push('/auth/login');
+      return;
+    }
+
     try {
-      // if (!accessToken) {
-      //   throw new Error('No access token found. Please log in again.');
-      // }
-
-      // const newToken = await refreshToken(user);
-      // setAccessToken(newToken);
-
-      // const response = await fetch('/api/comments', {
-      //   method: 'POST',
-      //   credentials: 'include',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'access-token': `Bearer ${accessToken}`,
-      //   },
-      //   body: JSON.stringify({
-      //     authorId: user.id,
-      //     content: newComment,
-      //     postId: postId,
-      //   }),
-      // });
-
-      // const data = await response.json();
-
       const url = '/api/comments';
       const options : RequestInit = {
         method: 'POST',
@@ -352,20 +334,8 @@ export default function BlogPost({ params }: PostQueryParams) {
         }),
       };
 
-      let response = await fetch(url, options);
-      if (response.status === 401) {
-        const refreshResponse = await refreshToken(user);
-        
-        if (!refreshResponse.ok && refreshResponse.status === 401) {
-          router.push('/auth/login');
-          return;
-        }
-        
-        const newToken = refreshResponse['access-token'];
-        setAccessToken(newToken);
-        
-        response = await fetch(url, options);
-      }
+      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      if (!response) return;
    
       const data = await response.json();
 
@@ -375,11 +345,10 @@ export default function BlogPost({ params }: PostQueryParams) {
 
       await fetchComments(true);
       setNewCommentError("");
+      setNewComment("");
     } catch (err) {
       console.error('Error creating comment:', err);
       setNewCommentError(err instanceof Error ? err.message : 'Failed to create comment');
-    } finally {
-      setNewComment("");
     }
   };
 
