@@ -7,39 +7,93 @@ import {
   Autocomplete,
   Chip,
 } from "@mui/material";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from 'next/link';
-
-const availableTags = [
-  "javascript",
-  "programming",
-  "web development",
-  "react",
-  "nextjs",
-  "typescript"
-];
+import { useRouter } from 'next/navigation';
 
 export default function Submit() {
+  const router = useRouter();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [authorId, setAuthorId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+      router.push('/login');
+      return;
+    }
+    
+    try {
+      const userData = JSON.parse(userStr);
+      setAuthorId(userData.id);
+    } catch (err) {
+      console.error('Error parsing user data:', err);
+      router.push('/login');
+    }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    setIsLoading(true);
     
     if (!title.trim()) {
       setError("Title is required");
+      setIsLoading(false);
       return;
     }
 
     if (!content.trim()) {
       setError("Content is required");
+      setIsLoading(false);
       return;
     }
 
-    // TODO: Connect to backend API
-    alert(`Post submitted with title: ${title}, content: ${content}, tags: ${selectedTags.join(", ")}`);
+    if (!authorId) {
+      setError("You must be logged in to submit a post");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const accessToken = sessionStorage.getItem('accessToken');
+      console.log(accessToken);
+      if (!accessToken) {
+        throw new Error('No access token found. Please log in again.');
+      }
+
+      const response = await fetch('/api/blog-posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'access-token': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          authorId,
+          title: title.trim(),
+          content: content.trim(),
+          tags: [],
+          codeTemplateIds: []
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create post');
+      }
+
+      router.push(`/blog-post/comments/${data.id}`);
+    } catch (err) {
+      console.error('Error creating post:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create post. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -64,8 +118,9 @@ export default function Submit() {
             className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
             variant="contained"
             size="small"
+            onClick={() => router.push('/blog-posts/search')}
           >
-            Sign In
+            Back to Search
           </Button>
         </div>
       </AppBar>
@@ -90,6 +145,7 @@ export default function Submit() {
               fullWidth
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              disabled={isLoading}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   backgroundColor: 'rgb(30, 41, 59)',
@@ -120,6 +176,7 @@ export default function Submit() {
               rows={12}
               value={content}
               onChange={(e) => setContent(e.target.value)}
+              disabled={isLoading}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   backgroundColor: 'rgb(30, 41, 59)',
@@ -142,55 +199,11 @@ export default function Submit() {
               }}
             />
 
-            <Autocomplete
-              multiple
-              options={availableTags}
-              value={selectedTags}
-              onChange={(_, newValue) => setSelectedTags(newValue)}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Tags"
-                  variant="outlined"
-                  placeholder="Select tags"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: 'rgb(30, 41, 59)',
-                      '&:hover': {
-                        backgroundColor: 'rgb(30, 41, 59, 0.8)',
-                      },
-                      '& fieldset': {
-                        borderColor: 'rgb(100, 116, 139)',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: 'rgb(148, 163, 184)',
-                      },
-                    },
-                    '& .MuiInputLabel-root': {
-                      color: 'rgb(148, 163, 184)',
-                    },
-                    '& input': {
-                      color: 'rgb(226, 232, 240)',
-                    },
-                  }}
-                />
-              )}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip
-                    {...getTagProps({ index })}
-                    key={option}
-                    label={option}
-                    className="bg-blue-600 text-white"
-                  />
-                ))
-              }
-            />
-
             <div className="flex justify-end gap-4">
               <Link href="/blog-posts/search">
                 <Button 
                   variant="outlined"
+                  disabled={isLoading}
                   className="text-slate-300 border-slate-700 hover:border-blue-400"
                 >
                   Cancel
@@ -199,9 +212,10 @@ export default function Submit() {
               <Button 
                 type="submit"
                 variant="contained"
+                disabled={isLoading}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                Submit Post
+                {isLoading ? 'Submitting...' : 'Submit Post'}
               </Button>
             </div>
           </form>
