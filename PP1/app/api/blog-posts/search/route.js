@@ -1,37 +1,45 @@
-import {Prisma, prisma} from '../../../../utils/db';
+import { prisma } from '../../../../utils/db';
 import { itemsRatingsToMetrics } from '../../../../utils/blog/metrics';
 import { sortItems } from '../../../../utils/blog/sorts';
 import { fetchCurrentPage } from '../../../../utils/pagination';
+import { authorize } from '../../../middleware/auth';
+import { ForbiddenError } from '../../../../errors/ForbiddenError';
 
 export async function GET(req) {
-  const searchParams = req.nextUrl.searchParams;
-
-  // Filter parameters
-  const q = searchParams.get('q') || '';
-  const tags = req.nextUrl.searchParams.getAll('tags');
-
-  // Sorting parameter
-  const sortBy = searchParams.get('sortBy') || 'new';
-
-  if (!['new', 'old', 'top', 'controversial'].includes(sortBy)) {
-    return Response.json(
-      { status: 'error', error: 'Invalid sort parameter' },
-      { status: 400 }
-    );
-  }
-
-  // Pagination parameters
-  const page = Number(searchParams.get('page') || '1');
-  const limit = Number(searchParams.get('limit') || '10');
-
-  if (!page || !limit) {
-    return Response.json(
-      { status: 'error', error: 'Invalid page parameter' },
-      { status: 400 }
-    );
-  }
-
   try {
+    const searchParams = req.nextUrl.searchParams;
+
+     // User parameter
+     const userId = Number(searchParams.get('userId'));
+
+     if (userId) {
+       await authorize(req, ['user', 'admin'], userId);
+     }
+
+    // Filter parameters
+    const q = searchParams.get('q') || '';
+    const tags = req.nextUrl.searchParams.getAll('tags');
+
+    // Sorting parameter
+    const sortBy = searchParams.get('sortBy') || 'new';
+
+    if (!['new', 'old', 'top', 'controversial'].includes(sortBy)) {
+      return Response.json(
+        { status: 'error', error: 'Invalid sort parameter' },
+        { status: 400 }
+      );
+    }
+
+    // Pagination parameters
+    const page = Number(searchParams.get('page') || '1');
+    const limit = Number(searchParams.get('limit') || '10');
+
+    if (!page || !limit) {
+      return Response.json(
+        { status: 'error', error: 'Invalid page parameter' },
+        { status: 400 }
+      );
+    }
     const posts = await prisma.blogPost.findMany({
       where: {
         ...(q && { 
@@ -51,37 +59,7 @@ export async function GET(req) {
         }),
         isDeleted: false,
         isHidden: false,
-      //   codeTemplates: {
-      //     some: {
-      //       OR: [
-      //         {
-      //           title: { contains: q },
-      //         },
-      //         {
-      //           tags: {
-      //             some: {
-      //               name: { contains: q }
-      //             },
-      //           },
-      //         },
-      //         {
-      //           explanation: { contains: q },
-      //         },
-      //         {
-      //           code: { contains: q },
-      //         },
-      //       ],
-      //       ...(tags.length > 0 && {  // Moved inside the some object
-      //         tags: {
-      //           some: {
-      //             name: {
-      //               in: tags,
-      //             }
-      //           }
-      //         }
-      //       })
-      //     }
-      //   }
+        // TODO : Fix searching with code templates
       },
       select: {
         id: true,
@@ -102,7 +80,10 @@ export async function GET(req) {
         },
         ratings: {
           select: {
-            value: true
+            value: true,
+            ...(userId && {
+              userId: true
+            })
           }
         },
         codeTemplates: {
@@ -114,7 +95,11 @@ export async function GET(req) {
       }
     });
 
-    const postsWithMetrics = itemsRatingsToMetrics(posts);
+    const postsWithVotes = posts.map(post => ({
+      ...post,
+      userVote: userId ? (post.ratings.find(rating => rating.userId === userId)?.value || 0) : 0
+    }));
+    const postsWithMetrics = itemsRatingsToMetrics(postsWithVotes);
     const sortedPosts = sortItems(postsWithMetrics, sortBy);
     const paginatedPosts = fetchCurrentPage(sortedPosts, page, limit);
     const curPage = paginatedPosts.curPage.map(post => ({
@@ -125,7 +110,8 @@ export async function GET(req) {
       authorUsername: post.author?.username,
       tags: post.tags.map(tag => ({ id: tag.id, name: tag.name })),
       createdAt: post.createdAt,
-      score: post.metrics.totalScore
+      score: post.metrics.totalScore,
+      userVote: post.userVote
     }));
     const hasMore = paginatedPosts.hasMore;
     const nextPage = hasMore ? page + 1 : null;
@@ -133,6 +119,9 @@ export async function GET(req) {
     return Response.json( { posts: curPage, hasMore: hasMore, nextPage: nextPage }, { status: 200 });
   } catch (error) {
     console.error(error);
+    if (error instanceof ForbiddenError) {
+      return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
+    }
     return Response.json(
       { status: 'error', error: 'Failed to fetch blog posts' },
       { status: 500 }
