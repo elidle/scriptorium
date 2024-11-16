@@ -20,6 +20,9 @@ import React, { useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { ArrowUpCircle, ArrowDownCircle, MessageCircle, Star, Clock, TrendingUp, Zap, TriangleAlert, Plus } from "lucide-react";
 import Link from 'next/link';
+import { useAuth } from "../../contexts/AuthContext";
+import { fetchAuth } from "../../utils/auth";
+import { useRouter } from "next/navigation";
 
 const domain = "http://localhost:3000";
 
@@ -41,6 +44,8 @@ interface BlogPost {
 }
 
 export default function BlogPosts() {
+  const router = useRouter();
+
   const [sideBarState, setSideBarState] = useState(false);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [error, setError] = useState("");
@@ -61,7 +66,10 @@ export default function BlogPosts() {
   // Report states
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
+  const [reportError, setReportError] = useState("");
   const [reportingPostId, setReportingPostId] = useState<number | null>(null);
+
+  const { user, accessToken, setAccessToken } = useAuth();
 
   // TODO: This needs to be fetched from backend
   const availableTags = [
@@ -174,17 +182,56 @@ export default function BlogPosts() {
     setReportModalOpen(true);
   };
 
-  const handleReportSubmit = (e: React.FormEvent) => {
-    // TODO: Make an API call to submit the report with the reason.
+  const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!reportReason.trim()) {
-      alert("Reason cannot be empty");
+      setReportError("Reason cannot be empty");
       return;
     }
 
-    alert(`Post ${reportingPostId} reported successfully with reason: "${reportReason}"`);
+    if (!user || !accessToken) {
+      router.push('/auth/login');
+      return;
+    }
+
+    try {
+      const url = '/api/report/post';
+      const options : RequestInit = {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'access-token': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          reporterId: user.id,
+          postId: reportingPostId,
+          reason: reportReason
+        }),
+      };
+
+      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      if (!response) return;
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create report');
+      }
+
+      setReportError('');
+    } catch (err) {
+      console.error('Error creating reply:', err);
+      setReportError(err instanceof Error ? err.message : 'Failed to create reply');
+    } finally {
+      setReportReason('');
+      setReportModalOpen(false);
+      alert('Report submitted successfully');
+    }
 
     setReportReason("");
+    setReportError("");
     setReportModalOpen(false);
   };
 
@@ -214,6 +261,13 @@ export default function BlogPosts() {
           <Typography variant="h6" gutterBottom sx={{ color: "rgb(96, 165, 250)" }}>
             Report Post
           </Typography>
+
+          {reportError && (
+            <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
+              <Typography className="text-red-500">{reportError}</Typography>
+            </div>
+          )}
+
           <TextField
             fullWidth
             label="Reason"

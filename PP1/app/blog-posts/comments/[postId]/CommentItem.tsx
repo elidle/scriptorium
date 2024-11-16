@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
-import { refreshToken } from "../../../utils/auth";
+import { fetchAuth } from "../../../utils/auth";
+import { useRouter } from 'next/navigation';
 
 interface Tag {
   id: number;
@@ -57,6 +58,7 @@ interface CommentItemProps {
 }
 
 export default function CommentItem({ comment, post, handleVote, handleReportClick, fetchComments }: CommentItemProps) {
+  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   
   // Reply states
@@ -76,15 +78,14 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
       return;
     }
 
+    if (!user || !accessToken) {
+      router.push('/auth/login');
+      return;
+    }
+
     try {
-      if (!accessToken) {
-        throw new Error('No access token found. Please log in again.');
-      }
-
-      const newToken = await refreshToken(user);
-      setAccessToken(newToken);
-
-      const response = await fetch('/api/comments', {
+      const url = 'api/comments';
+      const options: RequestInit = {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -97,7 +98,10 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
           postId: post.id,
           parentId: comment.id,
         }),
-      });
+      };
+
+      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      if (!response) return;
 
       const data = await response.json();
 
@@ -105,7 +109,7 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
         throw new Error(data.message || 'Failed to create comment');
       }
 
-      await fetchComments(true);
+      fetchComments(true);
       setReplyError('');
     } catch (err) {
       console.error('Error creating reply:', err);
