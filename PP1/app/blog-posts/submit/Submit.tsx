@@ -10,6 +10,8 @@ import {
 import { useState, useEffect } from "react";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuth } from "../../contexts/AuthContext";
+import { refreshToken } from "../../utils/auth";
 
 export default function Submit() {
   const router = useRouter();
@@ -18,83 +20,73 @@ export default function Submit() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [authorId, setAuthorId] = useState<number | null>(null);
+
+  const { accessToken, setAccessToken, user } = useAuth();
 
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) {
-      router.push('/login');
-      return;
+    if (!user || !accessToken) {
+      router.push('/auth/login');
     }
-    
-    try {
-      const userData = JSON.parse(userStr);
-      setAuthorId(userData.id);
-    } catch (err) {
-      console.error('Error parsing user data:', err);
-      router.push('/login');
-    }
-  }, [router]);
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
     
-    if (!title.trim()) {
-      setError("Title is required");
+    if (!title.trim() || !content.trim()) {
+      setError("Title and content are required");
       setIsLoading(false);
       return;
     }
-
-    if (!content.trim()) {
-      setError("Content is required");
-      setIsLoading(false);
-      return;
-    }
-
-    if (!authorId) {
-      setError("You must be logged in to submit a post");
-      setIsLoading(false);
-      return;
-    }
-
+   
     try {
-      const accessToken = sessionStorage.getItem('accessToken');
-      console.log(accessToken);
-      if (!accessToken) {
-        throw new Error('No access token found. Please log in again.');
-      }
-
-      const response = await fetch('/api/blog-posts', {
+      const url = '/api/blog-posts';
+      const options : RequestInit = {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'access-token': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          authorId,
+          authorId: user.id,
           title: title.trim(),
-          content: content.trim(),
+          content: content,
           tags: [],
           codeTemplateIds: []
         }),
-      });
+      };
 
+      let response = await fetch(url, options);
+      if (response.status === 401) {
+        const refreshResponse = await refreshToken(user);
+        
+        if (!refreshResponse.ok && refreshResponse.status === 401) {
+          router.push('/auth/login');
+          return;
+        }
+        
+        const newToken = refreshResponse['access-token'];
+        setAccessToken(newToken);
+        
+        response = await fetch(url, options);
+      }
+   
       const data = await response.json();
-
+   
       if (!response.ok) {
         throw new Error(data.message || 'Failed to create post');
       }
-
-      router.push(`/blog-post/comments/${data.id}`);
+   
+      router.push(`/blog-posts/comments/${data.id}`);
     } catch (err) {
       console.error('Error creating post:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create post. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to create post');
     } finally {
       setIsLoading(false);
     }
-  };
+   };
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -195,6 +187,7 @@ export default function Submit() {
                 },
                 '& textarea': {
                   color: 'rgb(226, 232, 240)',
+                  whiteSpace: 'pre-wrap',
                 },
               }}
             />
