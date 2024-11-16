@@ -21,20 +21,20 @@ import {
   Star,
   Clock,
   TrendingUp,
-  Zap,
-  ChevronUp
+  Zap
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import CommentItem from "./CommentItem";
 import Link from "next/link";
+import { useAuth } from "../../../contexts/AuthContext";
+import { refreshToken } from "../../../utils/auth";
+import { preloadStyle } from "next/dist/server/app-render/entry-base";
+import { useRouter } from "next/navigation";
+import { User } from '../../../types/auth';
+import { Tag } from '../../../types/tag';
 
 const domain = "http://localhost:3000";
-
-interface Tag {
-  id: number;
-  name: string;
-}
 
 interface BlogPost {
   id: number;
@@ -68,6 +68,7 @@ interface PostQueryParams {
 }
 
 export default function BlogPost({ params }: PostQueryParams) {
+  const router = useRouter();
   const postId = Number(params.postId);
 
   const [post, setPost] = useState<BlogPost | null>(null);
@@ -84,11 +85,14 @@ export default function BlogPost({ params }: PostQueryParams) {
 
   // New comment state
   const [newComment, setNewComment] = useState<string>("");
+  const [newCommentError, setNewCommentError] = useState<string>("");
 
   // Comment button logic
   const newCommentRef = useRef<HTMLDivElement>(null);
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
   const [appBarHeight, setAppBarHeight] = useState(80);
+
+  const { user, accessToken, setAccessToken } = useAuth();
 
   useEffect(() => {
     const appBar = document.querySelector('.MuiAppBar-root');
@@ -105,37 +109,77 @@ export default function BlogPost({ params }: PostQueryParams) {
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
 
-    // Wait for scroll animation to complete before focusing
     setTimeout(() => {
       commentInputRef.current?.focus();
-    }, 500); // Adjust timing if needed to match your scroll duration
+    }, 500);
   };
 
   // Report logic
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportingCommentId, setReportingCommentId] = useState<number | null>(null);
+  const [reportError, setReportError] = useState<string>("");
 
   const handleReportClick = (commentId: number | null = null) => {
     setReportingCommentId(commentId);
     setReportModalOpen(true);
   };
 
-  const handleReportSubmit = (e: React.FormEvent) => {
-    // TODO: Make an API call to submit the report with the reason.
+  const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!reportReason.trim()) {
-      alert("Reason cannot be empty");
+      setReportError("Reason cannot be empty");
       return;
     }
 
-    if (reportingCommentId === null) {
-      alert(`Post ${post?.id} reported successfully with reason: "${reportReason}"`);
-    } else {
-      alert(`Comment ${reportingCommentId} reported successfully with reason: "${reportReason}"`);
+    try {
+      if (!accessToken) {
+        throw new Error('No access token found. Please log in again.');
+      }
+
+      const newToken = await refreshToken(user);
+      setAccessToken(newToken);
+
+      const path = reportingCommentId === null ? '/api/report/post' : '/api/report/comment';
+      const jsonBody = reportingCommentId === null ? {
+        reporterId: user.id,
+        postId: postId,
+        reason: reportReason
+      } : {
+        reporterId: user.id,
+        commentId: reportingCommentId,
+        reason: reportReason
+      };
+
+      const response = await fetch(path, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'access-token': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(jsonBody),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create report');
+      }
+
+      setReportError('');
+    } catch (err) {
+      console.error('Error creating reply:', err);
+      setReportError(err instanceof Error ? err.message : 'Failed to create reply');
+    } finally {
+      setReportReason('');
+      setReportModalOpen(false);
+      alert('Report submitted successfully');
     }
 
     setReportReason("");
+    setReportError("");
     setReportModalOpen(false);
   };
 
@@ -262,16 +306,81 @@ export default function BlogPost({ params }: PostQueryParams) {
   };
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
-    // TODO: Connect to actual API endpoint
     e.preventDefault();
     
     if (!newComment.trim()) {
-      alert("Comment cannot be empty");
+      setNewCommentError("Comment cannot be empty");
       return;
     }
 
-    alert(`Comment submitted: ${newComment}`);
-    setNewComment("");
+    try {
+      // if (!accessToken) {
+      //   throw new Error('No access token found. Please log in again.');
+      // }
+
+      // const newToken = await refreshToken(user);
+      // setAccessToken(newToken);
+
+      // const response = await fetch('/api/comments', {
+      //   method: 'POST',
+      //   credentials: 'include',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     'access-token': `Bearer ${accessToken}`,
+      //   },
+      //   body: JSON.stringify({
+      //     authorId: user.id,
+      //     content: newComment,
+      //     postId: postId,
+      //   }),
+      // });
+
+      // const data = await response.json();
+
+      const url = '/api/comments';
+      const options : RequestInit = {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'access-token': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          authorId: user.id,
+          content: newComment,
+          postId: postId,
+        }),
+      };
+
+      let response = await fetch(url, options);
+      if (response.status === 401) {
+        const refreshResponse = await refreshToken(user);
+        
+        if (!refreshResponse.ok && refreshResponse.status === 401) {
+          router.push('/auth/login');
+          return;
+        }
+        
+        const newToken = refreshResponse['access-token'];
+        setAccessToken(newToken);
+        
+        response = await fetch(url, options);
+      }
+   
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create comment');
+      }
+
+      await fetchComments(true);
+      setNewCommentError("");
+    } catch (err) {
+      console.error('Error creating comment:', err);
+      setNewCommentError(err instanceof Error ? err.message : 'Failed to create comment');
+    } finally {
+      setNewComment("");
+    }
   };
 
   return (
@@ -296,6 +405,13 @@ export default function BlogPost({ params }: PostQueryParams) {
           <Typography variant="h6" gutterBottom sx={{ color: "rgb(96, 165, 250)" }}>
             Report {reportingCommentId === null ? "Post" : "Comment"}
           </Typography>
+
+          {reportError && (
+            <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
+              <Typography className="text-red-500">{reportError}</Typography>
+            </div>
+          )}
+
           <TextField
             fullWidth
             label="Reason"
@@ -350,7 +466,7 @@ export default function BlogPost({ params }: PostQueryParams) {
       {/* App Bar */}
       <AppBar 
         position="fixed" 
-        className="bg-slate-800 border-b border-slate-700"
+        className="!bg-slate-800 border-b border-slate-700"
         sx={{ boxShadow: 'none' }}
       >
         <div className="p-3 flex flex-col sm:flex-row items-center gap-3">
@@ -363,13 +479,15 @@ export default function BlogPost({ params }: PostQueryParams) {
             </Typography>
           </Link>
           <div className="flex-grow"></div>
-          <Button 
-            className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
-            variant="contained"
-            size="small"
-          >
-            Sign In
-          </Button>
+          <Link href="/auth/login">
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
+              variant="contained"
+              size="small"
+            >
+              Log In
+            </Button>
+          </Link>
         </div>
       </AppBar>
 
@@ -395,7 +513,7 @@ export default function BlogPost({ params }: PostQueryParams) {
                 {post.title === null ? "[Deleted post]" : post.title}
               </Typography>
 
-              <Typography variant="body1" className="text-slate-300 mb-2">
+              <Typography variant="body1" className="text-slate-300 mb-2 mt-2" sx={{ whiteSpace: "pre-wrap" }}>
                 {post.content === null ? "This post has been deleted by its author." : post.content}
               </Typography>
 
@@ -409,7 +527,7 @@ export default function BlogPost({ params }: PostQueryParams) {
               <div className="flex items-center gap-2 mb-4">
                 {/* Post Voting */}
                 <IconButton 
-                  className={`hover:text-red-400 ${post.userVote === 1 ? 'text-red-400' : 'text-slate-400'}`} 
+                  className={`hover:text-red-400 ${post.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`} 
                   onClick={() => handleVote(true)}
                   disabled={!post?.allowVoting}
                 >
@@ -417,7 +535,7 @@ export default function BlogPost({ params }: PostQueryParams) {
                 </IconButton>
                 <span className="text-sm font-medium text-slate-300">{post.score}</span>
                 <IconButton 
-                  className={`hover:text-blue-400 ${post.userVote === -1 ? 'text-blue-400' : 'text-slate-400'}`} 
+                  className={`hover:text-blue-400 ${post.userVote === -1 ? '!text-blue-400' : '!text-slate-400'}`} 
                   onClick={() => handleVote(false)}
                   disabled={!post?.allowVoting}
                 >
@@ -441,6 +559,13 @@ export default function BlogPost({ params }: PostQueryParams) {
               <Typography variant="h6" className="text-blue-400 mb-3">
                 Add a Comment
               </Typography>
+
+              {newCommentError && (
+                <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
+                  <Typography className="text-red-500">{newCommentError}</Typography>
+                </div>
+              )}
+
               <form 
                 onSubmit={handleCommentSubmit} 
                 className="space-y-4"
@@ -502,7 +627,7 @@ export default function BlogPost({ params }: PostQueryParams) {
               </Typography>
               <Button
                 onClick={handleSortClick}
-                className="text-slate-300 hover:text-blue-400"
+                className="!text-slate-300 hover:text-blue-400"
               >
                 Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
               </Button>
@@ -527,9 +652,9 @@ export default function BlogPost({ params }: PostQueryParams) {
                     key={option.value}
                     onClick={() => handleSortClose(option.value)}
                     selected={sortBy === option.value}
-                    className="text-slate-300 hover:text-blue-400"
+                    className="!text-slate-300 hover:text-blue-400"
                   >
-                    <ListItemIcon className="text-slate-300">
+                    <ListItemIcon className="!text-slate-300">
                       <option.icon size={20} />
                     </ListItemIcon>
                     <ListItemText>{option.label}</ListItemText>
@@ -551,8 +676,10 @@ export default function BlogPost({ params }: PostQueryParams) {
                   <CommentItem 
                     key={comment.id} 
                     comment={comment} 
+                    post={post}
                     handleVote={handleVote} 
                     handleReportClick={handleReportClick}
+                    fetchComments={fetchComments}
                   />
                 ))}
               </div>

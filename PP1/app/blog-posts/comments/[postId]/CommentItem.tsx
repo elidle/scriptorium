@@ -15,6 +15,26 @@ import {
   ChevronUp
 } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "../../../contexts/AuthContext";
+import { refreshToken } from "../../../utils/auth";
+
+interface Tag {
+  id: number;
+  name: string;
+}
+
+interface BlogPost {
+  id: number;
+  title: string;
+  content: string;
+  authorId: string;
+  authorUsername: string;
+  tags: Tag[];
+  createdAt: string;
+  score: number;
+  allowVoting: boolean;
+  userVote: number;
+}
 
 interface Comment {
   id: number;
@@ -30,29 +50,70 @@ interface Comment {
 
 interface CommentItemProps {
   comment: Comment;
+  post: BlogPost;
   handleVote: (increment: boolean, commentId: number | null) => void;
   handleReportClick: (commentId: number | null) => void;
+  fetchComments: (refresh: boolean) => void;
 }
 
-export default function CommentItem({ comment, handleVote, handleReportClick }: CommentItemProps) {
+export default function CommentItem({ comment, post, handleVote, handleReportClick, fetchComments }: CommentItemProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   
   // Reply states
   const [isReplying, setIsReplying] = useState(false);
   const [replyContent, setReplyContent] = useState('');
+  const [replyError, setReplyError] = useState('');
+
+  const { user, accessToken, setAccessToken } = useAuth();
 
   const toggleCollapse = () => setIsCollapsed(!isCollapsed);
 
-  const handleReplySubmit = (e: React.FormEvent) => {
+  const handleReplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!replyContent.trim()) {
-      alert("Reply cannot be empty");
+      setReplyError('Reply cannot be empty');
       return;
     }
-    alert(`Reply successfully submitted with content ${replyContent}`);
-    setReplyContent('');
-    setIsReplying(false);
-    // TODO: Connect to actual API endpoint
+
+    try {
+      if (!accessToken) {
+        throw new Error('No access token found. Please log in again.');
+      }
+
+      const newToken = await refreshToken(user);
+      setAccessToken(newToken);
+
+      const response = await fetch('/api/comments', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'access-token': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          authorId: user.id,
+          content: replyContent,
+          postId: post.id,
+          parentId: comment.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create comment');
+      }
+
+      await fetchComments(true);
+      setReplyError('');
+    } catch (err) {
+      console.error('Error creating reply:', err);
+      setReplyError(err instanceof Error ? err.message : 'Failed to create reply');
+    } finally {
+      setReplyContent('');
+      setIsReplying(false);
+    }
   };
 
   return (
@@ -67,7 +128,7 @@ export default function CommentItem({ comment, handleVote, handleReportClick }: 
         </Typography>
 
         <IconButton 
-          className={`hover:text-red-400 ${comment.userVote === 1 ? 'text-red-400' : 'text-slate-400'}`} 
+          className={`hover:text-red-400 ${comment.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`} 
           onClick={() => handleVote(true, comment.id)}
           disabled={!comment.allowVoting}
           sx={{ opacity: !comment.allowVoting ? 0.5 : 1 }}
@@ -86,7 +147,7 @@ export default function CommentItem({ comment, handleVote, handleReportClick }: 
       </div>
 
       {/* Comment content */}
-      <Typography className="text-slate-300 mb-2 ml-10">{comment.content}</Typography>
+      <Typography className="text-slate-300 mb-2 mt-2 ml-10" sx={{ whiteSpace: "pre-wrap" }}>{comment.content}</Typography>
 
       {/* Action buttons */}
       <div className="flex items-center gap-4 ml-10 mb-2">
@@ -119,6 +180,12 @@ export default function CommentItem({ comment, handleVote, handleReportClick }: 
       {/* Reply input field */}
       {isReplying && (
         <div className="ml-10 mb-4">
+          {replyError && (
+            <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
+              <Typography className="text-red-500">{replyError}</Typography>
+            </div>
+          )}
+
           <form 
             onSubmit={handleReplySubmit} 
             className="space-y-4"
@@ -184,9 +251,11 @@ export default function CommentItem({ comment, handleVote, handleReportClick }: 
             {comment.replies.map((reply) => (
               <CommentItem 
                 key={reply.id}
-                comment={reply} 
+                comment={reply}
+                post={post}
                 handleVote={handleVote}
                 handleReportClick={handleReportClick}
+                fetchComments={fetchComments}
               />
             ))}
           </div>

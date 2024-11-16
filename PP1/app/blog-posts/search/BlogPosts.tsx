@@ -262,8 +262,10 @@ export default function BlogPosts() {
       {/* Fixed header */}
       <AppBar 
         position="fixed" 
-        className="bg-slate-800 border-b border-slate-700"
-        sx={{ boxShadow: 'none' }}
+        className="!bg-slate-800 border-b border-slate-700"
+        sx= {{ 
+          boxShadow: 'none',
+        }}
       >
         <div className="p-3 flex flex-col sm:flex-row items-center gap-3">
           <Link href="/">
@@ -303,13 +305,15 @@ export default function BlogPosts() {
               },
             }}
           />
-          <Button 
-            className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
-            variant="contained"
-            size="small"
-          >
-            Sign In
-          </Button>
+          <Link href="/auth/login">
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
+              variant="contained"
+              size="small"
+            >
+              Log In
+            </Button>
+          </Link>
         </div>
       </AppBar>
 
@@ -421,7 +425,7 @@ export default function BlogPosts() {
               </Typography>
               <Button
                 onClick={handleSortClick}
-                className="text-slate-300 hover:text-blue-400"
+                className="!text-slate-300 hover:text-blue-400"
               >
                 Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
               </Button>
@@ -446,9 +450,9 @@ export default function BlogPosts() {
                     key={option.value}
                     onClick={() => handleSortClose(option.value)}
                     selected={sortBy === option.value}
-                    className="text-slate-300 hover:text-blue-400"
+                    className="!text-slate-300 hover:text-blue-400"
                   >
-                    <ListItemIcon className="text-slate-300">
+                    <ListItemIcon className="!text-slate-300">
                       <option.icon size={20} />
                     </ListItemIcon>
                     <ListItemText>{option.label}</ListItemText>
@@ -499,10 +503,10 @@ export default function BlogPosts() {
                   key={post.id} 
                   className="flex bg-slate-800 rounded-lg border border-slate-700 hover:border-slate-600 transition-all"
                 >
-                  {/* Vote section stays outside of Link to be clickable */}
+                  {/* Vote section */}
                   <div className="flex flex-col items-center p-2 bg-slate-900/50 rounded-l-lg">
                     <IconButton 
-                      className={`hover:text-red-400 ${post.userVote === 1 ? 'text-red-400' : 'text-slate-400'}`} 
+                      className={`hover:text-red-400 ${post.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`} 
                       onClick={(e) => {
                         e.preventDefault(); // Prevent navigation when voting
                         handleVote(post.id, true);
@@ -514,7 +518,7 @@ export default function BlogPosts() {
                       {post.score}
                     </span>
                     <IconButton 
-                      className={`hover:text-blue-400 ${post.userVote === -1 ? 'text-blue-400' : 'text-slate-400'}`} 
+                      className={`hover:text-blue-400 ${post.userVote === -1 ? '!text-blue-400' : '!text-slate-400'}`} 
                       onClick={(e) => {
                         e.preventDefault(); // Prevent navigation when voting
                         handleVote(post.id, false);
