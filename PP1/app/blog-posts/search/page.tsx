@@ -19,6 +19,7 @@ import {
 import React, { useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { ArrowUpCircle, ArrowDownCircle, MessageCircle, Star, Clock, TrendingUp, Zap, TriangleAlert } from "lucide-react";
+import Link from 'next/link';
 
 const domain = "http://localhost:3000";
 
@@ -39,7 +40,7 @@ interface BlogPost {
   userVote: number;
 }
 
-export function BlogPosts() {
+export default function BlogPosts() {
   const [sideBarState, setSideBarState] = useState(false);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [error, setError] = useState("");
@@ -236,7 +237,7 @@ export function BlogPosts() {
               },
             }}
             InputLabelProps={{
-              style: { color: "rgb(148, 163, 184)" }, // Label color
+              style: { color: "rgb(148, 163, 184)" },
             }}
           />
           <div className="flex justify-end gap-2 mt-4">
@@ -285,6 +286,18 @@ export function BlogPosts() {
                 '&:hover': {
                   backgroundColor: 'rgb(30, 41, 59, 0.8)',
                 },
+                '& fieldset': {
+                  borderColor: 'rgb(100, 116, 139)',
+                },
+                '&:hover fieldset': {
+                  borderColor: 'rgb(148, 163, 184)',
+                },
+              },
+              '& .MuiInputLabel-root': {
+                color: 'rgb(148, 163, 184)',
+              },
+              '& input': {
+                color: 'rgb(226, 232, 240)',
               },
             }}
           />
@@ -300,7 +313,7 @@ export function BlogPosts() {
 
       {/* Content container */}
       <div className="pt-16">
-        <div className="flex relative">
+        <div className="flex flex-row-reverse relative">
           {/* Overlay */}
           <div 
             onClick={toggleSidebar}
@@ -313,25 +326,38 @@ export function BlogPosts() {
           <aside className={`
             fixed md:sticky top-16 h-[calc(100vh-4rem)]
             transform transition-transform duration-300 w-64
-            ${sideBarState ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
-            bg-slate-800 border-r border-slate-700 z-40
+            ${sideBarState ? "-translate-x-0" : "translate-x-full md:translate-x-0"} 
+            right-0 md:right-auto
+            bg-slate-800 border-l border-slate-700 z-40
           `}>
             <div className="p-4 h-full flex flex-col">
-              <TextField
-                color="info"
-                variant="outlined"
-                label="Search Tags..."
-                size="small"
-                className="mb-4"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: 'rgb(30, 41, 59)',
-                    '&:hover': {
-                      backgroundColor: 'rgb(30, 41, 59, 0.8)',
-                    },
+            <TextField
+              color="info"
+              variant="outlined"
+              label="Search Tags..."
+              size="small"
+              className="mb-4"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: 'rgb(30, 41, 59)',
+                  '&:hover': {
+                    backgroundColor: 'rgb(30, 41, 59, 0.8)',
                   },
-                }}
-              />
+                  '& fieldset': {
+                    borderColor: 'rgb(100, 116, 139)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'rgb(148, 163, 184)',
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  color: 'rgb(148, 163, 184)',
+                },
+                '& input': {
+                  color: 'rgb(226, 232, 240)',
+                },
+              }}
+            />
               
               <Typography variant="h6" className="mb-2 text-blue-400">
                 Popular Tags
@@ -353,7 +379,13 @@ export function BlogPosts() {
                         }}
                       />
                     } 
-                    label={tag} 
+                    label={tag}
+                    sx={{
+                      '& .MuiFormControlLabel-label': {
+                        color: 'rgb(226, 232, 240)',
+                        // fontSize: '0.875rem',
+                      }
+                    }}
                   />
                 ))}
               </FormGroup>
@@ -369,9 +401,9 @@ export function BlogPosts() {
             {/* Mobile toggle button */}
             <button 
               onClick={toggleSidebar}
-              className="absolute right-0 top-1/2 translate-x-full bg-slate-800 p-2 rounded-r-xl md:hidden hover:bg-slate-700"
+              className="absolute left-0 top-1/2 -translate-x-full bg-blue-500 p-2 rounded-l-xl md:hidden text-white"
             >
-              {sideBarState ? "←" : "→"}
+              {sideBarState ? "→" : "←"}
             </button>
           </aside>
 
@@ -457,26 +489,43 @@ export function BlogPosts() {
               }
             >
               <div className="space-y-4">
-                {blogPosts.map((post) => (
-                  <article 
-                    key={post.id} 
-                    className="flex bg-slate-800 rounded-lg border border-slate-700 hover:border-slate-600 transition-all"
-                  >
-                    {/* Vote section */}
-                    <div className="flex flex-col items-center p-2 bg-slate-900/50 rounded-l-lg">
-                      <IconButton className={`hover:text-red-400 ${post.userVote === 1 ? 'text-red-400' : 'text-slate-400'}`} onClick={() => handleVote(post.id, true)}>
-                        <ArrowUpCircle size={20} />
-                      </IconButton>
-                      <span className="text-sm font-medium text-slate-300">
-                        {post.score}
-                      </span>
-                      <IconButton className={`hover:text-blue-400 ${post.userVote === -1 ? 'text-blue-400' : 'text-slate-400'}`} onClick={() => handleVote(post.id, false)}>
-                        <ArrowDownCircle size={20} />
-                      </IconButton>
-                    </div>
+              {blogPosts.map((post) => (
+                <article 
+                  key={post.id} 
+                  className="flex bg-slate-800 rounded-lg border border-slate-700 hover:border-slate-600 transition-all"
+                >
+                  {/* Vote section stays outside of Link to be clickable */}
+                  <div className="flex flex-col items-center p-2 bg-slate-900/50 rounded-l-lg">
+                    <IconButton 
+                      className={`hover:text-red-400 ${post.userVote === 1 ? 'text-red-400' : 'text-slate-400'}`} 
+                      onClick={(e) => {
+                        e.preventDefault(); // Prevent navigation when voting
+                        handleVote(post.id, true);
+                      }}
+                    >
+                      <ArrowUpCircle size={20} />
+                    </IconButton>
+                    <span className="text-sm font-medium text-slate-300">
+                      {post.score}
+                    </span>
+                    <IconButton 
+                      className={`hover:text-blue-400 ${post.userVote === -1 ? 'text-blue-400' : 'text-slate-400'}`} 
+                      onClick={(e) => {
+                        e.preventDefault(); // Prevent navigation when voting
+                        handleVote(post.id, false);
+                      }}
+                    >
+                      <ArrowDownCircle size={20} />
+                    </IconButton>
+                  </div>
 
-                    <div className="flex-1 p-3">
-                      {/* Author section */}
+                  {/* Wrap the content in Link */}
+                  <Link 
+                    href={`/blog-posts/comments/${post.id}`}
+                    className="flex-1 cursor-pointer"
+                  >
+                    <div className="p-3">
+                      {/* Rest of the content stays the same */}
                       <div className="flex items-center gap-2 mb-2">
                         <Avatar 
                           sx={{ width: 24, height: 24 }}
@@ -489,7 +538,6 @@ export function BlogPosts() {
                         </Typography>
                       </div>
 
-                      {/* Post title and content */}
                       <Typography variant="h6" className="text-slate-200 mb-2">
                         {post.title}
                       </Typography>
@@ -497,32 +545,41 @@ export function BlogPosts() {
                         {post.content}
                       </Typography>
 
-                      {/* Post tags */}
                       <div className="flex flex-wrap gap-2 mb-3">
                         {post.tags.map((tag, index) => (
                           <span 
                             key={index}
-                            className="px-2 py-1 bg-slate-700 rounded-full text-xs text-blue-400"
+                            className="px-2 py-1 bg-slate-800 border border-slate-600 rounded-full text-xs text-blue-300"
                           >
                             {tag.name}
                           </span>
                         ))}
                       </div>
 
-                      {/* Action buttons */}
                       <div className="flex gap-4">
-                        <button className="flex items-center gap-1 text-slate-400 hover:text-blue-400">
+                        <Link 
+                          href={`/blog-posts/comments/${post.id}`}
+                          className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <MessageCircle size={18} />
                           <span className="text-sm">Comments</span>
-                        </button>
-                        <button onClick={() => handleReportClick(post.id)} className="flex items-center gap-1 text-slate-400 hover:text-blue-400">
+                        </Link>
+                        <button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleReportClick(post.id);
+                          }} 
+                          className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
+                        >
                           <TriangleAlert size={18} />
                           <span className="text-sm">Report</span>
                         </button>
                       </div>
                     </div>
-                  </article>
-                ))}
+                  </Link>
+                </article>
+              ))}
               </div>
             </InfiniteScroll>
           </main>

@@ -8,7 +8,7 @@ import {
   Checkbox,
   FormGroup,
 } from "@mui/material";
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 
 const domain = "http://localhost:3000";
@@ -30,6 +30,7 @@ export function CodeTemplates() {
 
   const fetchCodeTemplates = async () => {
     setError("");
+    setIsLoading(true);
 
     try {
       const response = await fetch(`${domain}/api/code-templates/search?page=${page}`, {
@@ -39,97 +40,234 @@ export function CodeTemplates() {
         },
       });
       const data = await response.json();
-      console.log(data);
-      if(data.status === "error") {
-        console.log(data.message);
-      }
-      else {
+      
+      if (data.status === "error") {
+        console.error(data.message);
+        setError(data.message);
+      } else {
         setCodeTemplates(prevItems => [...prevItems, ...data.template]);
+        setHasMore(data.hasMore);
+        setPage(page + 1);
       }
-      setHasMore(data.hasMore);
-      setPage(page + 1);
-    }
-    catch (err: Error) {
-      setError(err.message);
-    }
-    finally{
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred');
+      }
+    } finally {
       setIsLoading(false);
     }
-  }
+  };
+
   useEffect(() => {
     fetchCodeTemplates();
   }, []);
 
   const toggleSidebar = () => {
     setSideBarState(!sideBarState);
-  }
+  };
+
   return (
-    <div className={"bg-slate-900"}>
-      <AppBar className={"bg-blend-darken bg-primary grid-rows-1 sticky "}>
-        <div className={"m-2 items-center grid grid-cols-3"}>
-          <Typography className={"m-1"} variant="h5">Scriptorium</Typography>
-          <TextField fullWidth color={"secondary"} variant={"outlined"}
-                     label={"Search All..."}/>
-          <div className={"m-1"}>
-            <Button className={"float-end bg-secondary"} variant={"contained"}>Sign In</Button>
-          </div>
+    <div className="min-h-screen bg-slate-900">
+      {/* Fixed header */}
+      <AppBar 
+        position="fixed" 
+        className="bg-slate-800 border-b border-slate-700"
+        sx={{ boxShadow: 'none' }}
+      >
+        <div className="p-3 flex flex-col sm:flex-row items-center gap-3">
+          <Typography 
+            className="text-xl sm:text-2xl text-blue-400 flex-shrink-0" 
+            variant="h5"
+          >
+            Scriptorium
+          </Typography>
+          <TextField 
+            className="w-full"
+            color="info"
+            variant="outlined"
+            label="Search All..."
+            size="small"
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: 'rgb(30, 41, 59)',
+                '&:hover': {
+                  backgroundColor: 'rgb(30, 41, 59, 0.8)',
+                },
+              },
+            }}
+          />
+          <Button 
+            className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
+            variant="contained"
+            size="small"
+          >
+            Sign In
+          </Button>
         </div>
       </AppBar>
 
-      <div className={"grid grid-cols-7 gap-3"}>
-        <div onClick={toggleSidebar} className={`fixed transition duration-700 bg-black ${sideBarState ? "opacity-50" : "opacity-0 -z-10"} w-full h-full`}></div>
-        <div className={`${sideBarState ? "z-50": "-translate-x-72"} duration-700 flex  fixed rounded-r border-b-4 border-t-4 border-r-4 border-slate-800 h-screen col-span-2 sm:col-span-1 top-24`}>
-          <aside className={"bg-secondary overflow-auto"}>
-            <div className={"m-3"}>
-              <div className={"m-3"}>
-                <TextField color={"info"} fullWidth variant={"outlined"}
-                           label={"Search Code Templates..."}/>
-              </div>
-              <div className={"h-65"}>
-                <Typography className={"m-3"} variant={"h6"}>Tags:</Typography>
-                <FormGroup
-                  className={"m-3 p-3 h-44 rounded border overflow-y-hidden hover:overflow-y-scroll grid grid-cols-1"}>
-                  <FormControlLabel control={<Checkbox/>} label={"Tag 1"}/>
-                  <FormControlLabel control={<Checkbox/>} label={"Tag 2"}/>
-                  <FormControlLabel control={<Checkbox/>} label={"Tag 3"}/>
-                  <FormControlLabel control={<Checkbox/>} label={"Tag 3"}/>
-                  <FormControlLabel control={<Checkbox/>} label={"Tag 3"}/>
-                  <FormControlLabel control={<Checkbox/>} label={"Tag 3"}/>
-                  <FormControlLabel control={<Checkbox/>} label={"Tag 3"}/>
-                </FormGroup>
-              </div>
+      {/* Content container with correct top padding */}
+      <div className="pt-16"> {/* Matches header height */}
+        <div className="flex relative">
+          {/* Overlay */}
+          <div 
+            onClick={toggleSidebar}
+            className={`fixed inset-0 bg-black transition-opacity duration-300 ${
+              sideBarState ? "opacity-50 visible" : "opacity-0 invisible"
+            } md:hidden`}
+          />
+
+          {/* Sidebar */}
+          <aside className={`
+            fixed md:sticky top-16 h-[calc(100vh-4rem)]
+            transform transition-transform duration-300 w-64
+            ${sideBarState ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+            bg-slate-800 border-r border-slate-700 z-40
+          `}>
+            <div className="p-4 h-full flex flex-col">
+              <TextField
+                color="info"
+                variant="outlined"
+                label="Search Templates..."
+                size="small"
+                className="mb-4"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: 'rgb(30, 41, 59)',
+                    '&:hover': {
+                      backgroundColor: 'rgb(30, 41, 59, 0.8)',
+                    },
+                  },
+                }}
+              />
+              
+              <Typography variant="h6" className="mb-2 text-blue-400">
+                Tags
+              </Typography>
+              
+              <FormGroup className="flex-1 overflow-y-auto p-2 border border-slate-700 rounded bg-slate-900/50">
+                <FormControlLabel 
+                  control={
+                    <Checkbox 
+                      sx={{
+                        color: 'rgb(96, 165, 250)',
+                        '&.Mui-checked': {
+                          color: 'rgb(96, 165, 250)',
+                        },
+                      }}
+                    />
+                  } 
+                  label="React" 
+                />
+                <FormControlLabel 
+                  control={
+                    <Checkbox 
+                      sx={{
+                        color: 'rgb(96, 165, 250)',
+                        '&.Mui-checked': {
+                          color: 'rgb(96, 165, 250)',
+                        },
+                      }}
+                    />
+                  } 
+                  label="TypeScript" 
+                />
+                <FormControlLabel 
+                  control={
+                    <Checkbox 
+                      sx={{
+                        color: 'rgb(96, 165, 250)',
+                        '&.Mui-checked': {
+                          color: 'rgb(96, 165, 250)',
+                        },
+                      }}
+                    />
+                  } 
+                  label="Next.js" 
+                />
+                <FormControlLabel 
+                  control={
+                    <Checkbox 
+                      sx={{
+                        color: 'rgb(96, 165, 250)',
+                        '&.Mui-checked': {
+                          color: 'rgb(96, 165, 250)',
+                        },
+                      }}
+                    />
+                  } 
+                  label="Tailwind" 
+                />
+                <FormControlLabel 
+                  control={
+                    <Checkbox 
+                      sx={{
+                        color: 'rgb(96, 165, 250)',
+                        '&.Mui-checked': {
+                          color: 'rgb(96, 165, 250)',
+                        },
+                      }}
+                    />
+                  } 
+                  label="Material UI" 
+                />
+              </FormGroup>
             </div>
-            <button onClick={toggleSidebar} className={"float-end bg-slate-800 hover:brightness-75 active:brightness-50 p-2 rounded-l-xl items-start"}>&lt;</button>
+
+            {/* Mobile toggle button */}
+            <button 
+              onClick={toggleSidebar}
+              className="absolute right-0 top-1/2 translate-x-full bg-slate-800 p-2 rounded-r-xl md:hidden hover:bg-slate-700"
+            >
+              {sideBarState ? "←" : "→"}
+            </button>
           </aside>
-        </div>
-        <div className={`${sideBarState ? "-translate-x-7" : ""} duration-700 flex fixed h-screen col-span-2 sm:col-span-1 top-24 z-50`}>
-          <button onClick={toggleSidebar} className={"flex fixed bg-slate-800 hover:brightness-75 active:brightness-50 p-2 rounded-r-xl"}>&gt;</button>
-        </div>
-          <div className={"col-span-5 sm:col-span-6"}>
+
+          {/* Main content */}
+          <main className="flex-1 p-4">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-4">
+                <Typography className="text-red-500">{error}</Typography>
+              </div>
+            )}
+            
             <InfiniteScroll
               dataLength={codeTemplates.length}
               next={fetchCodeTemplates}
               hasMore={hasMore}
-              loader={<h1>Loading...</h1>}
+              loader={
+                <div className="text-center p-4">
+                  <Typography className="text-blue-400">Loading...</Typography>
+                </div>
+              }
               endMessage={
-                <p style={{ textAlign: "center" }}>
-                  <b>Yay! You have seen it all</b>
-                </p>
+                <Typography className="text-center p-4 text-slate-400">
+                  You've seen all templates!
+                </Typography>
               }
             >
-            {codeTemplates.map((template, key) => {
-              return (
-                <div key={key} className={"p-3 transition focus:border border-primary active:brightness-50 hover:brightness-75 rounded lg:rounded-lg m-4 bg-slate-700 h-32"}>
-                  <Typography className={"text-xl sm:text-2xl"}>{template.title}</Typography>
-                  <Typography className={"text-lg truncate"}>{template.explanation}</Typography>
-                </div>
-              );
-              })
-            }
+              <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+                {codeTemplates.map((template, index) => (
+                  <div
+                    key={index}
+                    className="p-4 rounded-lg bg-slate-800 border border-slate-700 
+                             hover:border-blue-500/50 transition-all cursor-pointer"
+                  >
+                    <Typography className="text-xl text-blue-400 mb-2">
+                      {template.title}
+                    </Typography>
+                    <Typography className="text-slate-300 line-clamp-2">
+                      {template.explanation}
+                    </Typography>
+                  </div>
+                ))}
+              </div>
             </InfiniteScroll>
-
-          </div>
+          </main>
         </div>
       </div>
-      );
-      }
+    </div>
+  );
+}

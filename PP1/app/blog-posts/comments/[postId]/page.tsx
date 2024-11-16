@@ -60,11 +60,15 @@ interface Comment {
   userVote: number;
 }
 
-interface BlogPostProps {
-  postId: number;
+interface PostQueryParams {
+  params: {
+    postId: string;
+  }
 }
 
-export function BlogPost({ postId }: BlogPostProps) {
+export default function BlogPost({ params }: PostQueryParams) {
+  const postId = Number(params.postId);
+
   const [post, setPost] = useState<BlogPost | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [error, setError] = useState<string>("");
@@ -143,7 +147,6 @@ export function BlogPost({ postId }: BlogPostProps) {
 
   useEffect(() => {
     fetchBlogPost();
-    fetchComments(true);
   }, []);
 
   useEffect(() => {
@@ -156,7 +159,15 @@ export function BlogPost({ postId }: BlogPostProps) {
     try {
       const response = await fetch(`${domain}/api/blog-posts/${postId}`);
       const data = await response.json();
+      
+      if (!response.ok) {
+        setError(`${response.status} - ${data.error}`);
+        setPost(null);
+        return;
+      }
+      
       setPost({...data, userVote: 0});
+      await fetchComments(true);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -170,6 +181,11 @@ export function BlogPost({ postId }: BlogPostProps) {
     try {
       const response = await fetch(`${domain}/api/comments?postId=${postId}&page=${reset ? 1 : page}&sortBy=${sortBy}`);
       const data = await response.json();
+
+      if (!response.ok) {
+        setError(`${response.status} - ${data.error}`);
+        return;
+      }
 
       const setUserVote = (comments: Comment[]): Comment[] => {
         return comments.map((comment) => ({
@@ -258,7 +274,7 @@ export function BlogPost({ postId }: BlogPostProps) {
   };
 
   return (
-    <div className="p-4 bg-slate-900 text-slate-200">
+    <div className="min-h-screen flex flex-col bg-slate-900 text-slate-200">
       {/* Modal for reporting */}
       <Modal open={reportModalOpen} onClose={() => setReportModalOpen(false)}>
         <Box
@@ -354,172 +370,196 @@ export function BlogPost({ postId }: BlogPostProps) {
         </div>
       </AppBar>
 
-      <main className="flex-1 p-4 max-w-3xl mx-auto mt-10">
-        {/* Post section */}
-        {post && (
-          <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4">
-            <Typography variant="h4" className="text-blue-400 mb-2">
-              {post.title}
+      <main className="flex-1 p-4 max-w-3xl w-full mx-auto mt-12 mb-10">
+        {error ? (
+          <div className="bg-slate-800 rounded-lg border border-slate-700 p-8 text-center">
+            <Typography variant="h5" className="text-red-400 mb-4">
+              {error}
             </Typography>
-
-            <Typography variant="body1" className="text-slate-300 mb-2">
-              {post.content}
-            </Typography>
-
-            <div className="flex items-center gap-2 mb-4">
-              <Avatar>{post.authorUsername[0].toUpperCase()}</Avatar>
-              <Typography className="text-slate-400">
-                {post.authorUsername} • {new Date(post.createdAt).toLocaleString()}
-              </Typography>
-            </div>
-
-            <div className="flex items-center gap-2 mb-4">
-              {/* Post Voting */}
-              <IconButton 
-                className={`hover:text-red-400 ${post.userVote === 1 ? 'text-red-400' : 'text-slate-400'}`} 
-                onClick={() => handleVote(true)}
-                disabled={!post?.allowVoting}
-              >
-                <ArrowUpCircle size={20} />
-              </IconButton>
-              <span className="text-sm font-medium text-slate-300">{post.score}</span>
-              <IconButton 
-                className={`hover:text-blue-400 ${post.userVote === -1 ? 'text-blue-400' : 'text-slate-400'}`} 
-                onClick={() => handleVote(false)}
-                disabled={!post?.allowVoting}
-              >
-                <ArrowDownCircle size={20} />
-              </IconButton>
-              
-              {/* Post Actions */}
-              <button onClick={scrollToComment} className="flex items-center gap-1 text-slate-400 hover:text-blue-400">
-                <MessageCircle size={18} />
-                <span className="text-sm"> Comment </span>
-              </button>
-              <button onClick={() => handleReportClick()} className="flex items-center gap-1 text-slate-400 hover:text-blue-400">
-                <TriangleAlert size={18} />
-                <span className="text-sm"> Report </span>
-              </button>
-            </div>  
-          </div>
-        )}
-
-        {/* New Comment Input Section */}
-        <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4">
-          <Typography variant="h6" className="text-blue-400 mb-3">
-            Add a Comment
-          </Typography>
-            <form 
-            onSubmit={handleCommentSubmit} 
-            className="space-y-4"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                handleCommentSubmit(e);
-              } else if (e.key === 'Escape') {
-                commentInputRef.current?.blur();
-              }
-            }}
-            >
-            <TextField
-              fullWidth
-              multiline
-              rows={4}
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="What are your thoughts?"
-              className="bg-slate-900"
-              inputRef={commentInputRef}
-              sx={{
-              '& .MuiOutlinedInput-root': {
-                color: 'rgb(226, 232, 240)',
-                '& fieldset': {
-                borderColor: 'rgb(51, 65, 85)',
-                },
-                '&:hover fieldset': {
-                borderColor: 'rgb(59, 130, 246)',
-                },
-                '&.Mui-focused fieldset': {
-                borderColor: 'rgb(59, 130, 246)',
-                },
-              },
-              }}
-            />
-            <div className="flex gap-2">
-              <Button 
-              type="submit"
+            <Button 
+              href="/blog-posts/search"
               variant="contained"
-              className="bg-blue-600 hover:bg-blue-700 px-6"
-              >
-              Submit
-              </Button>
-              <Button 
-              onClick={() => setNewComment("")}
-              variant="outlined"
-              className="text-slate-300 border-slate-700 hover:border-blue-400"
-              >
-              Cancel
-              </Button>
-            </div>
-          </form>
-        </div>
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Back to Posts
+            </Button>
+          </div>
+        ) : post ? (
+          <>
+            {/* Post Section */}
+            <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px] flex flex-col justify-between">
+              <Typography variant="h4" className="text-blue-400 mb-2">
+                {post.title === null ? "[Deleted post]" : post.title}
+              </Typography>
 
-        {/* Sorting Section */}
-        <div className="flex justify-between items-center mb-4">
-          <Typography variant="h6" className="text-blue-400">
-            Comments
-          </Typography>
-          <Button
-            onClick={handleSortClick}
-            className="text-slate-300 hover:text-blue-400"
-          >
-            Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
-          </Button>
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={() => handleSortClose()}
-            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-            PaperProps={{
-              sx: {
-                backgroundColor: 'rgb(30, 41, 59)',
-                color: 'rgb(226, 232, 240)',
-                '& .MuiMenuItem-root:hover': {
-                  backgroundColor: 'rgb(51, 65, 85)',
-                },
-              },
-            }}
-          >
-            {sortOptions.map((option) => (
-              <MenuItem 
-                key={option.value}
-                onClick={() => handleSortClose(option.value)}
-                selected={sortBy === option.value}
+              <Typography variant="body1" className="text-slate-300 mb-2">
+                {post.content === null ? "This post has been deleted by its author." : post.content}
+              </Typography>
+
+              <div className="flex items-center gap-2 mb-4">
+                <Avatar>{post.authorUsername[0].toUpperCase()}</Avatar>
+                <Typography className="text-slate-400">
+                  {post.authorUsername} • {new Date(post.createdAt).toLocaleString()}
+                </Typography>
+              </div>
+
+              <div className="flex items-center gap-2 mb-4">
+                {/* Post Voting */}
+                <IconButton 
+                  className={`hover:text-red-400 ${post.userVote === 1 ? 'text-red-400' : 'text-slate-400'}`} 
+                  onClick={() => handleVote(true)}
+                  disabled={!post?.allowVoting}
+                >
+                  <ArrowUpCircle size={20} />
+                </IconButton>
+                <span className="text-sm font-medium text-slate-300">{post.score}</span>
+                <IconButton 
+                  className={`hover:text-blue-400 ${post.userVote === -1 ? 'text-blue-400' : 'text-slate-400'}`} 
+                  onClick={() => handleVote(false)}
+                  disabled={!post?.allowVoting}
+                >
+                  <ArrowDownCircle size={20} />
+                </IconButton>
+                
+                {/* Post Actions */}
+                <button onClick={scrollToComment} className="flex items-center gap-1 text-slate-400 hover:text-blue-400">
+                  <MessageCircle size={18} />
+                  <span className="text-sm"> Comment </span>
+                </button>
+                <button onClick={() => handleReportClick()} className="flex items-center gap-1 text-slate-400 hover:text-blue-400">
+                  <TriangleAlert size={18} />
+                  <span className="text-sm"> Report </span>
+                </button>
+              </div>  
+            </div>
+
+            {/* New Comment Input Section */}
+            <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px]">
+              <Typography variant="h6" className="text-blue-400 mb-3">
+                Add a Comment
+              </Typography>
+              <form 
+                onSubmit={handleCommentSubmit} 
+                className="space-y-4"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    handleCommentSubmit(e);
+                  } else if (e.key === 'Escape') {
+                    commentInputRef.current?.blur();
+                  }
+                }}
+              >
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={4}
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="What are your thoughts?"
+                  className="bg-slate-900"
+                  inputRef={commentInputRef}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      color: 'rgb(226, 232, 240)',
+                      '& fieldset': {
+                        borderColor: 'rgb(51, 65, 85)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: 'rgb(59, 130, 246)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: 'rgb(59, 130, 246)',
+                      },
+                    },
+                  }}
+                />
+                <div className="flex gap-2">
+                  <Button 
+                    type="submit"
+                    variant="contained"
+                    className="bg-blue-600 hover:bg-blue-700 px-6"
+                  >
+                    Submit
+                  </Button>
+                  <Button 
+                    onClick={() => setNewComment("")}
+                    variant="outlined"
+                    className="text-slate-300 border-slate-700 hover:border-blue-400"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </div>
+
+            {/* Sorting Section */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+              <Typography variant="h6" className="text-blue-400">
+                Comments
+              </Typography>
+              <Button
+                onClick={handleSortClick}
                 className="text-slate-300 hover:text-blue-400"
               >
-                <ListItemIcon className="text-slate-300">
-                  <option.icon size={20} />
-                </ListItemIcon>
-                <ListItemText>{option.label}</ListItemText>
-              </MenuItem>
-            ))}
-          </Menu>
-        </div>
+                Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
+              </Button>
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={() => handleSortClose()}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                PaperProps={{
+                  sx: {
+                    backgroundColor: 'rgb(30, 41, 59)',
+                    color: 'rgb(226, 232, 240)',
+                    '& .MuiMenuItem-root:hover': {
+                      backgroundColor: 'rgb(51, 65, 85)',
+                    },
+                  },
+                }}
+              >
+                {sortOptions.map((option) => (
+                  <MenuItem 
+                    key={option.value}
+                    onClick={() => handleSortClose(option.value)}
+                    selected={sortBy === option.value}
+                    className="text-slate-300 hover:text-blue-400"
+                  >
+                    <ListItemIcon className="text-slate-300">
+                      <option.icon size={20} />
+                    </ListItemIcon>
+                    <ListItemText>{option.label}</ListItemText>
+                  </MenuItem>
+                ))}
+              </Menu>
+            </div>
 
-        {/* Comment section */}
-        <InfiniteScroll
-          dataLength={comments.length}
-          next={fetchComments}
-          hasMore={hasMore}
-          loader={<Typography className="text-blue-400">Loading comments...</Typography>}
-          endMessage={<Typography className="text-slate-400">End of comments</Typography>}
-        >
-          <div className="space-y-4">
-            {comments.map((comment) => (
-              <CommentItem key={comment.id} comment={comment} handleVote={handleVote} handleReportClick={handleReportClick}/>
-            ))}
+            {/* Comment section */}
+            <InfiniteScroll
+              dataLength={comments.length}
+              next={fetchComments}
+              hasMore={hasMore}
+              loader={<Typography className="text-blue-400">Loading comments...</Typography>}
+              endMessage={<Typography className="text-slate-400">End of comments</Typography>}
+            >
+              <div className="space-y-4">
+                {comments.map((comment) => (
+                  <CommentItem 
+                    key={comment.id} 
+                    comment={comment} 
+                    handleVote={handleVote} 
+                    handleReportClick={handleReportClick}
+                  />
+                ))}
+              </div>
+            </InfiniteScroll>
+          </>
+        ) : (
+          <div className="flex justify-center items-center">
+            <Typography className="text-blue-400">Loading post...</Typography>
           </div>
-        </InfiniteScroll>
+        )}
       </main>
     </div>
   );
@@ -553,12 +593,14 @@ function CommentItem({ comment, handleVote, handleReportClick }: CommentItemProp
   };
 
   return (
-    <div className="ml-4 border-l border-slate-700 pl-4">
+    <div className="ml-2 sm:ml-4 border-l border-slate-700 pl-2 sm:pl-4">
       {/* Header with voting and user info */}
       <div className="flex items-center gap-2 mb-2">
-        <Avatar sx={{ width: 24, height: 24 }}>{comment.authorUsername[0].toUpperCase()}</Avatar>
-          <Typography className="text-sm text-slate-400">
-            {comment.authorUsername} • {new Date(comment.createdAt).toLocaleString()}
+        <Avatar sx={{ width: { xs: 24, sm: 32 }, height: { xs: 24, sm: 32 } }}>
+          {comment.authorUsername[0].toUpperCase()}
+        </Avatar>
+        <Typography className="text-sm text-slate-400">
+          {comment.authorUsername} • {new Date(comment.createdAt).toLocaleString()}
         </Typography>
 
         <IconButton 
