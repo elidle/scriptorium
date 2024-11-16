@@ -4,7 +4,6 @@ import {
   IconButton,
   Avatar,
   Button,
-  Collapse,
   AppBar,
   TextField,
   Menu,
@@ -28,6 +27,7 @@ import {
 import { useEffect, useState, useRef } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import CommentItem from "./CommentItem";
+import Link from "next/link";
 
 const domain = "http://localhost:3000";
 
@@ -354,12 +354,14 @@ export default function BlogPost({ params }: PostQueryParams) {
         sx={{ boxShadow: 'none' }}
       >
         <div className="p-3 flex flex-col sm:flex-row items-center gap-3">
-          <Typography 
-            className="text-xl sm:text-2xl text-blue-400 flex-shrink-0" 
-            variant="h5"
-          >
+          <Link href="/">
+            <Typography 
+              className="text-xl sm:text-2xl text-blue-400 flex-shrink-0" 
+              variant="h5"
+            >
             Scriptorium
-          </Typography>
+            </Typography>
+          </Link>
           <div className="flex-grow"></div>
           <Button 
             className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"

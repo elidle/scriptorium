@@ -18,15 +18,10 @@ import {
 } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
-import { ArrowUpCircle, ArrowDownCircle, MessageCircle, Star, Clock, TrendingUp, Zap, TriangleAlert } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, MessageCircle, Star, Clock, TrendingUp, Zap, TriangleAlert, Plus } from "lucide-react";
 import Link from 'next/link';
 
 const domain = "http://localhost:3000";
-
-export const metadata = {
-  title: 'Scriptorium - Blog Posts',
-  description: 'Browse and search posts',
-};
 
 interface Tag {
   id: number;
@@ -367,7 +362,7 @@ export default function BlogPosts() {
             />
               
               <Typography variant="h6" className="mb-2 text-blue-400">
-                Popular Tags
+                Tags
               </Typography>
               
               <FormGroup className="flex-1 overflow-y-auto p-2 border border-slate-700 rounded bg-slate-900/50">
@@ -397,12 +392,15 @@ export default function BlogPosts() {
                 ))}
               </FormGroup>
 
-              <Button 
-                variant="contained"
-                className="mt-4 bg-blue-600 hover:bg-blue-700"
-              >
-                Create Post
-              </Button>
+              <Link href="/blog-posts/submit" className="mt-4">
+                <Button 
+                  variant="contained"
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  startIcon={<Plus />}
+                >
+                  Create Post
+                </Button>
+              </Link>
             </div>
 
             {/* Mobile toggle button */}

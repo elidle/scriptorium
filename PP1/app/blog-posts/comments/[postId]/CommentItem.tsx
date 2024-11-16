@@ -5,48 +5,16 @@ import {
   Avatar,
   Button,
   Collapse,
-  AppBar,
   TextField,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-  Modal,
-  Box
 } from "@mui/material";
 import {
   ArrowUpCircle,
   ArrowDownCircle,
   MessageCircle,
   TriangleAlert,
-  Star,
-  Clock,
-  TrendingUp,
-  Zap,
   ChevronUp
 } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
-import InfiniteScroll from "react-infinite-scroll-component";
-
-const domain = "http://localhost:3000";
-
-interface Tag {
-  id: number;
-  name: string;
-}
-
-interface BlogPost {
-  id: number;
-  title: string;
-  content: string;
-  authorId: string;
-  authorUsername: string;
-  tags: Tag[];
-  createdAt: string;
-  score: number;
-  allowVoting: boolean;
-  userVote: number;
-}
+import { useState } from "react";
 
 interface Comment {
   id: number;
@@ -58,12 +26,6 @@ interface Comment {
   replies: Comment[];
   allowVoting: boolean;
   userVote: number;
-}
-
-interface PostQueryParams {
-  params: {
-    postId: string;
-  }
 }
 
 interface CommentItemProps {
