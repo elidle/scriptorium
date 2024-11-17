@@ -24,6 +24,8 @@ import { useAuth } from "../../contexts/AuthContext";
 import { refreshToken, fetchAuth } from "../../utils/auth";
 import { useRouter } from "next/navigation";
 import SideNav from "../../components/SideNav";
+import Image from 'next/image';
+import UserAvatar from '../../components/UserAvatar';
 
 const domain = "http://localhost:3000";
 
@@ -77,7 +79,8 @@ export default function BlogPosts() {
     "edited",
     "javascript",
     "programming",
-    "web development"
+    "web development",
+    "hood klasik"
   ];
 
   const sortOptions = [
@@ -426,12 +429,13 @@ export default function BlogPosts() {
             />
             {user ? (
               <div className="flex items-center gap-2">
-                <Avatar className="bg-blue-600 h-8 w-8">
-                  {user.username[0].toUpperCase()}
-                </Avatar>
-                <Typography className="text-slate-200">
-                  {user.username}
-                </Typography>
+                <UserAvatar username={user.username} userId={user.id} />
+
+                <Link href={`/users/${user.username}`}>
+                  <Typography className="text-slate-200 hover:text-blue-400">
+                    {user.username}
+                  </Typography>
+                </Link>
               </div>
             ) : (
               <Link href="/auth/login">
@@ -663,14 +667,18 @@ export default function BlogPosts() {
                       className="flex-1 cursor-pointer"
                     >
                       <div className="p-3">
-                        <div className="flex items-center gap-2 mb-4">
-                          <Avatar>{post.authorUsername[0].toUpperCase()}</Avatar>
-                          <Typography className={`${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
+                      <div className="flex items-center gap-2 mb-4">
+                      <UserAvatar username={post.authorUsername} userId={post.authorId} />
+
+                        <Link href={`/users/${post.authorUsername}`}>
+                          <Typography className={`hover:text-blue-400 ${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
                             {post.authorUsername}
                           </Typography>
-                          <Typography className="text-slate-400">
-                            • {new Date(post.createdAt).toLocaleString()}
-                          </Typography>
+                        </Link>
+
+                        <Typography className="text-slate-400">
+                          • {new Date(post.createdAt).toLocaleString()}
+                        </Typography>
                         </div>
 
                         <Typography variant="h6" className="text-slate-200 mb-2">

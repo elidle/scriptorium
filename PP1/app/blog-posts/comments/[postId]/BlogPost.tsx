@@ -34,6 +34,8 @@ import { refreshToken, fetchAuth } from "../../../utils/auth";
 import { useRouter } from "next/navigation";
 import { Tag } from '../../../types/tag';
 import SideNav from "../../../components/SideNav";
+import Image from "next/image";
+import UserAvatar from "../../../components/UserAvatar";
 
 const domain = "http://localhost:3000";
 
@@ -96,6 +98,12 @@ export default function BlogPost({ params }: PostQueryParams) {
   // Delete logic
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string>("");
+
+  // Edit logic
+  const [isEditing, setIsEditing] = useState(false);
+  const toggleIsEditing = () => setIsEditing(!isEditing);
+  const [editedContent, setEditedContent] = useState("");
+  const [editError, setEditError] = useState("");
 
   const { user, accessToken, setAccessToken } = useAuth();
 
@@ -481,6 +489,44 @@ export default function BlogPost({ params }: PostQueryParams) {
     }
   };
 
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editedContent.trim()) {
+      setEditError("Content cannot be empty");
+      return;
+    }
+  
+    try {
+      const url = `/api/blog-posts/${postId}`;
+      const options: RequestInit = {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'access-token': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          "title": post?.title,
+          "content": editedContent,
+          "tags": post?.tags.map(tag => tag.id),
+          "codeTemplateIds": []
+        }),
+      };
+  
+      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      if (!response) return;
+  
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+  
+      setPost(prev => prev ? {...prev, content: editedContent} : null);
+      setIsEditing(false);
+      setEditError("");
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Failed to edit post');
+    }
+  };
+
   return (
     <div className="min-h-screen flex bg-slate-900 text-slate-200">
       <SideNav />
@@ -630,9 +676,8 @@ export default function BlogPost({ params }: PostQueryParams) {
           <div className="flex-grow"></div>
           {user ? (
           <div className="flex items-center gap-2">
-            <Avatar className="bg-blue-600 h-8 w-8">
-              {user.username[0].toUpperCase()}
-            </Avatar>
+            <UserAvatar username={user.username} userId={user.id} />
+
             <Typography className="text-slate-200">
               {user.username}
             </Typography>
@@ -673,15 +718,65 @@ export default function BlogPost({ params }: PostQueryParams) {
                 {post.title === null ? "[Deleted post]" : post.title}
               </Typography>
 
-              <Typography variant="body1" className="text-slate-300 mb-2 mt-2" sx={{ whiteSpace: "pre-wrap" }}>
-                {post.content === null ? "This post has been deleted by its author." : post.content}
-              </Typography>
-
-              <div className="flex items-center gap-2 mb-4">
-                <Avatar>{post.authorUsername[0].toUpperCase()}</Avatar>
-                <Typography className={`${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
-                  {post.authorUsername}
+              {isEditing ? (
+                <form onSubmit={handleEditSubmit} className="space-y-4 mb-2 mt-2">
+                  {editError && (
+                    <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
+                      <Typography className="text-red-500">{editError}</Typography>
+                    </div>
+                  )}
+                  <TextField
+                    fullWidth
+                    multiline
+                    minRows={4}
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    className="bg-slate-900"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        height: '100%',
+                        color: 'rgb(226, 232, 240)',
+                        '& fieldset': { borderColor: 'rgb(51, 65, 85)' },
+                        '&:hover fieldset': { borderColor: 'rgb(59, 130, 246)' },
+                        '&.Mui-focused fieldset': { borderColor: 'rgb(59, 130, 246)' },
+                      },
+                    }}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      type="submit"
+                      variant="contained"
+                      className="bg-blue-600 hover:bg-blue-700 px-6"
+                    >
+                      Save
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        setIsEditing(false);
+                        setEditError("");
+                      }}
+                      variant="outlined"
+                      className="text-slate-300 border-slate-700 hover:border-blue-400"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <Typography variant="body1" className="text-slate-300 mb-2 mt-2" sx={{ whiteSpace: "pre-wrap" }}>
+                  {post.content === null ? "[This post has been deleted by its author.]" : post.content}
                 </Typography>
+              )}
+
+              <div className="flex items-center gap-2 mb-2 mt-2">
+                <UserAvatar username={post.authorUsername} userId={post.authorId} />
+
+                <Link href={`/users/${post.authorUsername}`}>
+                  <Typography className={`hover:text-blue-400 ${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
+                    {post.authorUsername}
+                  </Typography>
+                </Link>
+
                 <Typography className="text-slate-400">
                   • {new Date(post.createdAt).toLocaleString()}
                 </Typography>
@@ -731,18 +826,22 @@ export default function BlogPost({ params }: PostQueryParams) {
                 {user?.id === post.authorId && (
                   <div className="flex items-center gap-2">
                     <button 
+                      onClick={() => {
+                        setEditedContent(post.content);
+                        toggleIsEditing();
+                      }}
                       className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
                       disabled={!post?.allowAction}
                     >
                       <Edit size={18} />
-                      <span className="text-sm"> Edit Post </span>
+                      <span className="text-sm"> Edit </span>
                     </button>
                     <button 
                       onClick={() => setDeleteModalOpen(true)}
                       className={'flex items-center gap-1 text-slate-400 hover:text-red-400'}
                     >
                       <Trash2 size={18} />
-                      <span className="text-sm"> Delete Post </span>
+                      <span className="text-sm"> Delete </span>
                     </button>
                   </div>
                 )}

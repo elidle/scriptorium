@@ -49,19 +49,19 @@ const SideNav = () => {
     <aside className="fixed left-0 top-0 h-screen w-64 bg-slate-900 border-r border-slate-800 pt-20 px-4">
       <NavSection title="Code">
         <NavLink href="/code-templates/editor">
-          <Code size={18} /> Editor
+          <Code size={18} /> Run Code
         </NavLink>
         <NavLink href="/code-templates/search">
-          <Search size={18} /> Search
+          <Search size={18} /> Code Templates
         </NavLink>
       </NavSection>
 
       <NavSection title="Blog">
         <NavLink href="/blog-posts/submit">
-          <PenSquare size={18} /> Submit
+          <PenSquare size={18} /> Submit Post
         </NavLink>
         <NavLink href="/blog-posts/search">
-          <Search size={18} /> Search
+          <Search size={18} /> Posts
         </NavLink>
       </NavSection>
 
