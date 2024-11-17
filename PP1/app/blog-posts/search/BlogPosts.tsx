@@ -21,7 +21,7 @@ import InfiniteScroll from "react-infinite-scroll-component";
 import { ArrowUpCircle, ArrowDownCircle, MessageCircle, Star, Clock, TrendingUp, Zap, TriangleAlert, Plus } from "lucide-react";
 import Link from 'next/link';
 import { useAuth } from "../../contexts/AuthContext";
-import { fetchAuth } from "../../utils/auth";
+import { refreshToken, fetchAuth } from "../../utils/auth";
 import { useRouter } from "next/navigation";
 
 const domain = "http://localhost:3000";
@@ -105,7 +105,8 @@ export default function BlogPosts() {
     const queryParams = new URLSearchParams({
       page: currentPage.toString(),
       ...(debouncedQuery && { q: debouncedQuery }),
-      ...(sortBy !== 'new' && { sortBy: sortBy })
+      ...(sortBy !== 'new' && { sortBy: sortBy }),
+      ...(user?.id && { userId: user.id })
     });
 
     selectedTags.forEach(tag => {
@@ -113,13 +114,32 @@ export default function BlogPosts() {
     });
 
     try {
-      const response = await fetch(`${domain}/api/blog-posts/search?${queryParams.toString()}`);
-      const data = await response.json();
+      const url = `${domain}/api/blog-posts/search?${queryParams.toString()}`;
+      let options: RequestInit = {
+        headers: user && accessToken ? {
+          'access-token': `Bearer ${accessToken}`
+        } : {}
+      };
 
-      const posts = data.posts.map((post: BlogPost) => ({
-        ...post,
-        userVote: 0,
-      }));
+      let response = await fetch(url, options);
+
+      if (response.status === 401 && user && accessToken) {
+        try {
+          const newToken = await refreshToken(user);
+          setAccessToken(newToken);
+          
+          options.headers = {
+            'access-token': `Bearer ${newToken}`
+          };
+          
+          response = await fetch(url, options);
+        } catch (err) {
+          response = await fetch(url, {}); // Fall back to guest view if token refresh fails
+        }
+      }
+
+      const data = await response.json();
+      const posts = data.posts;
       reset ? setBlogPosts(posts) : setBlogPosts((prevPosts) => [...prevPosts, ...posts]);
 
       setHasMore(data.hasMore);
@@ -149,24 +169,64 @@ export default function BlogPosts() {
     });
   };
 
-  const handleVote = (postId: number, increment: boolean) => {
+  const handleVote = async (postId: number, increment: boolean) => {
+    const vote = increment ? 1 : -1;
+    let newVote = 0;
+    
     setBlogPosts(prevPosts => 
       prevPosts.map(post => {
         if (post.id === postId) {
-          // TODO: API calls
-          const voteChange = increment ? 1 : -1;
-          const newVote = post.userVote === voteChange ? 0 : voteChange; // toggle if same vote
-          const scoreChange = newVote - post.userVote;                   // calculate diff
+          newVote = post.userVote === vote ? 0 : vote;
           return {
-          ...post,
-          score: post.score + scoreChange,
-          userVote: newVote
+            ...post,
+            score: post.score + newVote - post.userVote,
+            userVote: newVote
           };
         }
         return post;
       })
     );
+  
+    await sendVote(newVote, postId);
   };
+
+  const sendVote = async (vote: number, postId: number) => {
+    if (!user || !accessToken) {
+      router.push('/auth/login');
+      return;
+    }
+
+    const method = vote === 0 ? 'DELETE' : 'POST';
+    try {
+      const url = '/api/rate/post';
+      const options : RequestInit = {
+        method: method,
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'access-token': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          postId: postId,
+          value: vote
+        }),
+      };
+
+      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      if (!response) return;
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to rate post');
+      }
+    } catch (err) {
+      console.error('Error rating post:', err);
+      const msg = err instanceof Error ? err.message : 'Failed to rate post';
+      alert(msg);
+    }
+  }
 
   const handleSortClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -359,15 +419,26 @@ export default function BlogPosts() {
               },
             }}
           />
-          <Link href="/auth/login">
-            <Button 
-              className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
-              variant="contained"
-              size="small"
-            >
-              Log In
-            </Button>
-          </Link>
+          {user ? (
+            <div className="flex items-center gap-2">
+              <Avatar className="bg-blue-600 h-8 w-8">
+                {user.username[0].toUpperCase()}
+              </Avatar>
+              <Typography className="text-slate-200">
+                {user.username}
+              </Typography>
+            </div>
+          ) : (
+            <Link href="/auth/login">
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
+                variant="contained"
+                size="small"
+              >
+                Log In
+              </Button>
+            </Link>
+          )}
         </div>
       </AppBar>
 
@@ -559,27 +630,27 @@ export default function BlogPosts() {
                 >
                   {/* Vote section */}
                   <div className="flex flex-col items-center p-2 bg-slate-900/50 rounded-l-lg">
-                    <IconButton 
-                      className={`hover:text-red-400 ${post.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`} 
-                      onClick={(e) => {
-                        e.preventDefault(); // Prevent navigation when voting
-                        handleVote(post.id, true);
-                      }}
-                    >
-                      <ArrowUpCircle size={20} />
-                    </IconButton>
-                    <span className="text-sm font-medium text-slate-300">
-                      {post.score}
-                    </span>
-                    <IconButton 
-                      className={`hover:text-blue-400 ${post.userVote === -1 ? '!text-blue-400' : '!text-slate-400'}`} 
-                      onClick={(e) => {
-                        e.preventDefault(); // Prevent navigation when voting
-                        handleVote(post.id, false);
-                      }}
-                    >
-                      <ArrowDownCircle size={20} />
-                    </IconButton>
+                  <IconButton 
+                    className={`group ${post.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleVote(post.id, true);
+                    }}
+                  >
+                    <ArrowUpCircle className="group-hover:!text-red-400" size={20} />
+                  </IconButton>
+                  <span className="text-sm font-medium text-slate-300">
+                    {post.score}
+                  </span>
+                  <IconButton 
+                    className={`group ${post.userVote === -1 ? '!text-blue-400' : '!text-slate-400'}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleVote(post.id, false);
+                    }} 
+                  >
+                    <ArrowDownCircle className="group-hover:!text-blue-400" size={20} />
+                  </IconButton>
                   </div>
 
                   {/* Wrap the content in Link */}

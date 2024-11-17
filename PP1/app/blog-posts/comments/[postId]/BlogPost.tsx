@@ -33,6 +33,7 @@ import { preloadStyle } from "next/dist/server/app-render/entry-base";
 import { useRouter } from "next/navigation";
 import { User } from '../../../types/auth';
 import { Tag } from '../../../types/tag';
+import { comment } from "postcss";
 
 const domain = "http://localhost:3000";
 
@@ -45,7 +46,7 @@ interface BlogPost {
   tags: Tag[];
   createdAt: string;
   score: number;
-  allowVoting: boolean;
+  allowAction: boolean;
   userVote: number;
 }
 
@@ -57,7 +58,7 @@ interface Comment {
   createdAt: string;
   score: number;
   replies: Comment[];
-  allowVoting: boolean;
+  allowAction: boolean;
   userVote: number;
 }
 
@@ -254,18 +255,21 @@ export default function BlogPost({ params }: PostQueryParams) {
     }
   };
 
-  const handleVote = (increment: boolean, commentId: number | null = null) => {
-    const voteChange = increment ? 1 : -1;
-    if (commentId === null) {
-      if (!post?.allowVoting) return;
+  const handleVote = async (increment: boolean, commentId: number | null = null) => {
+    const vote = increment ? 1 : -1;
+    let newVote = 0;
 
-      const newVote = post.userVote === voteChange ? 0 : voteChange;
-      const scoreChange = newVote - post.userVote;
+    if (commentId === null) {
+      if (!post?.allowAction) return;
+
+      newVote = post.userVote === vote ? 0 : vote;
       setPost({
         ...post,
-        score: post.score + scoreChange,
+        score: post.score + newVote - post.userVote,
         userVote: newVote
       });
+
+      await sendVote(newVote);
     } else {
       let found = false;
 
@@ -275,13 +279,12 @@ export default function BlogPost({ params }: PostQueryParams) {
         return comments.map((comment) => {
           if (comment.id === commentId) {
             found = true;
-            if (!comment.allowVoting) return comment;
+            if (!comment.allowAction) return comment;
 
-            const newVote = comment.userVote === voteChange ? 0 : voteChange;
-            const scoreChange = newVote - comment.userVote;
+            newVote = comment.userVote === vote ? 0 : vote;
             return {
               ...comment,
-              score: comment.score + scoreChange,
+              score: comment.score + newVote - comment.userVote,
               userVote: newVote
             };
           }
@@ -293,8 +296,49 @@ export default function BlogPost({ params }: PostQueryParams) {
       };
 
       setComments((prevComments) => updateComments(prevComments));
+
+      await sendVote(newVote, commentId);
     }
   };
+
+  const sendVote = async (vote: number, commentId: number | null = null) => {
+    if (!user || !accessToken) {
+      router.push('/auth/login');
+      return;
+    }
+    
+    const url = commentId === null ? '/api/rate/post' : '/api/rate/comment';
+    const method = vote === 0 ? 'DELETE' : 'POST';
+    try {
+      const options : RequestInit = {
+        method: method,
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'access-token': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          postId: postId,
+          commentId: commentId,
+          value: vote
+        }),
+      };
+
+      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      if (!response) return;
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to rate');
+      }
+    } catch (err) {
+      console.error('Error rating:', err);
+      const msg = err instanceof Error ? err.message : 'Failed to rate';
+      alert(msg);
+    }
+  }
 
   const handleSortClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -448,6 +492,16 @@ export default function BlogPost({ params }: PostQueryParams) {
             </Typography>
           </Link>
           <div className="flex-grow"></div>
+          {user ? (
+          <div className="flex items-center gap-2">
+            <Avatar className="bg-blue-600 h-8 w-8">
+              {user.username[0].toUpperCase()}
+            </Avatar>
+            <Typography className="text-slate-200">
+              {user.username}
+            </Typography>
+          </div>
+          ) : (
           <Link href="/auth/login">
             <Button 
               className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
@@ -457,6 +511,7 @@ export default function BlogPost({ params }: PostQueryParams) {
               Log In
             </Button>
           </Link>
+          )}
         </div>
       </AppBar>
 
@@ -496,27 +551,37 @@ export default function BlogPost({ params }: PostQueryParams) {
               <div className="flex items-center gap-2 mb-4">
                 {/* Post Voting */}
                 <IconButton 
-                  className={`hover:text-red-400 ${post.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`} 
-                  onClick={() => handleVote(true)}
-                  disabled={!post?.allowVoting}
+                  className={`group ${post.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`} 
+                  onClick={(e) => {e.preventDefault; handleVote(true);}}
+                  disabled={!post?.allowAction}
+                  sx={{ opacity: post?.allowAction ? '1 !important' : '0.5 !important' }}
                 >
-                  <ArrowUpCircle size={20} />
+                  <ArrowUpCircle className="group-hover:!text-red-400" size={20} />
                 </IconButton>
                 <span className="text-sm font-medium text-slate-300">{post.score}</span>
                 <IconButton 
-                  className={`hover:text-blue-400 ${post.userVote === -1 ? '!text-blue-400' : '!text-slate-400'}`} 
-                  onClick={() => handleVote(false)}
-                  disabled={!post?.allowVoting}
+                  className={`group ${post.userVote === -1 ? '!text-blue-400' : '!text-slate-400'}`} 
+                  onClick={(e) => {e.preventDefault; handleVote(false);}}
+                  disabled={!post?.allowAction}
+                  sx={{ opacity: post?.allowAction ? '1 !important' : '0.5 !important' }}
                 >
-                  <ArrowDownCircle size={20} />
+                  <ArrowDownCircle className="group-hover:!text-blue-400" size={20} />
                 </IconButton>
                 
                 {/* Post Actions */}
-                <button onClick={scrollToComment} className="flex items-center gap-1 text-slate-400 hover:text-blue-400">
+                <button 
+                  onClick={scrollToComment} 
+                  className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
+                  disabled={!post?.allowAction}
+                >
                   <MessageCircle size={18} />
                   <span className="text-sm"> Comment </span>
                 </button>
-                <button onClick={() => handleReportClick()} className="flex items-center gap-1 text-slate-400 hover:text-blue-400">
+                <button 
+                  onClick={() => {if (post?.allowAction) handleReportClick()}} 
+                  className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
+                  disabled={!post?.allowAction}
+                >
                   <TriangleAlert size={18} />
                   <span className="text-sm"> Report </span>
                 </button>
@@ -524,70 +589,80 @@ export default function BlogPost({ params }: PostQueryParams) {
             </div>
 
             {/* New Comment Input Section */}
-            <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px]">
-              <Typography variant="h6" className="text-blue-400 mb-3">
-                Add a Comment
-              </Typography>
+            {post?.allowAction ? (
+              <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px]">
+                <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px]">
+                  <Typography variant="h6" className="text-blue-400 mb-3">
+                    Add a Comment
+                  </Typography>
 
-              {newCommentError && (
-                <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
-                  <Typography className="text-red-500">{newCommentError}</Typography>
-                </div>
-              )}
+                  {newCommentError && (
+                    <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
+                      <Typography className="text-red-500">{newCommentError}</Typography>
+                    </div>
+                  )}
 
-              <form 
-                onSubmit={handleCommentSubmit} 
-                className="space-y-4"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    handleCommentSubmit(e);
-                  } else if (e.key === 'Escape') {
-                    commentInputRef.current?.blur();
-                  }
-                }}
-              >
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={4}
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="What are your thoughts?"
-                  className="bg-slate-900"
-                  inputRef={commentInputRef}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      color: 'rgb(226, 232, 240)',
-                      '& fieldset': {
-                        borderColor: 'rgb(51, 65, 85)',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: 'rgb(59, 130, 246)',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: 'rgb(59, 130, 246)',
-                      },
-                    },
-                  }}
-                />
-                <div className="flex gap-2">
-                  <Button 
-                    type="submit"
-                    variant="contained"
-                    className="bg-blue-600 hover:bg-blue-700 px-6"
+                  <form 
+                    onSubmit={handleCommentSubmit} 
+                    className="space-y-4"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        handleCommentSubmit(e);
+                      } else if (e.key === 'Escape') {
+                        commentInputRef.current?.blur();
+                      }
+                    }}
                   >
-                    Submit
-                  </Button>
-                  <Button 
-                    onClick={() => setNewComment("")}
-                    variant="outlined"
-                    className="text-slate-300 border-slate-700 hover:border-blue-400"
-                  >
-                    Cancel
-                  </Button>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={4}
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="What are your thoughts?"
+                      className="bg-slate-900"
+                      inputRef={commentInputRef}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          color: 'rgb(226, 232, 240)',
+                          '& fieldset': {
+                            borderColor: 'rgb(51, 65, 85)',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'rgb(59, 130, 246)',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: 'rgb(59, 130, 246)',
+                          },
+                        },
+                      }}
+                    />
+                    <div className="flex gap-2">
+                      <Button 
+                        type="submit"
+                        variant="contained"
+                        className="bg-blue-600 hover:bg-blue-700 px-6"
+                      >
+                        Submit
+                      </Button>
+                      <Button 
+                        onClick={() => setNewComment("")}
+                        variant="outlined"
+                        className="text-slate-300 border-slate-700 hover:border-blue-400"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
                 </div>
-              </form>
-            </div>
+              </div>
+            ) : (
+              <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4">
+                <Typography className="text-slate-400">
+                  Comments are disabled for this post.
+                </Typography>
+              </div>
+            )}
 
             {/* Sorting Section */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
