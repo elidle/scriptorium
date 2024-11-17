@@ -37,7 +37,7 @@ export async function POST(req) {
   try {
     // Authorize user
     await authorize(req, ['user', 'admin']);
-    template = await prisma.codeTemplate.create({
+     template = await prisma.codeTemplate.create({
       data: {
         title: title,
         code: code,
@@ -54,6 +54,7 @@ export async function POST(req) {
         parentForkId: isForked ? Number(parentTemplateId) : null,
       },
     });
+
     let parentTemplate;
     if (isForked) {
       parentTemplate = await prisma.codeTemplate.update({

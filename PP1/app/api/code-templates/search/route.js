@@ -3,7 +3,7 @@ import { sortMostRelevantFirst } from "../../../../utils/code-template/sorts";
 import { fetchCurrentPage } from "../../../../utils/pagination";
 
 /*
- * This function is used to search for code templates.
+ * This function is used to search for code templates with author information.
  */
 export async function GET(req) {
   const q = req.nextUrl.searchParams.get('q');
@@ -14,88 +14,107 @@ export async function GET(req) {
   const limit = req.nextUrl.searchParams.get('limit') ? Number(req.nextUrl.searchParams.get('limit')) : 10;
 
   let templates, userId;
-  try{
-    if(username) {
+  try {
+    if (username) {
       const existingUser = await prisma.user.findUnique({
         where: {
           username: username,
         },
-        include: {
-          codeTemplates: {
-            select: {
-              id: true,
-            },
-          },
+        select: {
+          id: true,
         },
       });
+
       if (!existingUser) {
         return Response.json({ status: 'error', message: 'User not found' }, { status: 404 });
       }
       userId = existingUser.id;
     }
+
     templates = await prisma.codeTemplate.findMany({
       where: {
-        authorId: userId ?? Prisma.skip,
-        tags: tags.length > 0 ? {
-          some:{
-            name: {
-              in: tags ,
-            }
-          }
-        } : Prisma.skip,
+        ...(userId && { authorId: userId }),
+
+        ...(tags.length > 0 && {
+          tags: {
+            some: {
+              name: {
+                in: tags,
+              },
+            },
+          },
+        }),
+
         OR: [
           {
-            title: { contains: q ?? "",},
+            title: { contains: q ?? ""},
           },
           {
             tags: {
-              some:{
-                name: { contains: q ?? "",}
+              some: {
+                name: { contains: q ?? ""},
               },
             },
           },
           {
-            explanation: { contains: q ?? "",},
+            explanation: { contains: q ?? ""},
           },
           {
-            code: { contains: q ?? "",},
+            code: { contains: q ?? ""},
           },
         ],
       },
       orderBy: sortBy === 'old' ? { createdAt: 'asc' } : (sortBy === 'new' ? { createdAt: 'desc' } : Prisma.skip),
-      // include: {
-      //   tags: {
-      //     select: {
-      //       name: true,
-      //     },
-      //   },
-      // },
-      select: {
-        id: true,
-        title: true,
-        explanation: true,
-        code: true,
-        tags: true,
+      include: {
+        tags: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        author: {
+          select: {
+            username: true,
+            avatar: true,
+          },
+        },
       },
     });
-  }
-  catch(err) {
-    console.log(err); // TODO: Remove this line
+
+    if (!templates || templates.length === 0) {
+      return Response.json({ status: 'error', message: 'No templates found' }, { status: 404 });
+    }
+
+    // Transform the data to include author information directly in the template object
+    const transformedTemplates = templates.map(template => ({
+      ...template,
+      author: {
+        username: template.author.username,
+        name: template.author.name,
+        avatar: template.author.avatar,
+      },
+    }));
+
+    let curPage, hasMore;
+    if (sortBy === 'most-relevant') {
+      const retObj = fetchCurrentPage(transformedTemplates, page ? Number(page) : 1, limit, sortMostRelevantFirst, [q]);
+      curPage = retObj.curPage;
+      hasMore = retObj.hasMore;
+    } else {
+      const retObj = fetchCurrentPage(transformedTemplates, page ? Number(page) : 1, limit);
+      curPage = retObj.curPage;
+      hasMore = retObj.hasMore;
+    }
+
+    return Response.json({
+      templates: curPage,
+      hasMore: hasMore,
+      nextPage: hasMore ? (page ? Number(page) + 1 : 2) : null,
+      total: templates.length,
+    }, { status: 200 });
+
+  } catch (err) {
+    console.error('Error fetching templates:', err);
     return Response.json({ status: 'error', message: 'Failed to fetch templates' }, { status: 500 });
   }
-  if(!templates){
-    return Response.json({ status: 'error', message: 'No templates found' }, { status: 404 });
-  }
-  let curPage, hasMore;
-  if(sortBy === 'most-relevant') {
-    const retObj= fetchCurrentPage(templates, page ? page : 1, limit, sortMostRelevantFirst, [q]);
-    curPage = retObj.curPage;
-    hasMore = retObj.hasMore;
-  }
-  else {
-    const retObj = fetchCurrentPage(templates, page ? page : 1, limit);
-    curPage = retObj.curPage;
-    hasMore = retObj.hasMore;
-  }
-  return Response.json({ template: curPage, hasMore: hasMore, nextPage: hasMore ? Number(page) + 1 : null }, { status: 200 });
 }
