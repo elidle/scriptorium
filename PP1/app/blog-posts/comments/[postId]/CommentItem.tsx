@@ -125,12 +125,17 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
     <div className="ml-2 sm:ml-4 border-l border-slate-700 pl-2 sm:pl-4">
       {/* Header with voting and user info */}
       <div className="flex items-center gap-2 mb-2">
-        <Avatar sx={{ width: { xs: 24, sm: 32 }, height: { xs: 24, sm: 32 } }}>
-          {comment.authorUsername[0].toUpperCase()}
-        </Avatar>
-        <Typography className="text-sm text-slate-400">
-          {comment.authorUsername} • {new Date(comment.createdAt).toLocaleString()}
-        </Typography>
+        <div className="flex items-center gap-2">
+          <Avatar sx={{ width: { xs: 24, sm: 32 }, height: { xs: 24, sm: 32 } }}>
+            {comment.authorUsername[0].toUpperCase()}
+          </Avatar>
+          <Typography className={`text-sm ${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
+            {post.authorUsername}
+          </Typography>
+          <Typography className="text-sm text-slate-400">
+            • {new Date(post.createdAt).toLocaleString()}
+          </Typography>
+        </div>
 
         <IconButton 
           className={`group ${comment.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`} 

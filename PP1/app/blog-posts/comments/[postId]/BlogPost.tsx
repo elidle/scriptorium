@@ -21,7 +21,9 @@ import {
   Star,
   Clock,
   TrendingUp,
-  Zap
+  Zap,
+  Edit,
+  Trash2
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
@@ -34,6 +36,7 @@ import { useRouter } from "next/navigation";
 import { User } from '../../../types/auth';
 import { Tag } from '../../../types/tag';
 import { comment } from "postcss";
+import SideNav from "../../../components/SideNav";
 
 const domain = "http://localhost:3000";
 
@@ -395,9 +398,50 @@ export default function BlogPost({ params }: PostQueryParams) {
       setNewCommentError(err instanceof Error ? err.message : 'Failed to create comment');
     }
   };
+  
+  const handleDelete = async () => {
+    if (user.id !== post?.authorId) {
+      return;
+    }
+
+    if (!user || !accessToken) {
+      router.push('/auth/login');
+      return;
+    }
+
+    try {
+      const url = `/api/blog-posts/${postId}`;
+      const options : RequestInit = {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'access-token': `Bearer ${accessToken}`,
+        }
+      };
+
+      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      if (!response) return;
+   
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to delete post');
+      }
+
+      alert('Post deleted successfully');
+      
+      fetchBlogPost();
+      router.refresh();
+    } catch (err) {
+      console.error('Error deleting post:', err);
+      setNewCommentError(err instanceof Error ? err.message : 'Failed to delete post');
+    }
+  };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-900 text-slate-200">
+    <div className="min-h-screen flex bg-slate-900 text-slate-200">
+      <SideNav />
+
       {/* Modal for reporting */}
       <Modal open={reportModalOpen} onClose={() => setReportModalOpen(false)}>
         <Box
@@ -533,7 +577,7 @@ export default function BlogPost({ params }: PostQueryParams) {
           <>
             {/* Post Section */}
             <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px] flex flex-col justify-between">
-              <Typography variant="h4" className="text-blue-400 mb-2">
+              <Typography variant="h4" className="text-blue-400">
                 {post.title === null ? "[Deleted post]" : post.title}
               </Typography>
 
@@ -543,191 +587,216 @@ export default function BlogPost({ params }: PostQueryParams) {
 
               <div className="flex items-center gap-2 mb-4">
                 <Avatar>{post.authorUsername[0].toUpperCase()}</Avatar>
+                <Typography className={`${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
+                  {post.authorUsername}
+                </Typography>
                 <Typography className="text-slate-400">
-                  {post.authorUsername} • {new Date(post.createdAt).toLocaleString()}
+                  • {new Date(post.createdAt).toLocaleString()}
                 </Typography>
               </div>
 
-              <div className="flex items-center gap-2 mb-4">
-                {/* Post Voting */}
-                <IconButton 
-                  className={`group ${post.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`} 
-                  onClick={(e) => {e.preventDefault; handleVote(true);}}
-                  disabled={!post?.allowAction}
-                  sx={{ opacity: post?.allowAction ? '1 !important' : '0.5 !important' }}
-                >
-                  <ArrowUpCircle className="group-hover:!text-red-400" size={20} />
-                </IconButton>
-                <span className="text-sm font-medium text-slate-300">{post.score}</span>
-                <IconButton 
-                  className={`group ${post.userVote === -1 ? '!text-blue-400' : '!text-slate-400'}`} 
-                  onClick={(e) => {e.preventDefault; handleVote(false);}}
-                  disabled={!post?.allowAction}
-                  sx={{ opacity: post?.allowAction ? '1 !important' : '0.5 !important' }}
-                >
-                  <ArrowDownCircle className="group-hover:!text-blue-400" size={20} />
-                </IconButton>
-                
-                {/* Post Actions */}
-                <button 
-                  onClick={scrollToComment} 
-                  className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
-                  disabled={!post?.allowAction}
-                >
-                  <MessageCircle size={18} />
-                  <span className="text-sm"> Comment </span>
-                </button>
-                <button 
-                  onClick={() => {if (post?.allowAction) handleReportClick()}} 
-                  className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
-                  disabled={!post?.allowAction}
-                >
-                  <TriangleAlert size={18} />
-                  <span className="text-sm"> Report </span>
-                </button>
-              </div>  
-            </div>
-
-            {/* New Comment Input Section */}
-            {post?.allowAction ? (
-              <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px]">
-                <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px]">
-                  <Typography variant="h6" className="text-blue-400 mb-3">
-                    Add a Comment
-                  </Typography>
-
-                  {newCommentError && (
-                    <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
-                      <Typography className="text-red-500">{newCommentError}</Typography>
-                    </div>
-                  )}
-
-                  <form 
-                    onSubmit={handleCommentSubmit} 
-                    className="space-y-4"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        handleCommentSubmit(e);
-                      } else if (e.key === 'Escape') {
-                        commentInputRef.current?.blur();
-                      }
-                    }}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  {/* Post Voting */}
+                  <IconButton 
+                    className={`group ${post.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`} 
+                    onClick={(e) => {e.preventDefault; handleVote(true);}}
+                    disabled={!post?.allowAction}
+                    sx={{ opacity: post?.allowAction ? '1 !important' : '0.5 !important' }}
                   >
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={4}
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      placeholder="What are your thoughts?"
-                      className="bg-slate-900"
-                      inputRef={commentInputRef}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          color: 'rgb(226, 232, 240)',
-                          '& fieldset': {
-                            borderColor: 'rgb(51, 65, 85)',
-                          },
-                          '&:hover fieldset': {
-                            borderColor: 'rgb(59, 130, 246)',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: 'rgb(59, 130, 246)',
-                          },
-                        },
-                      }}
-                    />
-                    <div className="flex gap-2">
-                      <Button 
-                        type="submit"
-                        variant="contained"
-                        className="bg-blue-600 hover:bg-blue-700 px-6"
-                      >
-                        Submit
-                      </Button>
-                      <Button 
-                        onClick={() => setNewComment("")}
-                        variant="outlined"
-                        className="text-slate-300 border-slate-700 hover:border-blue-400"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
+                    <ArrowUpCircle className="group-hover:!text-red-400" size={20} />
+                  </IconButton>
+                  <span className="text-sm font-medium text-slate-300">{post.score}</span>
+                  <IconButton 
+                    className={`group ${post.userVote === -1 ? '!text-blue-400' : '!text-slate-400'}`} 
+                    onClick={(e) => {e.preventDefault; handleVote(false);}}
+                    disabled={!post?.allowAction}
+                    sx={{ opacity: post?.allowAction ? '1 !important' : '0.5 !important' }}
+                  >
+                    <ArrowDownCircle className="group-hover:!text-blue-400" size={20} />
+                  </IconButton>
+                  
+                  {/* Post Actions */}
+                  <button 
+                    onClick={scrollToComment} 
+                    className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
+                    disabled={!post?.allowAction}
+                  >
+                    <MessageCircle size={18} />
+                    <span className="text-sm"> Comment </span>
+                  </button>
+                  <button 
+                    onClick={() => {if (post?.allowAction) handleReportClick()}} 
+                    className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
+                    disabled={!post?.allowAction}
+                  >
+                    <TriangleAlert size={18} />
+                    <span className="text-sm"> Report </span>
+                  </button>
                 </div>
+
+                {/* Author buttons */}
+                {user?.id === post.authorId && (
+                  <div className="flex items-center gap-2">
+                    <button 
+                      className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
+                      disabled={!post?.allowAction}
+                    >
+                      <Edit size={18} />
+                      <span className="text-sm"> Edit Post </span>
+                    </button>
+                    <button 
+                      onClick={() => {if (post?.allowAction) handleDelete()}} 
+                      className={'flex items-center gap-1 text-slate-400 hover:text-red-400'}
+                    >
+                      <Trash2 size={18} />
+                      <span className="text-sm"> Delete Post </span>
+                    </button>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4">
-                <Typography className="text-slate-400">
-                  Comments are disabled for this post.
+
+              {/* New Comment Input Section */}
+              {post?.allowAction ? (
+                <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px]">
+                  <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px]">
+                    <Typography variant="h6" className="text-blue-400 mb-3">
+                      Add a Comment
+                    </Typography>
+
+                    {newCommentError && (
+                      <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
+                        <Typography className="text-red-500">{newCommentError}</Typography>
+                      </div>
+                    )}
+
+                    <form 
+                      onSubmit={handleCommentSubmit} 
+                      className="space-y-4"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          handleCommentSubmit(e);
+                        } else if (e.key === 'Escape') {
+                          commentInputRef.current?.blur();
+                        }
+                      }}
+                    >
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={4}
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder="What are your thoughts?"
+                        className="bg-slate-900"
+                        inputRef={commentInputRef}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            color: 'rgb(226, 232, 240)',
+                            '& fieldset': {
+                              borderColor: 'rgb(51, 65, 85)',
+                            },
+                            '&:hover fieldset': {
+                              borderColor: 'rgb(59, 130, 246)',
+                            },
+                            '&.Mui-focused fieldset': {
+                              borderColor: 'rgb(59, 130, 246)',
+                            },
+                          },
+                        }}
+                      />
+                      <div className="flex gap-2">
+                        <Button 
+                          type="submit"
+                          variant="contained"
+                          className="bg-blue-600 hover:bg-blue-700 px-6"
+                        >
+                          Submit
+                        </Button>
+                        <Button 
+                          onClick={() => setNewComment("")}
+                          variant="outlined"
+                          className="text-slate-300 border-slate-700 hover:border-blue-400"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              ) : (
+                <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4">
+                  <Typography className="text-slate-400">
+                    Comments are disabled for this post.
+                  </Typography>
+                </div>
+              )}
+
+              {/* Sorting Section */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+                <Typography variant="h6" className="text-blue-400">
+                  Comments
                 </Typography>
-              </div>
-            )}
-
-            {/* Sorting Section */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
-              <Typography variant="h6" className="text-blue-400">
-                Comments
-              </Typography>
-              <Button
-                onClick={handleSortClick}
-                className="!text-slate-300 hover:text-blue-400"
-              >
-                Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
-              </Button>
-              <Menu
-                anchorEl={anchorEl}
-                open={Boolean(anchorEl)}
-                onClose={() => handleSortClose()}
-                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                PaperProps={{
-                  sx: {
-                    backgroundColor: 'rgb(30, 41, 59)',
-                    color: 'rgb(226, 232, 240)',
-                    '& .MuiMenuItem-root:hover': {
-                      backgroundColor: 'rgb(51, 65, 85)',
+                <Button
+                  onClick={handleSortClick}
+                  className="!text-slate-300 hover:text-blue-400"
+                >
+                  Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
+                </Button>
+                <Menu
+                  anchorEl={anchorEl}
+                  open={Boolean(anchorEl)}
+                  onClose={() => handleSortClose()}
+                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                  PaperProps={{
+                    sx: {
+                      backgroundColor: 'rgb(30, 41, 59)',
+                      color: 'rgb(226, 232, 240)',
+                      '& .MuiMenuItem-root:hover': {
+                        backgroundColor: 'rgb(51, 65, 85)',
+                      },
                     },
-                  },
-                }}
-              >
-                {sortOptions.map((option) => (
-                  <MenuItem 
-                    key={option.value}
-                    onClick={() => handleSortClose(option.value)}
-                    selected={sortBy === option.value}
-                    className="!text-slate-300 hover:text-blue-400"
-                  >
-                    <ListItemIcon className="!text-slate-300">
-                      <option.icon size={20} />
-                    </ListItemIcon>
-                    <ListItemText>{option.label}</ListItemText>
-                  </MenuItem>
-                ))}
-              </Menu>
-            </div>
-
-            {/* Comment section */}
-            <InfiniteScroll
-              dataLength={comments.length}
-              next={fetchComments}
-              hasMore={hasMore}
-              loader={<Typography className="text-blue-400">Loading comments...</Typography>}
-              endMessage={<Typography className="text-slate-400">End of comments</Typography>}
-            >
-              <div className="space-y-4">
-                {comments.map((comment) => (
-                  <CommentItem 
-                    key={comment.id} 
-                    comment={comment} 
-                    post={post}
-                    handleVote={handleVote} 
-                    handleReportClick={handleReportClick}
-                    fetchComments={fetchComments}
-                  />
-                ))}
+                  }}
+                >
+                  {sortOptions.map((option) => (
+                    <MenuItem 
+                      key={option.value}
+                      onClick={() => handleSortClose(option.value)}
+                      selected={sortBy === option.value}
+                      className="!text-slate-300 hover:text-blue-400"
+                    >
+                      <ListItemIcon className="!text-slate-300">
+                        <option.icon size={20} />
+                      </ListItemIcon>
+                      <ListItemText>{option.label}</ListItemText>
+                    </MenuItem>
+                  ))}
+                </Menu>
               </div>
-            </InfiniteScroll>
+
+              {/* Comment section */}
+              <InfiniteScroll
+                dataLength={comments.length}
+                next={fetchComments}
+                hasMore={hasMore}
+                loader={<Typography className="text-blue-400">Loading comments...</Typography>}
+                endMessage={<Typography className="text-slate-400">End of comments</Typography>}
+              >
+                <div className="space-y-4">
+                  {comments.map((comment) => (
+                    <CommentItem 
+                      key={comment.id} 
+                      comment={comment} 
+                      post={post}
+                      handleVote={handleVote} 
+                      handleReportClick={handleReportClick}
+                      fetchComments={fetchComments}
+                    />
+                  ))}
+                </div>
+              </InfiniteScroll>
+            </div>
           </>
         ) : (
           <div className="flex justify-center items-center">
