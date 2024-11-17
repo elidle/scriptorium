@@ -8,7 +8,8 @@ export async function POST(req) {
     if (!username || !password) {
         return Response.json({ status: "error", message: "Missing fields" }, { status: 400 });
     }
-
+    console.log("username: ", username);
+    console.log("password: ", password);
     try {
         // Check if the user exists
         const user = await prisma.user.findUnique({

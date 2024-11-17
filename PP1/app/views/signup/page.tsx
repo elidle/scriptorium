@@ -1,14 +1,14 @@
 // app/signup/page.js or any client component file
-
-// ------ THIS FILE IS ONLY FOR THE PURPOSE OF TESTING ------
-
 'use client'; // This directive makes the component a Client Component
 
 import { useState } from 'react';
-import SignupPage from '../../components/signupPage';
+import SignupPage from '../../../components/signupPage';
+import { useRouter } from 'next/navigation';
+import ErrorBox from '@/app/components/ErrorBox';
 
 export default function Signup() {
     
+    const router = useRouter();
     const [username, setUsername] = useState('');
     const [firstname, setFirstname] = useState('');
     const [lastname, setLastname] = useState('');
@@ -16,33 +16,53 @@ export default function Signup() {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleSubmit = async (event) => {
-        event.preventDefault(); // Prevent the default form submission
+    interface SignupData {
+      username: string;
+      firstname: string;
+      lastname: string;
+      email: string;
+      password: string;
+      confirmPassword: string;
+      phoneNumber: string;
+    }
 
-        const response = await fetch('/api/signup', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username, firstname, lastname, email, password }),
-        });
+    interface ErrorResponse {
+      message: string;
+    }
 
-        if (response.ok) {
-            // Clear the input fields after successful signup
-            setUsername('');
-            setFirstname('');
-            setLastname('');
-            setEmail('');
-            setPassword('');
-            setError(null); // Clear any previous error messages
-            console.log('User created successfully');
-        } else {
-            const errorData = await response.text();
-            setError(errorData); // Set error message
-        }
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
+      event.preventDefault(); // Prevent the default form submission
 
+      const signupData: SignupData = { username, firstname, lastname, email, password, confirmPassword, phoneNumber};
+
+      const response = await fetch('/api/users/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(signupData),
+      });
+
+      if (response.ok) {
+        // Clear the input fields after successful signup
+        setUsername('');
+        setFirstname('');
+        setLastname('');
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
+        setPhoneNumber('');
+        setError(null); // Clear any previous error messages
+        console.log('User created successfully');
+        router.push('login');
+      } else {
+        const errorData: ErrorResponse = await response.json();
+        console.log("error: " + errorData.message);
+        setError(errorData.message); // Set error message
+        console.log(error);
+      }
     };
     return (
         <div className="flex justify-center items-center min-h-screen bg-gradient-to-r from-green-500 to-teal-600 py-8">
@@ -145,7 +165,7 @@ export default function Signup() {
                   type="password"
                   placeholder="Confirm your Password"
                   id = "confirm-password"
-                  value={password}
+                  value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
@@ -158,59 +178,15 @@ export default function Signup() {
                 Sign Up
               </button>
             </form>
+            {error && <ErrorBox errorMessage={error} />}
             <p className="text-center text-gray-600 mt-4">
               Already have an account?{' '}
-              <a href="/login" className="text-green-500 hover:underline">
+              <a href="/views/login" className="text-green-500 hover:underline">
                 Log in
               </a>
             </p>
-            {error && <p>{error}</p>}
           </div>
         </div>
       );
 
-    return (
-        <div>
-            <h1>Sign Up</h1>
-            <form onSubmit={handleSubmit}>
-                <input
-                    type="text"
-                    placeholder="Username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                />
-                <input
-                    type="text"
-                    placeholder="First Name"
-                    value={firstname}
-                    onChange={(e) => setFirstname(e.target.value)}
-                    required
-                />
-                <input
-                    type="text"
-                    placeholder="Last Name"
-                    value={lastname}
-                    onChange={(e) => setLastname(e.target.value)}
-                    required
-                />
-                <input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                />
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
-                <button type="submit">Sign Up</button>
-            </form>
-            {error && <p>{error}</p>}
-        </div>
-    );
 }

@@ -1,37 +1,43 @@
 'use client'; // This directive makes the component a Client Component
 
 import { useState } from 'react';
-import LoginPage from '../../components/loginPage';
-
+import { useRouter } from 'next/navigation';
+import ErrorBox from '@/app/components/ErrorBox';
 
 export default function Login() {
 
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleSubmit = async (event) => {
-        event.preventDefault(); // Prevent the default form submission
+    const router = useRouter();
 
-        const response = await fetch('/api/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email, password }),
-        });
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
+      event.preventDefault(); // Prevent the default form submission
 
-        if (response.ok) {
-            // Clear the input fields after successful login
-            setEmail('');
-            setPassword('');
-            setError(null); // Clear any previous error messages
-            console.log('Login successful');
-            // Redirect user or perform any other actions here
-        } else {    
-            const errorData = await response.text();
-            setError(errorData); // Set error message
-        }
+      const response = await fetch('/api/users/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password } as LoginFormData),
+      });
+
+      
+      if (response.ok) {
+        // Clear the input fields after successful login
+        // console.log('Login successful');
+        setUsername('');
+        setPassword('');
+        setError(null); // Clear any previous error messages
+        // console.log('Login successful');
+        // Redirect user or perform any other actions here  
+        router.push('/');
+
+      } else {    
+        const errorData: ErrorResponse = await response.json();
+        setError(errorData.message || 'Invalid username or password');
+      }
     };
 
     return (
@@ -46,10 +52,10 @@ export default function Login() {
                   Email
                 </label>
                 <input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="username"
+                  placeholder="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   required
                   className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -74,38 +80,15 @@ export default function Login() {
                 Login
               </button>
             </form>
+            {error && <ErrorBox errorMessage={error} />}
             <p className="text-center text-gray-600 mt-4">
               Don't have an account?{' '}
-              <a href="/signup" className="text-blue-500 hover:underline">
-                Sign up
+              <a href="views/signup" className="text-blue-500 hover:underline">
+              Sign up
               </a>
             </p>
           </div>
         </div>
       );
 
-
-    return (
-        <div>
-            <h1>Login</h1>
-            <form onSubmit={handleSubmit}>
-                <input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                />
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
-                <button type="submit">Login</button>
-            </form>
-            {error && <p>{error}</p>}
-        </div>
-    );
-}
+    }
