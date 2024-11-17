@@ -18,7 +18,8 @@ export async function GET(req, { params }) {
       return Response.json({ error: 'Avatar not found' }, { status: 404 });
     }
 
-    const file = await readFile(user.avatar);
+    const path = join(process.cwd(), `public/${user.avatar}`);
+    const file = await readFile(path);
     
     return new Response(file, {
       headers: {
@@ -47,13 +48,13 @@ export async function POST(req, { params }) {
     
     await mkdir(uploadDir, { recursive: true });
     await writeFile(path, buffer);
-    
+
     await prisma.user.update({
       where: { id: userId },
-      data: { avatar: `/uploads/profile-${userId}.jpg` }
+      data: { avatar: `/uploads/profile-${userId}.jpg` } // The avatar URL stored in db
     });
     
-    return Response.json({ avatar: `/uploads/${userId}.jpg` });
+    return Response.json({ avatar: `/uploads/profile-${userId}.jpg` });
   } catch (e) {
     if (e instanceof ForbiddenError || e instanceof UnauthorizedError) {
       return Response.json({ error: e.message }, { status: e.statusCode });
