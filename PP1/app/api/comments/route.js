@@ -4,6 +4,7 @@ import { sortItems } from '../../../utils/blog/sorts';
 import { fetchCurrentPage } from '../../../utils/pagination';
 import { authorize } from "../../middleware/auth";
 import { ForbiddenError } from "../../../errors/ForbiddenError";
+import { UnauthorizedError } from '../../../errors/UnauthorizedError';
 
 export async function POST(req) {
   try {
@@ -84,7 +85,7 @@ export async function POST(req) {
     return Response.json(newComment, { status: 201 });
   } catch (error) {
     console.error(error);
-    if (error instanceof ForbiddenError) {
+    if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {
       return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
     }
     return Response.json(
@@ -229,7 +230,7 @@ export async function GET(req) {
     return Response.json( { comments: curPage, hasMore: hasMore, nextPage: nextPage}, { status: 200 });
   } catch (error) {
     console.error(error);
-    if (error instanceof ForbiddenError) {
+    if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {
       return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
     }
     return Response.json(

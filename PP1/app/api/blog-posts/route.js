@@ -1,6 +1,7 @@
 import { prisma } from '../../../utils/db';
 import { authorize } from "../../middleware/auth";
 import { ForbiddenError } from "../../../errors/ForbiddenError";
+import { UnauthorizedError } from "../../../errors/UnauthorizedError";
 
 export async function POST(req) {
   try {
@@ -69,7 +70,7 @@ export async function POST(req) {
 
     return Response.json(newPost, { status: 201 });
   } catch (error) {
-    if (error instanceof ForbiddenError) {
+    if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {
       return Response.json({ status: "error", message: error.message }, { status: error.statusCode });
     }
 
