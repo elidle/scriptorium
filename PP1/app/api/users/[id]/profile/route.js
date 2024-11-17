@@ -1,4 +1,5 @@
 import { ForbiddenError } from '../../../../../errors/ForbiddenError';
+import { UnauthorizedError } from '../../../../../errors/UnauthorizedError';
 import {prisma} from "../../../../../utils/db";
 
 export async function GET(req, { params }) {
@@ -27,7 +28,7 @@ export async function GET(req, { params }) {
     });
   } catch (error) {
 
-    if (error instanceof ForbiddenError) {
+    if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {
       return Response.json({ status: "error", message: error.message }, { status: error.statusCode });
     }
     console.error("Error retrieving user profile:", error);

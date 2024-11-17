@@ -1,6 +1,7 @@
 import { prisma } from '../../../../utils/db';
 import { authorize } from "../../../middleware/auth";
 import { ForbiddenError } from '../../../../errors/ForbiddenError';
+import { UnauthorizedError } from '../../../../errors/UnauthorizedError';
 
 export async function PUT(req, { params }) {
   try {
@@ -45,7 +46,7 @@ export async function PUT(req, { params }) {
     return Response.json(updatedComment, { status: 200 });
   } catch (error) {
     console.error(error);
-    if (error instanceof ForbiddenError) {
+    if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {
       return Response.json({ status: "error", message: error.message }, { status: error.statusCode });
     }
     return Response.json(
@@ -95,7 +96,7 @@ export async function DELETE(req, { params }) {
     return Response.json( { status: 'success' }, { status: 200 });
   } catch (error) {
     console.error(error);
-    if (error instanceof ForbiddenError) {
+    if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {
       return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
     }
     return Response.json(

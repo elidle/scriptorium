@@ -1,6 +1,7 @@
 import { prisma } from '../../../../../utils/db';
 import { authorize } from "../../../../middleware/auth";
 import { ForbiddenError } from '../../../../../errors/ForbiddenError';
+import { UnauthorizedError } from '../../../../../errors/UnauthorizedError';
 
 export async function POST(req) {
   try {
@@ -66,7 +67,7 @@ export async function POST(req) {
     return Response.json(hiddenPost, { status: 200 });
   } catch (error) {
     console.error(error);
-    if (error instanceof ForbiddenError) {
+    if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {
       return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
     }
     return Response.json(
@@ -140,7 +141,7 @@ export async function DELETE(req) {
     return Response.json(unhiddenPost, { status: 200 });
   } catch (error) {
     console.error(error);
-    if (error instanceof ForbiddenError) {
+    if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {
       return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
     }
     return Response.json(

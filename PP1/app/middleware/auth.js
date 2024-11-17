@@ -1,50 +1,40 @@
+import { UnauthorizedError } from '../../errors/UnauthorizedError';
 import { ForbiddenError } from '../../errors/ForbiddenError';
 import { verifyAccessToken } from '../../utils/auth';
 
 export async function authorize(req, roles = [], owner = -1) {
-    if (typeof roles === 'string') {
-        roles = [roles];
-    }
+    if (typeof roles === 'string') roles = [roles];
 
-    // Extract the token from headers
     const authorizationHeader = req.headers.get('access-token');
-
     if (!authorizationHeader) {
-        throw new ForbiddenError("Forbidden: No token provided.");
+        throw new UnauthorizedError("No token provided");
     }
 
     try {
-        // Verify and decode the token
         const verification = verifyAccessToken(authorizationHeader);
         if (!verification || (!verification.valid && verification.reason === "Invalid token.")) {
-            throw new ForbiddenError("Invalid token.");
+            throw new UnauthorizedError("Invalid token");
         }
         else if(!verification.valid && verification.reason === "Token has expired.") {
-            throw new ForbiddenError("Token has expired");
+            throw new UnauthorizedError("Token has expired");
         }
 
         const userRole = verification.decoded.role;
         const userId = verification.decoded.id;
 
-        // Check if the user's role matches any allowed role
         if (roles.length && !roles.includes(userRole)) {
-            throw new ForbiddenError("You do not have permission to access this resource.");
+            throw new ForbiddenError("Insufficient permissions");
         }
 
         if (owner !== -1 && userId !== owner) {
-            throw new ForbiddenError("You do not have ownership of this resource.");
+            throw new ForbiddenError("Resource ownership required");
         }
 
-        return true; // Authorized
+        return true;
     } catch (error) {
-        // Handle specific token errors
-        if (error.message === "Token has expired") {
-            throw new ForbiddenError("Expired token.");
-        } else if (error.message === "Invalid token") {
-            throw new ForbiddenError("Invalid token.");
+        if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
+            throw error;
         }
-
-        // Generic unauthorized access error
-        throw new ForbiddenError(error.message);
+        throw new UnauthorizedError(error.message);
     }
 }

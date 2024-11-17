@@ -4,6 +4,7 @@ import { sortItems } from '../../../utils/blog/sorts';
 import { fetchCurrentPage } from '../../../utils/pagination';
 import { authorize } from "../../middleware/auth";
 import { ForbiddenError } from "../../../errors/ForbiddenError";
+import { UnauthorizedError } from '../../../errors/UnauthorizedError';
 
 export async function POST(req) {
   try {
@@ -84,7 +85,7 @@ export async function POST(req) {
     return Response.json(newComment, { status: 201 });
   } catch (error) {
     console.error(error);
-    if (error instanceof ForbiddenError) {
+    if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {
       return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
     }
     return Response.json(
@@ -99,6 +100,13 @@ export async function GET(req) {
     const searchParams = req.nextUrl.searchParams;
 
     const postId = Number(searchParams.get('postId'));
+
+    // User parameter
+    const userId = Number(searchParams.get('userId'));
+
+    if (userId) {
+      await authorize(req, ['user', 'admin'], userId);
+    }
 
     // Sorting parameter
     const sortBy = searchParams.get('sortBy') || 'new';
@@ -148,6 +156,7 @@ export async function GET(req) {
         postId: true,
         parentId: true,
         isHidden: true,
+        isDeleted: true,
         author: {
           select: {
             id: true,
@@ -174,13 +183,20 @@ export async function GET(req) {
         },
         ratings: {
           select: {
-            value: true
+            value: true,
+            ...(userId && {
+              userId: true
+            })
           }
         }
       }
     });
 
-    const commentsWithMetrics = itemsRatingsToMetrics(comments);
+    const commentsWithVotes = comments.map(comment => ({
+      ...comment,
+      userVote: userId ? (comment.ratings.find(rating => rating.userId === userId)?.value || 0) : 0
+    }))
+    const commentsWithMetrics = itemsRatingsToMetrics(commentsWithVotes);
 
     const topLevelComments = commentsWithMetrics.filter(comment => !comment.parentId);
     const replies = commentsWithMetrics.filter(comment => comment.parentId);
@@ -201,6 +217,8 @@ export async function GET(req) {
       authorUsername: comment.author?.username ?? "[deleted]",
       createdAt: comment.createdAt,
       score: comment.metrics.totalScore,
+      userVote: comment.userVote,
+      allowAction: !comment.isDeleted && !comment.isHidden,
       replies: comment.replies?.map(reply => optimizeComment(reply)) || []
     });
 
@@ -212,6 +230,9 @@ export async function GET(req) {
     return Response.json( { comments: curPage, hasMore: hasMore, nextPage: nextPage}, { status: 200 });
   } catch (error) {
     console.error(error);
+    if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {
+      return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
+    }
     return Response.json(
       { status: 'error', error: 'Failed to fetch comments' },
       { status: 500 }
