@@ -49,8 +49,12 @@ export function CodeTemplates() {
       setHasMore(data.hasMore);
       setPage(page + 1);
     }
-    catch (err: Error) {
-      setError(err.message);
+    catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred");
+      }
     }
     finally{
       setIsLoading(false);
