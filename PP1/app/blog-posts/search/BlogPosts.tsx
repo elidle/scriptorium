@@ -23,6 +23,9 @@ import Link from 'next/link';
 import { useAuth } from "../../contexts/AuthContext";
 import { refreshToken, fetchAuth } from "../../utils/auth";
 import { useRouter } from "next/navigation";
+import SideNav from "../../components/SideNav";
+import Image from 'next/image';
+import UserAvatar from '../../components/UserAvatar';
 
 const domain = "http://localhost:3000";
 
@@ -76,7 +79,8 @@ export default function BlogPosts() {
     "edited",
     "javascript",
     "programming",
-    "web development"
+    "web development",
+    "hood klasik"
   ];
 
   const sortOptions = [
@@ -104,8 +108,8 @@ export default function BlogPosts() {
     const currentPage = reset ? 1 : page;
     const queryParams = new URLSearchParams({
       page: currentPage.toString(),
+      sortBy: sortBy,
       ...(debouncedQuery && { q: debouncedQuery }),
-      ...(sortBy !== 'new' && { sortBy: sortBy }),
       ...(user?.id && { userId: user.id })
     });
 
@@ -300,7 +304,9 @@ export default function BlogPosts() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen flex bg-slate-900">
+      <SideNav />
+
       {/* Modal for reporting */}
       <Modal open={reportModalOpen} onClose={() => setReportModalOpen(false)}>
         <Box
@@ -373,101 +379,33 @@ export default function BlogPosts() {
         </Box>
       </Modal>
 
-      {/* Fixed header */}
-      <AppBar 
-        position="fixed" 
-        className="!bg-slate-800 border-b border-slate-700"
-        sx= {{ 
-          boxShadow: 'none',
-        }}
-      >
-        <div className="p-3 flex flex-col sm:flex-row items-center gap-3">
-          <Link href="/">
-            <Typography 
-              className="text-xl sm:text-2xl text-blue-400 flex-shrink-0 cursor-pointer" 
-              variant="h5"
-            >
-              Scriptorium
-            </Typography>
-          </Link>
-          <TextField 
-            className="w-full"
-            color="info"
-            variant="outlined"
-            label="Search Posts..."
-            size="small"
-            value={searchQuery}
-            onChange={handleSearch}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                backgroundColor: 'rgb(30, 41, 59)',
-                '&:hover': {
-                  backgroundColor: 'rgb(30, 41, 59, 0.8)',
-                },
-                '& fieldset': {
-                  borderColor: 'rgb(100, 116, 139)',
-                },
-                '&:hover fieldset': {
-                  borderColor: 'rgb(148, 163, 184)',
-                },
-              },
-              '& .MuiInputLabel-root': {
-                color: 'rgb(148, 163, 184)',
-              },
-              '& input': {
-                color: 'rgb(226, 232, 240)',
-              },
-            }}
-          />
-          {user ? (
-            <div className="flex items-center gap-2">
-              <Avatar className="bg-blue-600 h-8 w-8">
-                {user.username[0].toUpperCase()}
-              </Avatar>
-              <Typography className="text-slate-200">
-                {user.username}
-              </Typography>
-            </div>
-          ) : (
-            <Link href="/auth/login">
-              <Button 
-                className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
-                variant="contained"
-                size="small"
+      <div className="flex-1 ml-64">
+        {/* Fixed header */}
+        <AppBar 
+          position="fixed" 
+          className="!bg-slate-800 border-b border-slate-700" // TODO
+          sx= {{ 
+            boxShadow: 'none',
+            // width: 'calc(100% - 256px)' // TODO
+          }}
+        >
+          <div className="p-3 flex flex-col sm:flex-row items-center gap-3">
+            <Link href="/">
+              <Typography 
+                className="text-xl sm:text-2xl text-blue-400 flex-shrink-0 cursor-pointer" 
+                variant="h5"
               >
-                Log In
-              </Button>
+                Scriptorium
+              </Typography>
             </Link>
-          )}
-        </div>
-      </AppBar>
-
-      {/* Content container */}
-      <div className="pt-16">
-        <div className="flex flex-row-reverse relative">
-          {/* Overlay */}
-          <div 
-            onClick={toggleSidebar}
-            className={`fixed inset-0 bg-black transition-opacity duration-300 ${
-              sideBarState ? "opacity-50 visible" : "opacity-0 invisible"
-            } md:hidden`}
-          />
-
-          {/* Sidebar */}
-          <aside className={`
-            fixed md:sticky top-16 h-[calc(100vh-4rem)]
-            transform transition-transform duration-300 w-64
-            ${sideBarState ? "-translate-x-0" : "translate-x-full md:translate-x-0"} 
-            right-0 md:right-auto
-            bg-slate-800 border-l border-slate-700 z-40
-          `}>
-            <div className="p-4 h-full flex flex-col">
-            <TextField
+            <TextField 
+              className="w-full"
               color="info"
               variant="outlined"
-              label="Search Tags..."
+              label="Search Posts..."
               size="small"
-              className="mb-4"
+              value={searchQuery}
+              onChange={handleSearch}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   backgroundColor: 'rgb(30, 41, 59)',
@@ -489,234 +427,306 @@ export default function BlogPosts() {
                 },
               }}
             />
-              
-              <Typography variant="h6" className="mb-2 text-blue-400">
-                Tags
-              </Typography>
-              
-              <FormGroup className="flex-1 overflow-y-auto p-2 border border-slate-700 rounded bg-slate-900/50">
-                {availableTags.map(tag => (
-                  <FormControlLabel 
-                    key={tag}
-                    control={
-                      <Checkbox 
-                        checked={selectedTags.has(tag)}
-                        onChange={() => handleTagChange(tag)}
-                        sx={{
-                          color: 'rgb(96, 165, 250)',
-                          '&.Mui-checked': {
-                            color: 'rgb(96, 165, 250)',
-                          },
-                        }}
-                      />
-                    } 
-                    label={tag}
-                    sx={{
-                      '& .MuiFormControlLabel-label': {
-                        color: 'rgb(226, 232, 240)',
-                        // fontSize: '0.875rem',
-                      }
-                    }}
-                  />
-                ))}
-              </FormGroup>
+            {user ? (
+              <div className="flex items-center gap-2">
+                <UserAvatar username={user.username} userId={user.id} />
 
-              <Link href="/blog-posts/submit" className="mt-4">
+                <Link href={`/users/${user.username}`}>
+                  <Typography className="text-slate-200 hover:text-blue-400">
+                    {user.username}
+                  </Typography>
+                </Link>
+              </div>
+            ) : (
+              <Link href="/auth/login">
                 <Button 
+                  className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
                   variant="contained"
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                  startIcon={<Plus />}
+                  size="small"
                 >
-                  Create Post
+                  Log In
                 </Button>
               </Link>
-            </div>
+            )}
+          </div>
+        </AppBar>
 
-            {/* Mobile toggle button */}
-            <button 
+        {/* Content container */}
+        <div className="pt-16">
+          <div className="flex flex-row-reverse relative">
+            {/* Overlay */}
+            <div 
               onClick={toggleSidebar}
-              className="absolute left-0 top-1/2 -translate-x-full bg-blue-500 p-2 rounded-l-xl md:hidden text-white"
-            >
-              {sideBarState ? "→" : "←"}
-            </button>
-          </aside>
+              className={`fixed inset-0 bg-black transition-opacity duration-300 ${
+                sideBarState ? "opacity-50 visible" : "opacity-0 invisible"
+              } md:hidden`}
+            />
 
-          {/* Main content */}
-          <main className="flex-1 p-4 max-w-3xl mx-auto">
-            {/* Sorting Section */}
-            <div className="flex justify-between items-center mb-4">
-              <Typography variant="h6" className="text-blue-400">
-                Posts
-              </Typography>
-              <Button
-                onClick={handleSortClick}
-                className="!text-slate-300 hover:text-blue-400"
-              >
-                Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
-              </Button>
-              <Menu
-                anchorEl={anchorEl}
-                open={Boolean(anchorEl)}
-                onClose={() => handleSortClose()}
-                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                PaperProps={{
-                  sx: {
+            {/* Right Sidebar */}
+            <aside className={`
+              fixed md:sticky top-16 h-[calc(100vh-4rem)]
+              transform transition-transform duration-300 w-64
+              ${sideBarState ? "-translate-x-0" : "translate-x-full md:translate-x-0"} 
+              right-0 md:right-auto
+              bg-slate-800 border-l border-slate-700 z-40
+            `}>
+              <div className="p-4 h-full flex flex-col">
+              <TextField
+                color="info"
+                variant="outlined"
+                label="Search Tags..."
+                size="small"
+                className="mb-4"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
                     backgroundColor: 'rgb(30, 41, 59)',
-                    color: 'rgb(226, 232, 240)',
-                    '& .MuiMenuItem-root:hover': {
-                      backgroundColor: 'rgb(51, 65, 85)',
+                    '&:hover': {
+                      backgroundColor: 'rgb(30, 41, 59, 0.8)',
+                    },
+                    '& fieldset': {
+                      borderColor: 'rgb(100, 116, 139)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'rgb(148, 163, 184)',
                     },
                   },
+                  '& .MuiInputLabel-root': {
+                    color: 'rgb(148, 163, 184)',
+                  },
+                  '& input': {
+                    color: 'rgb(226, 232, 240)',
+                  },
                 }}
+              />
+                
+                <Typography variant="h6" className="mb-2 text-blue-400">
+                  Tags
+                </Typography>
+                
+                <FormGroup className="flex-1 overflow-y-auto p-2 border border-slate-700 rounded bg-slate-900/50">
+                  {availableTags.map(tag => (
+                    <FormControlLabel 
+                      key={tag}
+                      control={
+                        <Checkbox 
+                          checked={selectedTags.has(tag)}
+                          onChange={() => handleTagChange(tag)}
+                          sx={{
+                            color: 'rgb(96, 165, 250)',
+                            '&.Mui-checked': {
+                              color: 'rgb(96, 165, 250)',
+                            },
+                          }}
+                        />
+                      } 
+                      label={tag}
+                      sx={{
+                        '& .MuiFormControlLabel-label': {
+                          color: 'rgb(226, 232, 240)',
+                          // fontSize: '0.875rem',
+                        }
+                      }}
+                    />
+                  ))}
+                </FormGroup>
+
+                <Link href="/blog-posts/submit" className="mt-4">
+                  <Button 
+                    variant="contained"
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    startIcon={<Plus />}
+                  >
+                    Create Post
+                  </Button>
+                </Link>
+              </div>
+
+              {/* Mobile toggle button */}
+              <button 
+                onClick={toggleSidebar}
+                className="absolute left-0 top-1/2 -translate-x-full bg-blue-500 p-2 rounded-l-xl md:hidden text-white"
               >
-                {sortOptions.map((option) => (
-                  <MenuItem 
-                    key={option.value}
-                    onClick={() => handleSortClose(option.value)}
-                    selected={sortBy === option.value}
-                    className="!text-slate-300 hover:text-blue-400"
-                  >
-                    <ListItemIcon className="!text-slate-300">
-                      <option.icon size={20} />
-                    </ListItemIcon>
-                    <ListItemText>{option.label}</ListItemText>
-                  </MenuItem>
-                ))}
-              </Menu>
-            </div>
+                {sideBarState ? "→" : "←"}
+              </button>
+            </aside>
 
-            {/* Search status */}
-            {debouncedQuery && (
-              <Typography className="mb-4 text-slate-400">
-                Showing results for "{debouncedQuery}"
-              </Typography>
-            )}
-
-            {/* Error message */}
-            {error && (
-              <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-4">
-                <Typography className="text-red-500">{error}</Typography>
-              </div>
-            )}
-            
-            {/* Posts list */}
-            <InfiniteScroll
-              dataLength={blogPosts.length}
-              next={fetchBlogPosts}
-              hasMore={hasMore}
-              loader={
-                <div className="text-center p-4">
-                  <Typography className="text-blue-400">Loading...</Typography>
-                </div>
-              }
-              endMessage={
-                blogPosts.length > 0 ? (
-                  <Typography className="text-center p-4 text-slate-400">
-                    You've reached the end!
-                  </Typography>
-                ) : (
-                  <Typography className="text-center p-4 text-slate-400">
-                    No posts found{debouncedQuery ? ` for "${debouncedQuery}"` : ''}
-                  </Typography>
-                )
-              }
-            >
-              <div className="space-y-4">
-              {blogPosts.map((post) => (
-                <article 
-                  key={post.id} 
-                  className="flex bg-slate-800 rounded-lg border border-slate-700 hover:border-slate-600 transition-all"
+            {/* Main content */}
+            <main className="flex-1 p-4 max-w-3xl mx-auto">
+              {/* Sorting Section */}
+              <div className="flex justify-between items-center mb-4">
+                <Typography variant="h6" className="text-blue-400">
+                  Posts
+                </Typography>
+                <Button
+                  onClick={handleSortClick}
+                  className="!text-slate-300 hover:text-blue-400"
                 >
-                  {/* Vote section */}
-                  <div className="flex flex-col items-center p-2 bg-slate-900/50 rounded-l-lg">
-                  <IconButton 
-                    className={`group ${post.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleVote(post.id, true);
-                    }}
-                  >
-                    <ArrowUpCircle className="group-hover:!text-red-400" size={20} />
-                  </IconButton>
-                  <span className="text-sm font-medium text-slate-300">
-                    {post.score}
-                  </span>
-                  <IconButton 
-                    className={`group ${post.userVote === -1 ? '!text-blue-400' : '!text-slate-400'}`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleVote(post.id, false);
-                    }} 
-                  >
-                    <ArrowDownCircle className="group-hover:!text-blue-400" size={20} />
-                  </IconButton>
-                  </div>
-
-                  {/* Wrap the content in Link */}
-                  <Link 
-                    href={`/blog-posts/comments/${post.id}`}
-                    className="flex-1 cursor-pointer"
-                  >
-                    <div className="p-3">
-                      {/* Rest of the content stays the same */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <Avatar 
-                          sx={{ width: 24, height: 24 }}
-                          className="bg-blue-600"
-                        >
-                          {post.authorUsername[0].toUpperCase()}
-                        </Avatar>
-                        <Typography className="text-sm text-slate-400">
-                          {post.authorUsername} • {new Date(post.createdAt).toLocaleString()}
-                        </Typography>
-                      </div>
-
-                      <Typography variant="h6" className="text-slate-200 mb-2">
-                        {post.title}
-                      </Typography>
-                      <Typography className="text-slate-300 mb-3 line-clamp-3">
-                        {post.content}
-                      </Typography>
-
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {post.tags.map((tag, index) => (
-                          <span 
-                            key={index}
-                            className="px-2 py-1 bg-slate-800 border border-slate-600 rounded-full text-xs text-blue-300"
-                          >
-                            {tag.name}
-                          </span>
-                        ))}
-                      </div>
-
-                      <div className="flex gap-4">
-                        <Link 
-                          href={`/blog-posts/comments/${post.id}`}
-                          className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <MessageCircle size={18} />
-                          <span className="text-sm">Comments</span>
-                        </Link>
-                        <button 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleReportClick(post.id);
-                          }} 
-                          className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
-                        >
-                          <TriangleAlert size={18} />
-                          <span className="text-sm">Report</span>
-                        </button>
-                      </div>
-                    </div>
-                  </Link>
-                </article>
-              ))}
+                  Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
+                </Button>
+                <Menu
+                  anchorEl={anchorEl}
+                  open={Boolean(anchorEl)}
+                  onClose={() => handleSortClose()}
+                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                  PaperProps={{
+                    sx: {
+                      backgroundColor: 'rgb(30, 41, 59)',
+                      color: 'rgb(226, 232, 240)',
+                      '& .MuiMenuItem-root:hover': {
+                        backgroundColor: 'rgb(51, 65, 85)',
+                      },
+                    },
+                  }}
+                >
+                  {sortOptions.map((option) => (
+                    <MenuItem 
+                      key={option.value}
+                      onClick={() => handleSortClose(option.value)}
+                      selected={sortBy === option.value}
+                      className="!text-slate-300 hover:text-blue-400"
+                    >
+                      <ListItemIcon className="!text-slate-300">
+                        <option.icon size={20} />
+                      </ListItemIcon>
+                      <ListItemText>{option.label}</ListItemText>
+                    </MenuItem>
+                  ))}
+                </Menu>
               </div>
-            </InfiniteScroll>
-          </main>
+
+              {/* Search status */}
+              {debouncedQuery && (
+                <Typography className="mb-4 text-slate-400">
+                  Showing results for "{debouncedQuery}"
+                </Typography>
+              )}
+
+              {/* Error message */}
+              {error && (
+                <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-4">
+                  <Typography className="text-red-500">{error}</Typography>
+                </div>
+              )}
+              
+              {/* Posts list */}
+              <InfiniteScroll
+                dataLength={blogPosts.length}
+                next={fetchBlogPosts}
+                hasMore={hasMore}
+                loader={
+                  <div className="text-center p-4">
+                    <Typography className="text-blue-400">Loading...</Typography>
+                  </div>
+                }
+                endMessage={
+                  blogPosts.length > 0 ? (
+                    <Typography className="text-center p-4 text-slate-400">
+                      You've reached the end!
+                    </Typography>
+                  ) : (
+                    <Typography className="text-center p-4 text-slate-400">
+                      No posts found{debouncedQuery ? ` for "${debouncedQuery}"` : ''}
+                    </Typography>
+                  )
+                }
+              >
+                <div className="space-y-4">
+                {blogPosts.map((post) => (
+                  <article 
+                    key={post.id} 
+                    className="flex bg-slate-800 rounded-lg border border-slate-700 hover:border-slate-600 transition-all"
+                  >
+                    {/* Vote section */}
+                    <div className="flex flex-col items-center p-2 bg-slate-900/50 rounded-l-lg">
+                    <IconButton 
+                      className={`group ${post.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleVote(post.id, true);
+                      }}
+                    >
+                      <ArrowUpCircle className="group-hover:!text-red-400" size={20} />
+                    </IconButton>
+                    <span className="text-sm font-medium text-slate-300">
+                      {post.score}
+                    </span>
+                    <IconButton 
+                      className={`group ${post.userVote === -1 ? '!text-blue-400' : '!text-slate-400'}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleVote(post.id, false);
+                      }} 
+                    >
+                      <ArrowDownCircle className="group-hover:!text-blue-400" size={20} />
+                    </IconButton>
+                    </div>
+
+                    <Link 
+                      href={`/blog-posts/comments/${post.id}`}
+                      className="flex-1 cursor-pointer"
+                    >
+                      <div className="p-3">
+                      <div className="flex items-center gap-2 mb-4">
+                      <UserAvatar username={post.authorUsername} userId={post.authorId} />
+
+                        <Link href={`/users/${post.authorUsername}`}>
+                          <Typography className={`hover:text-blue-400 ${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
+                            {post.authorUsername}
+                          </Typography>
+                        </Link>
+
+                        <Typography className="text-slate-400">
+                          • {new Date(post.createdAt).toLocaleString()}
+                        </Typography>
+                        </div>
+
+                        <Typography variant="h6" className="text-slate-200 mb-2">
+                          {post.title}
+                        </Typography>
+                        <Typography className="text-slate-300 mb-3 line-clamp-3">
+                          {post.content}
+                        </Typography>
+
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {post.tags.map((tag, index) => (
+                            <span 
+                              key={index}
+                              className="px-2 py-1 bg-slate-800 border border-slate-600 rounded-full text-xs text-blue-300"
+                            >
+                              {tag.name}
+                            </span>
+                          ))}
+                        </div>
+
+                        <div className="flex gap-4">
+                          <Link 
+                            href={`/blog-posts/comments/${post.id}`}
+                            className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MessageCircle size={18} />
+                            <span className="text-sm">Comments</span>
+                          </Link>
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleReportClick(post.id);
+                            }} 
+                            className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
+                          >
+                            <TriangleAlert size={18} />
+                            <span className="text-sm">Report</span>
+                          </button>
+                        </div>
+                      </div>
+                    </Link>
+                  </article>
+                ))}
+                </div>
+              </InfiniteScroll>
+            </main>
+          </div>
         </div>
       </div>
     </div>

@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from "../../contexts/AuthContext";
 import { fetchAuth } from "../../utils/auth";
+import SideNav from "../../components/SideNav";
 
 export default function Submit() {
   const router = useRouter();
@@ -77,7 +78,9 @@ export default function Submit() {
    };
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen flex bg-slate-900">
+      <SideNav />
+
       {/* AppBar */}
       <AppBar 
         position="fixed" 
