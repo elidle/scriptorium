@@ -7,44 +7,25 @@ import {
   FormControlLabel,
   Checkbox,
   FormGroup,
-  Avatar,
   IconButton,
   Modal,
   Box,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
 } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { ArrowUpCircle, ArrowDownCircle, MessageCircle, Star, Clock, TrendingUp, Zap, TriangleAlert, Plus } from "lucide-react";
 import Link from 'next/link';
 import { useAuth } from "../../contexts/AuthContext";
+import { useToast } from "../../contexts/ToastContext";
 import { refreshToken, fetchAuth } from "../../utils/auth";
 import { useRouter } from "next/navigation";
+
 import SideNav from "../../components/SideNav";
-import Image from 'next/image';
 import UserAvatar from '../../components/UserAvatar';
+import SortMenu from "../../components/SortMenu";
 
+import { BlogPost } from "../../types/blog";
 const domain = "http://localhost:3000";
-
-interface Tag {
-  id: number;
-  name: string;
-}
-
-interface BlogPost {
-  id: number;
-  title: string;
-  content: string;
-  authorId: string;
-  authorUsername: string;
-  tags: Tag[];
-  createdAt: string;
-  score: number;
-  userVote: number;
-}
 
 export default function BlogPosts() {
   const router = useRouter();
@@ -69,10 +50,10 @@ export default function BlogPosts() {
   // Report states
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
-  const [reportError, setReportError] = useState("");
   const [reportingPostId, setReportingPostId] = useState<number | null>(null);
 
   const { user, accessToken, setAccessToken } = useAuth();
+  const { showToast } = useToast();
 
   // TODO: This needs to be fetched from backend
   const availableTags = [
@@ -102,7 +83,7 @@ export default function BlogPosts() {
     setBlogPosts([]);
     setPage(1);
     fetchBlogPosts(true);
-  }, [debouncedQuery, sortBy, selectedTags]);
+  }, [debouncedQuery, sortBy, selectedTags, user]);
 
   const fetchBlogPosts = async (reset = false) => {
     const currentPage = reset ? 1 : page;
@@ -174,8 +155,18 @@ export default function BlogPosts() {
   };
 
   const handleVote = async (postId: number, increment: boolean) => {
+    if (!user || !accessToken) {
+      showToast({ 
+        message: 'Please log in to vote', 
+        type: 'info' 
+      });
+      router.push('/auth/login');
+      return;
+    }
+    
     const vote = increment ? 1 : -1;
     let newVote = 0;
+    const previousPosts = blogPosts;
     
     setBlogPosts(prevPosts => 
       prevPosts.map(post => {
@@ -191,45 +182,48 @@ export default function BlogPosts() {
       })
     );
   
-    await sendVote(newVote, postId);
-  };
-
-  const sendVote = async (vote: number, postId: number) => {
-    if (!user || !accessToken) {
-      router.push('/auth/login');
-      return;
-    }
-
-    const method = vote === 0 ? 'DELETE' : 'POST';
     try {
-      const url = '/api/rate/post';
-      const options : RequestInit = {
-        method: method,
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'access-token': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          postId: postId,
-          value: vote
-        }),
-      };
-
-      let response = await fetchAuth({url, options, user, setAccessToken, router});
-      if (!response) return;
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to rate post');
-      }
+      await sendVote(newVote, postId);
+      showToast({ 
+        message: newVote === 0 ? 'Vote removed' : increment ? 'Upvoted' : 'Downvoted', 
+        type: 'success' 
+      });
     } catch (err) {
-      console.error('Error rating post:', err);
-      const msg = err instanceof Error ? err.message : 'Failed to rate post';
-      alert(msg);
+      setBlogPosts(previousPosts);
+      throw err;
     }
+  };
+  
+  const sendVote = async (vote: number, postId: number) => {
+    const method = vote === 0 ? 'DELETE' : 'POST';
+    const url = '/api/rate/post';
+    const options: RequestInit = {
+      method: method,
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'access-token': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        userId: user!.id,
+        postId: postId,
+        value: vote
+      }),
+    };
+  
+    let response = await fetchAuth({url, options, user, setAccessToken, router});
+    
+    if (!response) {
+      throw new Error('Failed to submit vote - no response');
+    }
+  
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to rate post');
+    }
+  
+    return data;
   }
 
   const handleSortClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -250,11 +244,18 @@ export default function BlogPosts() {
     e.preventDefault();
 
     if (!reportReason.trim()) {
-      setReportError("Reason cannot be empty");
+      showToast({
+        message: 'Report reason cannot be empty.',
+        type: 'error'
+      });
       return;
     }
 
     if (!user || !accessToken) {
+      showToast({ 
+        message: 'Please log in to report', 
+        type: 'info' 
+      });
       router.push('/auth/login');
       return;
     }
@@ -284,19 +285,15 @@ export default function BlogPosts() {
         throw new Error(data.message || 'Failed to create report');
       }
 
-      setReportError('');
-    } catch (err) {
-      console.error('Error creating reply:', err);
-      setReportError(err instanceof Error ? err.message : 'Failed to create reply');
-    } finally {
+      showToast({ message: 'Report submitted successfully', type: 'success' });
       setReportReason('');
       setReportModalOpen(false);
-      alert('Report submitted successfully');
+    } catch (err) {
+      showToast({ 
+        message: err instanceof Error ? err.message : 'Failed to create report', 
+        type: 'error' 
+      });
     }
-
-    setReportReason("");
-    setReportError("");
-    setReportModalOpen(false);
   };
 
   const toggleSidebar = () => {
@@ -305,7 +302,7 @@ export default function BlogPosts() {
 
   return (
     <div className="min-h-screen flex bg-slate-900">
-      <SideNav />
+      <SideNav router={router}/>
 
       {/* Modal for reporting */}
       <Modal open={reportModalOpen} onClose={() => setReportModalOpen(false)}>
@@ -327,12 +324,6 @@ export default function BlogPosts() {
           <Typography variant="h6" gutterBottom sx={{ color: "rgb(96, 165, 250)" }}>
             Report Post
           </Typography>
-
-          {reportError && (
-            <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
-              <Typography className="text-red-500">{reportError}</Typography>
-            </div>
-          )}
 
           <TextField
             fullWidth
@@ -529,16 +520,6 @@ export default function BlogPosts() {
                     />
                   ))}
                 </FormGroup>
-
-                <Link href="/blog-posts/submit" className="mt-4">
-                  <Button 
-                    variant="contained"
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    startIcon={<Plus />}
-                  >
-                    Create Post
-                  </Button>
-                </Link>
               </div>
 
               {/* Mobile toggle button */}
@@ -563,36 +544,12 @@ export default function BlogPosts() {
                 >
                   Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
                 </Button>
-                <Menu
+                <SortMenu
+                  sortBy={sortBy}
                   anchorEl={anchorEl}
-                  open={Boolean(anchorEl)}
-                  onClose={() => handleSortClose()}
-                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                  PaperProps={{
-                    sx: {
-                      backgroundColor: 'rgb(30, 41, 59)',
-                      color: 'rgb(226, 232, 240)',
-                      '& .MuiMenuItem-root:hover': {
-                        backgroundColor: 'rgb(51, 65, 85)',
-                      },
-                    },
-                  }}
-                >
-                  {sortOptions.map((option) => (
-                    <MenuItem 
-                      key={option.value}
-                      onClick={() => handleSortClose(option.value)}
-                      selected={sortBy === option.value}
-                      className="!text-slate-300 hover:text-blue-400"
-                    >
-                      <ListItemIcon className="!text-slate-300">
-                        <option.icon size={20} />
-                      </ListItemIcon>
-                      <ListItemText>{option.label}</ListItemText>
-                    </MenuItem>
-                  ))}
-                </Menu>
+                  onClose={handleSortClose}
+                  sortOptions={sortOptions}
+                />
               </div>
 
               {/* Search status */}
@@ -639,27 +596,41 @@ export default function BlogPosts() {
                   >
                     {/* Vote section */}
                     <div className="flex flex-col items-center p-2 bg-slate-900/50 rounded-l-lg">
-                    <IconButton 
-                      className={`group ${post.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleVote(post.id, true);
-                      }}
-                    >
-                      <ArrowUpCircle className="group-hover:!text-red-400" size={20} />
-                    </IconButton>
-                    <span className="text-sm font-medium text-slate-300">
-                      {post.score}
-                    </span>
-                    <IconButton 
-                      className={`group ${post.userVote === -1 ? '!text-blue-400' : '!text-slate-400'}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleVote(post.id, false);
-                      }} 
-                    >
+                      <IconButton 
+                        className={`group ${post.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`}
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          try {
+                            await handleVote(post.id, true);
+                          } catch (err) {
+                            showToast({ 
+                              message: err instanceof Error ? err.message : 'Failed to rate post', 
+                              type: 'error' 
+                            });
+                          }
+                        }}
+                      >
+                        <ArrowUpCircle className="group-hover:!text-red-400" size={20} />
+                      </IconButton>
+                      <span className="text-sm font-medium text-slate-300">
+                        {post.score}
+                      </span>
+                      <IconButton 
+                        className={`group ${post.userVote === -1 ? '!text-blue-400' : '!text-slate-400'}`}
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          try {
+                            await handleVote(post.id, false);
+                          } catch (err) {
+                            showToast({ 
+                              message: err instanceof Error ? err.message : 'Failed to rate post', 
+                              type: 'error' 
+                            });
+                          }
+                        }}
+                      >
                       <ArrowDownCircle className="group-hover:!text-blue-400" size={20} />
-                    </IconButton>
+                      </IconButton>
                     </div>
 
                     <Link 
@@ -667,18 +638,26 @@ export default function BlogPosts() {
                       className="flex-1 cursor-pointer"
                     >
                       <div className="p-3">
-                      <div className="flex items-center gap-2 mb-4">
-                      <UserAvatar username={post.authorUsername} userId={post.authorId} />
+                        <div className="flex items-center gap-2 mb-4">
+                          <UserAvatar username={post.authorUsername} userId={post.authorId} />
 
-                        <Link href={`/users/${post.authorUsername}`}>
-                          <Typography className={`hover:text-blue-400 ${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
-                            {post.authorUsername}
+                          {
+                            post.authorUsername[0] === '[' ? (
+                              <Typography className="text-slate-400">
+                                {post.authorUsername}
+                              </Typography>
+                            ) : (
+                              <Link href={`/users/${post.authorUsername}`}>
+                                <Typography className={`hover:text-blue-400 ${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
+                                  {post.authorUsername}
+                                </Typography>
+                              </Link>
+                            )
+                          }
+
+                          <Typography className="text-slate-400">
+                            • {new Date(post.createdAt).toLocaleString()}
                           </Typography>
-                        </Link>
-
-                        <Typography className="text-slate-400">
-                          • {new Date(post.createdAt).toLocaleString()}
-                        </Typography>
                         </div>
 
                         <Typography variant="h6" className="text-slate-200 mb-2">

@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Code,
@@ -14,13 +14,14 @@ import {
   Flag
 } from 'lucide-react';
 
-const SideNav = () => {
+const SideNav = ({ router }: { router: ReturnType<typeof useRouter> }) => {
   const pathname = usePathname();
   const { user, setUser, setAccessToken } = useAuth();
 
   const handleLogout = () => {
     setUser(null);
     setAccessToken(null);
+    router.refresh();
   };
 
   const isActive = (path: string) => pathname === path;

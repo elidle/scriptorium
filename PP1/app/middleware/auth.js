@@ -26,8 +26,6 @@ export async function authorize(req, roles = [], owner = -1) {
             throw new ForbiddenError("Insufficient permissions");
         }
 
-        console.log(owner, userId);
-
         if (owner !== -1 && userId !== owner) {
             throw new ForbiddenError("Resource ownership required");
         }
