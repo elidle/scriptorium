@@ -9,17 +9,16 @@ export async function GET(req, { params }) {
   try {
     const userId = Number(params.userId);
 
-    const path = join(process.cwd(), 'public/uploads', `profile-${userId}.jpg`);
-    const file = await readFile(path);
-
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { avatar: true }
     });
-    
+
     if (!user?.avatar) {
       return Response.json({ error: 'Avatar not found' }, { status: 404 });
     }
+
+    const file = await readFile(user.avatar);
     
     return new Response(file, {
       headers: {
@@ -51,7 +50,7 @@ export async function POST(req, { params }) {
     
     await prisma.user.update({
       where: { id: userId },
-      data: { avatar: `/uploads/${userId}.jpg` }
+      data: { avatar: `/uploads/profile-${userId}.jpg` }
     });
     
     return Response.json({ avatar: `/uploads/${userId}.jpg` });
