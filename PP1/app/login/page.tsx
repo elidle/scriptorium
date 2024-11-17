@@ -3,12 +3,15 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ErrorBox from '@/app/components/ErrorBox';
+import { useAuth } from "../../contexts/AuthContext";
+import { UserAuthData } from '@/app/types/user-auth-data';
 
 export default function Login() {
 
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const {user, accessToken, setAccessToken, setUser } = useAuth();
 
     const router = useRouter();
 
@@ -22,7 +25,6 @@ export default function Login() {
         },
         body: JSON.stringify({ username, password } as LoginFormData),
       });
-
       
       if (response.ok) {
         // Clear the input fields after successful login
@@ -30,7 +32,18 @@ export default function Login() {
         setUsername('');
         setPassword('');
         setError(null); // Clear any previous error messages
-        // console.log('Login successful');
+
+        // Save the access token in the context
+        const data = await response.json();
+        setAccessToken(data.accessToken);
+        const userAuthData: UserAuthData = {
+          id: data.user.id,
+          username: data.user.username,
+          role: data.user.role,
+          // Add other properties as needed
+        };
+        setUser(userAuthData);
+
         // Redirect user or perform any other actions here  
         router.push('/');
 
