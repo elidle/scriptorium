@@ -30,12 +30,9 @@ import InfiniteScroll from "react-infinite-scroll-component";
 import CommentItem from "./CommentItem";
 import Link from "next/link";
 import { useAuth } from "../../../contexts/AuthContext";
-import { fetchAuth } from "../../../utils/auth";
-import { preloadStyle } from "next/dist/server/app-render/entry-base";
+import { refreshToken, fetchAuth } from "../../../utils/auth";
 import { useRouter } from "next/navigation";
-import { User } from '../../../types/auth';
 import { Tag } from '../../../types/tag';
-import { comment } from "postcss";
 import SideNav from "../../../components/SideNav";
 
 const domain = "http://localhost:3000";
@@ -95,6 +92,10 @@ export default function BlogPost({ params }: PostQueryParams) {
   const newCommentRef = useRef<HTMLDivElement>(null);
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
   const [appBarHeight, setAppBarHeight] = useState(80);
+
+  // Delete logic
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string>("");
 
   const { user, accessToken, setAccessToken } = useAuth();
 
@@ -206,16 +207,38 @@ export default function BlogPost({ params }: PostQueryParams) {
 
   const fetchBlogPost = async () => {
     try {
-      const response = await fetch(`${domain}/api/blog-posts/${postId}`);
+      const url = `${domain}/api/blog-posts/${postId}?${user?.id ? `userId=${user.id}` : ''}`;
+      let options: RequestInit = {
+        headers: user && accessToken ? {
+          'access-token': `Bearer ${accessToken}`
+        } : {}
+      };
+
+      let response = await fetch(url, options);
+
+      if (response.status === 401 && user && accessToken) {
+        try {
+          const newToken = await refreshToken(user);
+          setAccessToken(newToken);
+          
+          options.headers = {
+            'access-token': `Bearer ${newToken}`
+          };
+          
+          response = await fetch(url, options);
+        } catch (err) {
+          response = await fetch(url, {}); // Fall back to guest view if token refresh fails
+        }
+      }
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         setError(`${response.status} - ${data.error}`);
-        setPost(null);
         return;
       }
-      
-      setPost({...data, userVote: 0});
+
+      setPost(data);
       await fetchComments(true);
     } catch (err) {
       if (err instanceof Error) {
@@ -228,25 +251,45 @@ export default function BlogPost({ params }: PostQueryParams) {
 
   const fetchComments = async (reset = false) => {
     try {
-      const response = await fetch(`${domain}/api/comments?postId=${postId}&page=${reset ? 1 : page}&sortBy=${sortBy}`);
+      const queryParams = new URLSearchParams({
+        postId: postId.toString(),
+        page: (reset ? 1 : page).toString(),
+        sortBy: sortBy,
+        ...(user?.id && { userId: user.id })
+      });
+  
+      const url = `${domain}/api/comments?${queryParams.toString()}`;
+      let options: RequestInit = {
+        headers: user && accessToken ? {
+          'access-token': `Bearer ${accessToken}`
+        } : {}
+      };
+  
+      let response = await fetch(url, options);
+  
+      if (response.status === 401 && user && accessToken) {
+        try {
+          const newToken = await refreshToken(user);
+          setAccessToken(newToken);
+          
+          options.headers = {
+            'access-token': `Bearer ${newToken}`
+          };
+          
+          response = await fetch(url, options);
+        } catch (err) {
+          response = await fetch(url, {}); // Fall back to guest view
+        }
+      }
+  
       const data = await response.json();
-
+  
       if (!response.ok) {
         setError(`${response.status} - ${data.error}`);
         return;
       }
-
-      const setUserVote = (comments: Comment[]): Comment[] => {
-        return comments.map((comment) => ({
-          ...comment,
-          userVote: 0,
-          replies: setUserVote(comment.replies)
-        }));
-      };
-
-      const comments = setUserVote(data.comments);
-      reset ? setComments(comments) : setComments((prevComments) => [...prevComments, ...comments]);
-
+  
+      reset ? setComments(data.comments) : setComments((prevComments) => [...prevComments, ...data.comments]);
       setHasMore(data.hasMore);
       setPage(data.nextPage);
     } catch (err) {
@@ -428,13 +471,13 @@ export default function BlogPost({ params }: PostQueryParams) {
         throw new Error(data.message || 'Failed to delete post');
       }
 
+      setDeleteModalOpen(false);
+      setDeleteError("");
       alert('Post deleted successfully');
-      
-      fetchBlogPost();
-      router.refresh();
+      router.push('/blog-posts/search');
     } catch (err) {
       console.error('Error deleting post:', err);
-      setNewCommentError(err instanceof Error ? err.message : 'Failed to delete post');
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete post');
     }
   };
 
@@ -492,7 +535,7 @@ export default function BlogPost({ params }: PostQueryParams) {
               },
             }}
             InputLabelProps={{
-              style: { color: "rgb(148, 163, 184)" }, // Label color
+              style: { color: "rgb(148, 163, 184)" },
             }}
           />
           <div className="flex justify-end gap-2 mt-4">
@@ -507,6 +550,55 @@ export default function BlogPost({ params }: PostQueryParams) {
               variant="outlined"
               className="border-blue-600 text-blue-600 hover:border-blue-700 hover:text-blue-700"
               onClick={() => setReportModalOpen(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </Box>
+      </Modal>
+
+      {/* Modal for deleting */}
+      <Modal open={deleteModalOpen} onClose={() => setDeleteModalOpen(false)}>
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "rgb(15, 23, 42)",
+            border: "1px solid rgb(51, 65, 85)",
+            borderRadius: "8px",
+            p: 4,
+            boxShadow: 24,
+            color: "rgb(203, 213, 225)",
+          }}
+        >
+          <Typography variant="h6" gutterBottom sx={{ color: "rgb(239, 68, 68)" }}>
+            Delete Post
+          </Typography>
+          <Typography className="text-slate-300 mb-4">
+            Are you sure you want to delete this post? This action cannot be undone.
+          </Typography>
+
+          {deleteError && (
+            <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
+              <Typography className="text-red-500">{deleteError}</Typography>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="contained"
+              className="!bg-red-600 hover:!bg-red-700 text-white"
+              onClick={handleDelete}
+            >
+              Delete
+            </Button>
+            <Button
+              variant="outlined"
+              className="border-slate-600 text-slate-300 hover:border-slate-500"
+              onClick={() => setDeleteModalOpen(false)}
             >
               Cancel
             </Button>
@@ -646,7 +738,7 @@ export default function BlogPost({ params }: PostQueryParams) {
                       <span className="text-sm"> Edit Post </span>
                     </button>
                     <button 
-                      onClick={() => {if (post?.allowAction) handleDelete()}} 
+                      onClick={() => setDeleteModalOpen(true)}
                       className={'flex items-center gap-1 text-slate-400 hover:text-red-400'}
                     >
                       <Trash2 size={18} />

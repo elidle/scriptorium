@@ -105,8 +105,8 @@ export default function BlogPosts() {
     const currentPage = reset ? 1 : page;
     const queryParams = new URLSearchParams({
       page: currentPage.toString(),
+      sortBy: sortBy,
       ...(debouncedQuery && { q: debouncedQuery }),
-      ...(sortBy !== 'new' && { sortBy: sortBy }),
       ...(user?.id && { userId: user.id })
     });
 
