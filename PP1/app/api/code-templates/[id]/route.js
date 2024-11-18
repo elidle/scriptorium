@@ -28,13 +28,30 @@ export async function GET(req, { params }) {
         explanation: true,
         tags: {
           select: {
+            id: true,
             name: true,
           }
         },
-        authorId: true,
+        author: {
+          select: {
+            username: true,
+            avatar: true,
+          },
+        },
         isForked: true,
-        parentForkId: true,
+        parentFork: {
+          select: {
+            id: true,
+            title: true,
+            author: {
+              select: {
+                username: true,
+              }
+            }
+          }
+        }
       }
+
     });
   }
   catch(err){

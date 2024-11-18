@@ -43,6 +43,7 @@ export async function POST(req) {
                 lastname: user.lastname,
                 role: user.role
             },
+<<<<<<< HEAD
             "access-token": accessToken
             }, { 
             status: 200,
@@ -51,6 +52,20 @@ export async function POST(req) {
             }
         });
     
+=======
+            }, {
+            status: 200,
+            headers: {
+                'Set-Cookie': [
+                    // Access token cookie
+                    `access_token=${accessToken}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${15 * 60}`, // 15 minutes
+                    // Refresh token cookie
+                    `refresh_token=${refreshToken}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${7 * 24 * 60 * 60}` // 7 days
+                ]
+            }
+        });
+
+>>>>>>> 99cdb3e8f5c35ac23c1697b096e4ddc2cf4652f4
         return response;
     } catch (error) {
         console.error("Error during login:", error);
