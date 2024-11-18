@@ -11,7 +11,8 @@ import {
   LogIn,
   UserPlus,
   Shield,
-  Flag
+  Flag,
+  Eye
 } from 'lucide-react';
 
 const SideNav = ({ router }: { router: ReturnType<typeof useRouter> }) => {
@@ -95,6 +96,9 @@ const SideNav = ({ router }: { router: ReturnType<typeof useRouter> }) => {
           </NavLink>
           <NavLink href="/admin/comment-reports">
             <Flag size={18} /> Reported Comments
+          </NavLink>
+          <NavLink href="/admin/unhide">
+            <Eye size={18} /> Unhide
           </NavLink>
         </NavSection>
       )}

@@ -38,30 +38,8 @@ import Voting from "@/app/blog-posts/Voting";
 
 const domain = "http://localhost:3000";
 
-interface BlogPost {
-  id: number;
-  title: string;
-  content: string;
-  authorId: string;
-  authorUsername: string;
-  tags: Tag[];
-  createdAt: string;
-  score: number;
-  allowAction: boolean;
-  userVote: number;
-}
-
-interface Comment {
-  id: number;
-  content: string;
-  authorId: number;
-  authorUsername: string;
-  createdAt: string;
-  score: number;
-  replies: Comment[];
-  allowAction: boolean;
-  userVote: number;
-}
+import { Post } from "@/app/types/post";
+import { Comment } from "@/app/types/comment";
 
 interface PostQueryParams {
   params: {
@@ -75,7 +53,7 @@ export default function BlogPost({ params }: PostQueryParams) {
   const router = useRouter();
   const postId = Number(params.postId);
 
-  const [post, setPost] = useState<BlogPost | null>(null);
+  const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [error, setError] = useState<string>("");
   
@@ -758,7 +736,7 @@ export default function BlogPost({ params }: PostQueryParams) {
                 </Typography>
               </div>
 
-              <Typography variant="h4" className="text-blue-400">
+              <Typography variant="h4" className="text-slate-300">
                 {post.title === null ? "[Deleted post]" : post.title}
               </Typography>
 
@@ -824,14 +802,17 @@ export default function BlogPost({ params }: PostQueryParams) {
                     <MessageCircle size={18} />
                     <span className="text-sm"> Comment </span>
                   </button>
-                  <button 
-                    onClick={() => {if (post?.allowAction) handleReportClick()}} 
-                    className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
-                    disabled={!post?.allowAction}
-                  >
-                    <TriangleAlert size={18} />
-                    <span className="text-sm"> Report </span>
-                  </button>
+                  
+                  {user?.id !== post.authorId && (
+                    <button
+                      onClick={() => { if (post.allowAction) handleReportClick(post.id)}}
+                      className={`flex items-center gap-1 text-slate-400 ${post.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
+                      disabled={!post.allowAction}
+                    >
+                      <TriangleAlert size={18} />
+                      <span className="text-xs">Report</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Author buttons */}

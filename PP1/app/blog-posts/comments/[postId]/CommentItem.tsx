@@ -1,7 +1,6 @@
 "use client";
 import {
   Typography,
-  IconButton,
   Button,
   Collapse,
   TextField,
@@ -23,39 +22,12 @@ import UserAvatar from "@/app/components/UserAvatar";
 import ConfirmationModal from "@/app/components/ConfirmationModal";
 import Voting from "@/app/blog-posts/Voting";
 
-interface Tag {
-  id: number;
-  name: string;
-}
-
-interface BlogPost {
-  id: number;
-  title: string;
-  content: string;
-  authorId: string;
-  authorUsername: string;
-  tags: Tag[];
-  createdAt: string;
-  score: number;
-  allowAction: boolean;
-  userVote: number;
-}
-
-interface Comment {
-  id: number;
-  content: string;
-  authorId: number;
-  authorUsername: string;
-  createdAt: string;
-  score: number;
-  replies: Comment[];
-  allowAction: boolean;
-  userVote: number;
-}
+import { Post } from "@/app/types/post";
+import { Comment } from "@/app/types/comment";
 
 interface CommentItemProps {
   comment: Comment;
-  post: BlogPost;
+  post: Post;
   handleVote: (id: number, isUpvote: boolean) => Promise<void>;
   handleReportClick: (commentId: number | null) => void;
   fetchComments: (refresh: boolean) => void;
@@ -334,22 +306,25 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
           <MessageCircle size={16} />
           <span className="text-xs">Reply</span>
         </button>
-        <button
-          onClick={() => { if (comment.allowAction) handleReportClick(comment.id)}}
-          className={`flex items-center gap-1 text-slate-400 ${comment.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
-          disabled={!comment.allowAction}
-        >
-          <TriangleAlert size={16} />
-          <span className="text-xs">Report</span>
-        </button>
+        {user?.id !== comment.authorId && (
+          <button
+            onClick={() => { if (comment.allowAction) handleReportClick(comment.id)}}
+            className={`flex items-center gap-1 text-slate-400 ${comment.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
+            disabled={!comment.allowAction}
+          >
+            <TriangleAlert size={16} />
+            <span className="text-xs">Report</span>
+          </button>
+        )}
         {user?.id === comment.authorId && (
           <>
-            <button
+            <button 
               onClick={() => toggleIsEditing()}
-              className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
+              className={`flex items-center gap-1 text-slate-400 ${comment.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
+              disabled={!comment.allowAction}
             >
               <Edit size={16} />
-              <span className="text-xs">Edit</span>
+            <span className="text-sm"> Edit </span>
             </button>
             <button
               onClick={() => setDeleteModalOpen(true)}

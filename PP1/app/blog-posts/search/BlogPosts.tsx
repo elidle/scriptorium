@@ -24,14 +24,14 @@ import UserAvatar from '../../components/UserAvatar';
 import SortMenu from "../../components/SortMenu";
 import PostPreview from "./PostPreview";
 
-import { BlogPost } from "../../types/blog";
+import { Post } from "../../types/post";
 const domain = "http://localhost:3000";
 
 export default function BlogPosts() {
   const router = useRouter();
 
   const [sideBarState, setSideBarState] = useState(false);
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [blogPosts, setBlogPosts] = useState<Post[]>([]);
   const [error, setError] = useState("");
 
   // Pagination states

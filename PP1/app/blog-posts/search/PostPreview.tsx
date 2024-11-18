@@ -5,11 +5,11 @@ import { useAuth } from "../../contexts/AuthContext";
 
 import UserAvatar from '../../components/UserAvatar';
 
-import { BlogPost } from "../../types/blog";
+import { Post } from "../../types/post";
 import Voting from "@/app/blog-posts/Voting";
 
 interface PostPreviewProps {
-  post: BlogPost;
+  post: Post;
   handleVote: (id: number, isUpvote: boolean) => Promise<void>;
   handleReportClick: (postId: number) => void;
 }
@@ -81,16 +81,18 @@ export default function PostPreview({ post, handleVote, handleReportClick }: Pos
               <MessageCircle size={18} />
               <span className="text-sm">Comments</span>
             </Link>
-            <button 
-              onClick={(e) => {
-                e.preventDefault();
-                handleReportClick(post.id);
-              }} 
-              className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
-            >
-              <TriangleAlert size={18} />
-              <span className="text-sm">Report</span>
-            </button>
+            {user?.id !== post.authorId && (
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleReportClick(post.id);
+                }} 
+                className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
+              >
+                <TriangleAlert size={18} />
+                <span className="text-sm">Report</span>
+              </button>
+            )}
           </div>
         </div>
       </Link>

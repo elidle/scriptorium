@@ -8,4 +8,9 @@ export interface Comment {
   replies: Comment[];
   allowAction: boolean;
   userVote: number;
+  postId: number;
+}
+
+export interface ReportedComment extends Comment {
+  reportCount: number;
 }

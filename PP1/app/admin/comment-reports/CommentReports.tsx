@@ -8,18 +8,19 @@ import InfiniteScroll from "react-infinite-scroll-component";
 import Link from 'next/link';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useToast } from "@/app//contexts/ToastContext";
-import { fetchAuth, refreshToken } from "@/app/utils/auth";
+import { refreshToken } from "@/app/utils/auth";
 import { useRouter } from "next/navigation";
 
 import SideNav from "@/app/components/SideNav";
 import UserAvatar from '@/app/components/UserAvatar';
-import PostReportPreview from "./PostReportPreview";
+import CommentReportPreview from "./CommentReportPreview";
 
-import { ReportedPost } from "@/app/types/post";
+import { ReportedComment } from "@/app/types/comment";
+import { fetchAuth } from "@/app/utils/auth";
 
-export default function PostReports() {
+export default function CommentReports() {
   const router = useRouter();
-  const [reportedPosts, setReportedPosts] = useState<ReportedPost[]>([]);
+  const [reportedComments, setReportedComments] = useState<ReportedComment[]>([]);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -32,15 +33,15 @@ export default function PostReports() {
       router.push('/');
       return;
     }
-    fetchReportedPosts(true);
+    fetchReportedComments(true);
   }, [user]);
 
-  const fetchReportedPosts = async (reset = false) => {
+  const fetchReportedComments = async (reset = false) => {
     if (!user || !accessToken) return;
 
     const currentPage = reset ? 1 : page;
     try {
-      let response = await fetch(`/api/admin/sort-reports/post/?page=${currentPage}`, {
+      let response = await fetch(`/api/admin/sort-reports/comment/?page=${currentPage}`, {
         headers: {
           'access-token': `Bearer ${accessToken}`
         }
@@ -49,7 +50,7 @@ export default function PostReports() {
       if (response.status === 401) {
         const newToken = await refreshToken(user);
         setAccessToken(newToken);
-        response = await fetch(`/api/admin/sort-reports/post/?page=${currentPage}`, {
+        response = await fetch(`/api/admin/sort-reports/comment/?page=${currentPage}`, {
           headers: {
             'access-token': `Bearer ${newToken}`
           }
@@ -57,7 +58,7 @@ export default function PostReports() {
       }
 
       const data = await response.json();
-      reset ? setReportedPosts(data.posts) : setReportedPosts(prev => [...prev, ...data.posts]);
+      reset ? setReportedComments(data.comments) : setReportedComments(prev => [...prev, ...data.comments]);
       setHasMore(data.hasMore);
       setPage(data.nextPage);
     } catch (err) {
@@ -65,11 +66,11 @@ export default function PostReports() {
     }
   };
 
-  const handleHide = async (postId: number) => {
+  const handleHide = async (commentId: number) => {
     if (!user || !accessToken) return;
 
     try {
-      const url = `/api/admin/hide/post`;
+      const url = `/api/admin/hide/comment`;
       const options: RequestInit = {
         method: 'POST',
         headers: {
@@ -78,7 +79,7 @@ export default function PostReports() {
         },
         body: JSON.stringify({
           userId: user.id,
-          postId: postId
+          commentId: commentId
         }),
       };
 
@@ -88,18 +89,18 @@ export default function PostReports() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || `Failed to hide post`);
+        throw new Error(data.message || `Failed to hide comment`);
       }
 
       showToast({ 
-        message: `Post ${postId} hidden successfully`, 
+        message: `Comment ${commentId} hidden successfully`, 
         type: 'success' 
       });
 
-      fetchReportedPosts(true);
+      fetchReportedComments(true);
     } catch (err) {
       showToast({ 
-        message: err instanceof Error ? err.message : `Failed to hide post`, 
+        message: err instanceof Error ? err.message : `Failed to hide comment`, 
         type: 'error' 
       });
     }
@@ -138,7 +139,7 @@ export default function PostReports() {
         <div className="pt-16">
           <main className="flex-1 p-4 max-w-3xl mx-auto">
             <Typography variant="h6" className="text-blue-400 mb-4">
-              Reported Posts
+              Reported Comments
             </Typography>
 
             {error && (
@@ -148,8 +149,8 @@ export default function PostReports() {
             )}
             
             <InfiniteScroll
-              dataLength={reportedPosts.length}
-              next={fetchReportedPosts}
+              dataLength={reportedComments.length}
+              next={fetchReportedComments}
               hasMore={hasMore}
               loader={
                 <div className="text-center p-4">
@@ -157,22 +158,22 @@ export default function PostReports() {
                 </div>
               }
               endMessage={
-                reportedPosts.length > 0 ? (
+                reportedComments.length > 0 ? (
                   <Typography className="text-center p-4 text-slate-400">
-                    No more reported posts
+                    No more reported comments
                   </Typography>
                 ) : (
                   <Typography className="text-center p-4 text-slate-400">
-                    No reported posts found
+                    No reported comments found
                   </Typography>
                 )
               }
             >
               <div className="space-y-4">
-                {reportedPosts.map(post => (
-                  <PostReportPreview
-                    key={post.id}
-                    post={post}
+                {reportedComments.map(comment => (
+                  <CommentReportPreview
+                    key={comment.id}
+                    comment={comment}
                     handleHide={handleHide}
                   />
                 ))}

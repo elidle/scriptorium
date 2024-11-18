@@ -31,6 +31,7 @@ export async function GET(req) {
       include: {
         author: {
           select: {
+            id: true,
             username: true
           }
         },
@@ -53,7 +54,7 @@ export async function GET(req) {
       id: post.id,
       title: post.title,
       content: post.content,
-      authorId: post.authorId,
+      authorId: post.author?.id,
       authorUsername: post.author?.username,
       createdAt: post.createdAt,
       reportCount: post._count.reports

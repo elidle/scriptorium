@@ -1,6 +1,6 @@
 import { Tag } from './tag';
 
-export interface BlogPost {
+export interface Post {
   id: number;
   title: string;
   content: string;
@@ -13,6 +13,6 @@ export interface BlogPost {
   allowAction: boolean;
 }
 
-export interface ReportedPost extends BlogPost {
+export interface ReportedPost extends Post {
   reportCount: number;
 }

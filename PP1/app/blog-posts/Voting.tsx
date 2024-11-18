@@ -4,15 +4,15 @@ import {
 import { ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import { useToast } from "../contexts/ToastContext";
 
-import { BlogPost } from "../types/blog";
+import { Post } from "../types/post";
 import { Comment } from "../types/comment";
 
 interface VotingProps {
-  item: BlogPost | Comment;
+  item: Post | Comment;
   handleVote: (id: number, isUpvote: boolean) => Promise<void>;
 }
 
-function instanceOfBlogPost(item: BlogPost | Comment): item is BlogPost {
+function instanceOfBlogPost(item: Post | Comment): item is Post {
   return 'title' in item;
 }
 
