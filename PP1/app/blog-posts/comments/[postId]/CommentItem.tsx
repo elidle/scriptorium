@@ -2,16 +2,11 @@
 import {
   Typography,
   IconButton,
-  Avatar,
   Button,
   Collapse,
   TextField,
-  Modal,
-  Box
 } from "@mui/material";
 import {
-  ArrowUpCircle,
-  ArrowDownCircle,
   MessageCircle,
   TriangleAlert,
   ChevronUp,
@@ -19,11 +14,14 @@ import {
   Trash2
 } from "lucide-react";
 import { useState } from "react";
-import { useAuth } from "../../../contexts/AuthContext";
+import { useAuth } from "@/app/contexts/AuthContext";
+import { useToast } from "@/app/contexts/ToastContext";
 import { fetchAuth } from "../../../utils/auth";
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+
 import UserAvatar from "@/app/components/UserAvatar";
+import ConfirmationModal from "@/app/components/ConfirmationModal";
+import Voting from "@/app/blog-posts/Voting";
 
 interface Tag {
   id: number;
@@ -58,7 +56,7 @@ interface Comment {
 interface CommentItemProps {
   comment: Comment;
   post: BlogPost;
-  handleVote: (increment: boolean, commentId: number | null) => void;
+  handleVote: (id: number, isUpvote: boolean) => Promise<void>;
   handleReportClick: (commentId: number | null) => void;
   fetchComments: (refresh: boolean) => void;
 }
@@ -71,18 +69,20 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
   const [isReplying, setIsReplying] = useState(false);
   const toggleReplying = () => setIsReplying(!isReplying);
   const [replyContent, setReplyContent] = useState('');
-  const [replyError, setReplyError] = useState('');
 
   // Edit states
   const [isEditing, setIsEditing] = useState(false);
+  const toggleIsEditing = () => {
+    isEditing ? setEditedContent("") : setEditedContent(post?.content || "");
+    setIsEditing(!isEditing)
+  };
   const [editedContent, setEditedContent] = useState(comment.content);
-  const [editError, setEditError] = useState("");
 
   // Delete states
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deleteError, setDeleteError] = useState("");
 
   const { user, accessToken, setAccessToken } = useAuth();
+  const { showToast } = useToast();
 
   const toggleCollapse = () => setIsCollapsed(!isCollapsed);
 
@@ -90,11 +90,18 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
     e.preventDefault();
 
     if (!replyContent.trim()) {
-      setReplyError('Reply cannot be empty');
+      showToast({
+        message: 'Reply content cannot be empty.',
+        type: 'error'
+      });
       return;
     }
 
     if (!user || !accessToken) {
+      showToast({ 
+        message: 'Please log in to reply', 
+        type: 'info' 
+      });
       router.push('/auth/login');
       return;
     }
@@ -125,22 +132,37 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
         throw new Error(data.message || 'Failed to create comment');
       }
 
-      fetchComments(true);
-      setReplyError('');
-    } catch (err) {
-      console.error('Error creating reply:', err);
-      setReplyError(err instanceof Error ? err.message : 'Failed to create reply');
-    } finally {
+      showToast({ message: 'Reply created successfully', type: 'success' });
+      await fetchComments(true);
       setReplyContent('');
       setIsReplying(false);
+    } catch (err) {
+      showToast({ 
+        message: err instanceof Error ? err.message : 'Failed to create comment', 
+        type: 'error'
+      });
     }
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!editedContent.trim()) {
-      setEditError("Content cannot be empty");
+      showToast({
+        message: 'Content cannot be empty.',
+        type: 'error'
+      });
+      return;
+    }
+
+    if (user.id !== post?.authorId) return; // Do nothing
+
+    if (!user || !accessToken) {
+      showToast({ 
+        message: 'Please log in', 
+        type: 'error' 
+      });
+      router.push('/auth/login');
       return;
     }
   
@@ -159,17 +181,35 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
       if (!response) return;
   
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to edit comment');
+      }
   
       await fetchComments(true);
+      showToast({ message: 'Post edited successfully', type: 'success' });
       setIsEditing(false);
-      setEditError("");
+      setEditedContent('');
     } catch (err) {
-      setEditError(err instanceof Error ? err.message : 'Failed to edit comment');
+      showToast({ 
+        message: err instanceof Error ? err.message : 'Failed to edit comment', 
+        type: 'error'
+      });
     }
   };
   
   const handleDelete = async () => {
+    if (user.id !== post?.authorId) return; // Do nothing
+
+    if (!user || !accessToken) {
+      showToast({ 
+        message: 'Please log in', 
+        type: 'error' 
+      });
+      router.push('/auth/login');
+      return;
+    }
+
     try {
       const url = `/api/comments/${comment.id}`;
       const options: RequestInit = {
@@ -185,62 +225,27 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
   
+      showToast({ message: 'Comment deleted successfully', type: 'success' });
       await fetchComments(true);
       setDeleteModalOpen(false);
-      setDeleteError("");
     } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : 'Failed to delete comment');
+      showToast({ 
+        message: err instanceof Error ? err.message : 'Failed to delete comment', 
+        type: 'error' 
+      });
     }
   };
 
   return (
     <div className="ml-2 sm:ml-4 border-l border-slate-700 pl-2 sm:pl-4">
       {/* Delete Modal */}
-      <Modal open={deleteModalOpen} onClose={() => setDeleteModalOpen(false)}>
-        <Box sx={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: 400,
-          bgcolor: "rgb(15, 23, 42)",
-          border: "1px solid rgb(51, 65, 85)",
-          borderRadius: "8px",
-          p: 4,
-          boxShadow: 24,
-          color: "rgb(203, 213, 225)",
-        }}>
-          <Typography variant="h6" gutterBottom sx={{ color: "rgb(239, 68, 68)" }}>
-            Delete Comment
-          </Typography>
-          <Typography className="text-slate-300 mb-4">
-            Are you sure you want to delete this comment?
-          </Typography>
-
-          {deleteError && (
-            <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
-              <Typography className="text-red-500">{deleteError}</Typography>
-            </div>
-          )}
-
-          <div className="flex justify-end gap-2">
-            <Button
-              onClick={handleDelete}
-              variant="contained"
-              className="!bg-red-600 hover:!bg-red-700 text-white"
-            >
-              Delete
-            </Button>
-            <Button
-              onClick={() => setDeleteModalOpen(false)}
-              variant="outlined"
-              className="border-slate-600 text-slate-300 hover:border-slate-500"
-            >
-              Cancel
-            </Button>
-          </div>
-        </Box>
-      </Modal>
+      <ConfirmationModal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        title="Delete Comment"
+        message="Are you sure you want to delete this comment?"
+      />
 
       {/* Header with voting and user info */}
       <div className="flex items-center gap-2 mb-2">
@@ -248,40 +253,19 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
           <UserAvatar username={comment.authorUsername} userId={comment.authorId} size={32} />
 
           <Typography className={`text-sm ${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
-            {post.authorUsername}
+            {comment.authorUsername}
           </Typography>
           <Typography className="text-sm text-slate-400">
-            • {new Date(post.createdAt).toLocaleString()}
+            • {new Date(comment.createdAt).toLocaleString()}
           </Typography>
         </div>
 
-        <IconButton 
-          className={`group ${comment.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`} 
-          onClick={() => handleVote(true, comment.id)}
-          disabled={!comment.allowAction}
-          sx={{ opacity: comment.allowAction ? '1 !important' : '0.5 !important' }}
-        >
-          <ArrowUpCircle className="group-hover:!text-red-400" size={20} />
-        </IconButton>
-        <span className="text-sm font-medium text-slate-300">{comment.score}</span>
-        <IconButton 
-          className={`group ${comment.userVote === -1 ? '!text-blue-400' : '!text-slate-400'}`} 
-          onClick={() => handleVote(false, comment.id)}
-          disabled={!comment.allowAction}
-          sx={{ opacity: comment.allowAction ? '1 !important' : '0.5 !important' }}
-        >
-          <ArrowDownCircle className="group-hover:!text-blue-400" size={20} />
-        </IconButton>
+        <Voting item={comment} handleVote={handleVote} />
       </div>
 
       {/* Comment content */}
       {isEditing ? (
         <form onSubmit={handleEditSubmit} className="space-y-4 ml-10">
-          {editError && (
-            <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
-              <Typography className="text-red-500">{editError}</Typography>
-            </div>
-          )}
           <TextField
             fullWidth
             multiline
@@ -309,7 +293,7 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
             <Button 
               onClick={() => {
                 setIsEditing(false);
-                setEditError("");
+                setEditedContent("");
               }}
               variant="outlined"
               className="text-slate-300 border-slate-700 hover:border-blue-400"
@@ -361,10 +345,7 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
         {user?.id === comment.authorId && (
           <>
             <button
-              onClick={() => {
-                setEditedContent(comment.content);
-                setIsEditing(true);
-              }}
+              onClick={() => toggleIsEditing()}
               className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
             >
               <Edit size={16} />
@@ -384,12 +365,6 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
       {/* Reply input field */}
       {isReplying && (
         <div className="ml-10 mb-4">
-          {replyError && (
-            <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
-              <Typography className="text-red-500">{replyError}</Typography>
-            </div>
-          )}
-
           {comment.allowAction ? (
             <form 
               onSubmit={handleReplySubmit} 

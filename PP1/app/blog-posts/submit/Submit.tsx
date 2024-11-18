@@ -4,8 +4,6 @@ import {
   Typography,
   TextField,
   Button,
-  Autocomplete,
-  Chip,
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import Link from 'next/link';
@@ -79,7 +77,7 @@ export default function Submit() {
 
   return (
     <div className="min-h-screen flex bg-slate-900">
-      <SideNav />
+      <SideNav router={router} />
 
       {/* AppBar */}
       <AppBar 

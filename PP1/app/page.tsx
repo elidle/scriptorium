@@ -1,7 +1,4 @@
-import { CodeTemplates } from "@/app/code-templates/search/page";
 import React from "react";
-import NotFound from "@/app/views/not-found/page";
-
 
 const App: React.FC = () => {
   return (

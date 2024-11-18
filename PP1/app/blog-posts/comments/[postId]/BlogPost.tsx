@@ -1,21 +1,13 @@
 "use client";
 import {
   Typography,
-  IconButton,
-  Avatar,
   Button,
   AppBar,
   TextField,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
   Modal,
   Box
 } from "@mui/material";
 import {
-  ArrowUpCircle,
-  ArrowDownCircle,
   MessageCircle,
   TriangleAlert,
   Star,
@@ -28,14 +20,21 @@ import {
 import { useEffect, useState, useRef } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import CommentItem from "./CommentItem";
-import Link from "next/link";
-import { useAuth } from "../../../contexts/AuthContext";
-import { refreshToken, fetchAuth } from "../../../utils/auth";
+
+import { useAuth } from "@/app/contexts/AuthContext";
+import { useToast } from "@/app/contexts/ToastContext";
+
+import { refreshToken, fetchAuth } from "@/app/utils/auth";
 import { useRouter } from "next/navigation";
-import { Tag } from '../../../types/tag';
-import SideNav from "../../../components/SideNav";
-import Image from "next/image";
-import UserAvatar from "../../../components/UserAvatar";
+import { Tag } from '@/app/types/tag';
+
+import SideNav from "@/app/components/SideNav";
+import UserAvatar from "@/app/components/UserAvatar";
+import SortMenu from "@/app/components/SortMenu";
+import ConfirmationModal from "@/app/components/ConfirmationModal";
+
+import Link from "next/link";
+import Voting from "@/app/blog-posts/Voting";
 
 const domain = "http://localhost:3000";
 
@@ -71,6 +70,8 @@ interface PostQueryParams {
 }
 
 export default function BlogPost({ params }: PostQueryParams) {
+  const { showToast } = useToast();
+
   const router = useRouter();
   const postId = Number(params.postId);
 
@@ -97,13 +98,14 @@ export default function BlogPost({ params }: PostQueryParams) {
 
   // Delete logic
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deleteError, setDeleteError] = useState<string>("");
 
   // Edit logic
   const [isEditing, setIsEditing] = useState(false);
-  const toggleIsEditing = () => setIsEditing(!isEditing);
+  const toggleIsEditing = () => {
+    isEditing ? setEditedContent("") : setEditedContent(post?.content || "");
+    setIsEditing(!isEditing)
+  };
   const [editedContent, setEditedContent] = useState("");
-  const [editError, setEditError] = useState("");
 
   const { user, accessToken, setAccessToken } = useAuth();
 
@@ -131,7 +133,6 @@ export default function BlogPost({ params }: PostQueryParams) {
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportingCommentId, setReportingCommentId] = useState<number | null>(null);
-  const [reportError, setReportError] = useState<string>("");
 
   const handleReportClick = (commentId: number | null = null) => {
     setReportingCommentId(commentId);
@@ -141,13 +142,20 @@ export default function BlogPost({ params }: PostQueryParams) {
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!reportReason.trim()) {
-      setReportError("Reason cannot be empty");
+    if (!user || !accessToken) {
+      showToast({ 
+        message: 'Please log in to report', 
+        type: 'info' 
+      });
+      router.push('/auth/login');
       return;
     }
 
-    if (!user || !accessToken) {
-      router.push('/auth/login');
+    if (!reportReason.trim()) {
+      showToast({
+        message: 'Reason cannot be empty.',
+        type: 'error'
+      });
       return;
     }
 
@@ -181,19 +189,15 @@ export default function BlogPost({ params }: PostQueryParams) {
         throw new Error(data.message || 'Failed to create report');
       }
 
-      setReportError('');
-    } catch (err) {
-      console.error('Error creating reply:', err);
-      setReportError(err instanceof Error ? err.message : 'Failed to create reply');
-    } finally {
+      showToast({ message: 'Report submitted successfully', type: 'success' });
       setReportReason('');
       setReportModalOpen(false);
-      alert('Report submitted successfully');
+    } catch (err) {
+      showToast({ 
+        message: err instanceof Error ? err.message : 'Failed to create report', 
+        type: 'error' 
+      });
     }
-
-    setReportReason("");
-    setReportError("");
-    setReportModalOpen(false);
   };
 
   const sortOptions = [
@@ -309,89 +313,118 @@ export default function BlogPost({ params }: PostQueryParams) {
     }
   };
 
-  const handleVote = async (increment: boolean, commentId: number | null = null) => {
-    const vote = increment ? 1 : -1;
-    let newVote = 0;
-
-    if (commentId === null) {
-      if (!post?.allowAction) return;
-
-      newVote = post.userVote === vote ? 0 : vote;
-      setPost({
-        ...post,
-        score: post.score + newVote - post.userVote,
-        userVote: newVote
-      });
-
-      await sendVote(newVote);
-    } else {
-      let found = false;
-
-      const updateComments = (comments: Comment[]): Comment[] => {
-        if (found) return comments;
-
-        return comments.map((comment) => {
-          if (comment.id === commentId) {
-            found = true;
-            if (!comment.allowAction) return comment;
-
-            newVote = comment.userVote === vote ? 0 : vote;
-            return {
-              ...comment,
-              score: comment.score + newVote - comment.userVote,
-              userVote: newVote
-            };
-          }
-          return {
-            ...comment,
-            replies: updateComments(comment.replies)
-          };
-        });
-      };
-
-      setComments((prevComments) => updateComments(prevComments));
-
-      await sendVote(newVote, commentId);
-    }
-  };
-
-  const sendVote = async (vote: number, commentId: number | null = null) => {
+  const handlePostVote = async (postId: number, isUpvote: boolean) => {
     if (!user || !accessToken) {
+      showToast({ message: 'Please log in to vote', type: 'info' });
       router.push('/auth/login');
       return;
     }
-    
+   
+    if (!post?.allowAction) return;
+   
+    const vote = isUpvote ? 1 : -1;
+    const newVote = post.userVote === vote ? 0 : vote;
+    const previousPost = post;
+   
+    setPost({
+      ...post,
+      score: post.score + newVote - post.userVote,
+      userVote: newVote
+    });
+   
+    try {
+      await sendVote(newVote);
+      showToast({ 
+        message: newVote === 0 ? 'Vote removed' : isUpvote ? 'Upvoted' : 'Downvoted', 
+        type: 'success' 
+      });
+    } catch (err) {
+      setPost(previousPost);
+      throw err;
+    }
+   };
+   
+   const handleCommentVote = async (commentId: number, isUpvote: boolean) => {
+    if (!user || !accessToken) {
+      showToast({ message: 'Please log in to vote', type: 'info' });
+      router.push('/auth/login');
+      return;
+    }
+
+    // if (!post?.allowAction) return;
+   
+    const vote = isUpvote ? 1 : -1;
+    let newVote = 0;
+    let prevComments = comments;
+
+    let found = false;
+    const updateComments = (comments: Comment[]): Comment[] => {
+      if (found) return comments;
+   
+      return comments.map((comment) => {
+        if (comment.id === commentId) {
+          found = true;
+          if (!comment.allowAction) return comment;
+   
+          newVote = comment.userVote === vote ? 0 : vote;
+          return {
+            ...comment,
+            score: comment.score + newVote - comment.userVote,
+            userVote: newVote
+          };
+        }
+        return {
+          ...comment,
+          replies: updateComments(comment.replies)
+        };
+      });
+    };
+   
+    setComments((prevComments) => updateComments(prevComments));
+   
+    try {
+      await sendVote(newVote, commentId);
+      showToast({ 
+        message: newVote === 0 ? 'Vote removed' : isUpvote ? 'Upvoted' : 'Downvoted', 
+        type: 'success' 
+      });
+    } catch (err) {
+      setComments(prevComments);
+      throw err;
+    }
+   };
+
+  const sendVote = async (vote: number, commentId: number | null = null) => {    
     const url = commentId === null ? '/api/rate/post' : '/api/rate/comment';
     const method = vote === 0 ? 'DELETE' : 'POST';
-    try {
-      const options : RequestInit = {
-        method: method,
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'access-token': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          postId: postId,
-          commentId: commentId,
-          value: vote
-        }),
-      };
+    const options : RequestInit = {
+      method: method,
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'access-token': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        userId: user.id,
+        postId: postId,
+        commentId: commentId,
+        value: vote
+      }),
+    };
 
-      let response = await fetchAuth({url, options, user, setAccessToken, router});
-      if (!response) return;
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to rate');
-      }
-    } catch (err) {
-      console.error('Error rating:', err);
-      const msg = err instanceof Error ? err.message : 'Failed to rate';
-      alert(msg);
+    let response = await fetchAuth({url, options, user, setAccessToken, router});
+    
+    if (!response) {
+      throw new Error('Failed to submit vote - no response');
     }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to rate');
+    }
+
+    return data;
   }
 
   const handleSortClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -407,11 +440,18 @@ export default function BlogPost({ params }: PostQueryParams) {
     e.preventDefault();
     
     if (!newComment.trim()) {
-      setNewCommentError("Comment cannot be empty");
+      showToast({
+        message: 'Comment content cannot be empty.',
+        type: 'error'
+      });
       return;
     }
 
     if (!user || !accessToken) {
+      showToast({ 
+        message: 'Please log in to comment', 
+        type: 'info' 
+      });
       router.push('/auth/login');
       return;
     }
@@ -441,21 +481,25 @@ export default function BlogPost({ params }: PostQueryParams) {
         throw new Error(data.message || 'Failed to create comment');
       }
 
+      showToast({ message: 'Comment created successfully', type: 'success' });
       await fetchComments(true);
-      setNewCommentError("");
       setNewComment("");
     } catch (err) {
-      console.error('Error creating comment:', err);
-      setNewCommentError(err instanceof Error ? err.message : 'Failed to create comment');
+      showToast({ 
+        message: err instanceof Error ? err.message : 'Failed to create comment', 
+        type: 'error'
+      });
     }
   };
   
   const handleDelete = async () => {
-    if (user.id !== post?.authorId) {
-      return;
-    }
+    if (user.id !== post?.authorId) return; // Do nothing
 
     if (!user || !accessToken) {
+      showToast({ 
+        message: 'Please log in', 
+        type: 'error' 
+      });
       router.push('/auth/login');
       return;
     }
@@ -479,21 +523,36 @@ export default function BlogPost({ params }: PostQueryParams) {
         throw new Error(data.message || 'Failed to delete post');
       }
 
-      setDeleteModalOpen(false);
-      setDeleteError("");
-      alert('Post deleted successfully');
+      showToast({ message: 'Post deleted successfully', type: 'success' });
       router.push('/blog-posts/search');
+      setDeleteModalOpen(false);
     } catch (err) {
-      console.error('Error deleting post:', err);
-      setDeleteError(err instanceof Error ? err.message : 'Failed to delete post');
+      showToast({ 
+        message: err instanceof Error ? err.message : 'Failed to delete post', 
+        type: 'error' 
+      });
     }
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!editedContent.trim()) {
-      setEditError("Content cannot be empty");
+      showToast({
+        message: 'Content cannot be empty.',
+        type: 'error'
+      });
+      return;
+    }
+
+    if (user.id !== post?.authorId) return; // Do nothing
+
+    if (!user || !accessToken) {
+      showToast({ 
+        message: 'Please log in', 
+        type: 'error' 
+      });
+      router.push('/auth/login');
       return;
     }
   
@@ -517,19 +576,26 @@ export default function BlogPost({ params }: PostQueryParams) {
       if (!response) return;
   
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to edit post');
+      }
   
       setPost(prev => prev ? {...prev, content: editedContent} : null);
+      showToast({ message: 'Post edited successfully', type: 'success' });
+      setEditedContent("");
       setIsEditing(false);
-      setEditError("");
     } catch (err) {
-      setEditError(err instanceof Error ? err.message : 'Failed to edit post');
+      showToast({ 
+        message: err instanceof Error ? err.message : 'Failed to edit post', 
+        type: 'error'
+      });
     }
   };
 
   return (
     <div className="min-h-screen flex bg-slate-900 text-slate-200">
-      <SideNav />
+      <SideNav router={router} />
 
       {/* Modal for reporting */}
       <Modal open={reportModalOpen} onClose={() => setReportModalOpen(false)}>
@@ -551,12 +617,6 @@ export default function BlogPost({ params }: PostQueryParams) {
           <Typography variant="h6" gutterBottom sx={{ color: "rgb(96, 165, 250)" }}>
             Report {reportingCommentId === null ? "Post" : "Comment"}
           </Typography>
-
-          {reportError && (
-            <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
-              <Typography className="text-red-500">{reportError}</Typography>
-            </div>
-          )}
 
           <TextField
             fullWidth
@@ -603,54 +663,14 @@ export default function BlogPost({ params }: PostQueryParams) {
         </Box>
       </Modal>
 
-      {/* Modal for deleting */}
-      <Modal open={deleteModalOpen} onClose={() => setDeleteModalOpen(false)}>
-        <Box
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 400,
-            bgcolor: "rgb(15, 23, 42)",
-            border: "1px solid rgb(51, 65, 85)",
-            borderRadius: "8px",
-            p: 4,
-            boxShadow: 24,
-            color: "rgb(203, 213, 225)",
-          }}
-        >
-          <Typography variant="h6" gutterBottom sx={{ color: "rgb(239, 68, 68)" }}>
-            Delete Post
-          </Typography>
-          <Typography className="text-slate-300 mb-4">
-            Are you sure you want to delete this post? This action cannot be undone.
-          </Typography>
-
-          {deleteError && (
-            <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
-              <Typography className="text-red-500">{deleteError}</Typography>
-            </div>
-          )}
-
-          <div className="flex justify-end gap-2 mt-4">
-            <Button
-              variant="contained"
-              className="!bg-red-600 hover:!bg-red-700 text-white"
-              onClick={handleDelete}
-            >
-              Delete
-            </Button>
-            <Button
-              variant="outlined"
-              className="border-slate-600 text-slate-300 hover:border-slate-500"
-              onClick={() => setDeleteModalOpen(false)}
-            >
-              Cancel
-            </Button>
-          </div>
-        </Box>
-      </Modal>
+      {/* Delete Modal */}
+      <ConfirmationModal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+      />
 
       {error && (
         <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-4">
@@ -673,7 +693,9 @@ export default function BlogPost({ params }: PostQueryParams) {
             Scriptorium
             </Typography>
           </Link>
+
           <div className="flex-grow"></div>
+
           {user ? (
           <div className="flex items-center gap-2">
             <UserAvatar username={user.username} userId={user.id} />
@@ -714,17 +736,34 @@ export default function BlogPost({ params }: PostQueryParams) {
           <>
             {/* Post Section */}
             <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px] flex flex-col justify-between">
+                <div className="flex items-center gap-2 mb-2 mt-2">
+                <UserAvatar username={post.authorUsername} userId={post.authorId} />
+
+                {
+                  post.authorUsername[0] === '[' ? (
+                    <Typography className={`${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
+                      {post.authorUsername}
+                    </Typography>
+                  ) : (
+                    <Link href={`/users/${post.authorUsername}`}>
+                      <Typography className={`hover:text-blue-400 ${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
+                        {post.authorUsername}
+                      </Typography>
+                    </Link>
+                  )
+                }
+
+                <Typography className="text-slate-400">
+                  • {new Date(post.createdAt).toLocaleString()}
+                </Typography>
+              </div>
+
               <Typography variant="h4" className="text-blue-400">
                 {post.title === null ? "[Deleted post]" : post.title}
               </Typography>
 
               {isEditing ? (
                 <form onSubmit={handleEditSubmit} className="space-y-4 mb-2 mt-2">
-                  {editError && (
-                    <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
-                      <Typography className="text-red-500">{editError}</Typography>
-                    </div>
-                  )}
                   <TextField
                     fullWidth
                     multiline
@@ -752,8 +791,8 @@ export default function BlogPost({ params }: PostQueryParams) {
                     </Button>
                     <Button 
                       onClick={() => {
+                        setEditedContent("");
                         setIsEditing(false);
-                        setEditError("");
                       }}
                       variant="outlined"
                       className="text-slate-300 border-slate-700 hover:border-blue-400"
@@ -768,40 +807,13 @@ export default function BlogPost({ params }: PostQueryParams) {
                 </Typography>
               )}
 
-              <div className="flex items-center gap-2 mb-2 mt-2">
-                <UserAvatar username={post.authorUsername} userId={post.authorId} />
-
-                <Link href={`/users/${post.authorUsername}`}>
-                  <Typography className={`hover:text-blue-400 ${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
-                    {post.authorUsername}
-                  </Typography>
-                </Link>
-
-                <Typography className="text-slate-400">
-                  • {new Date(post.createdAt).toLocaleString()}
-                </Typography>
-              </div>
-
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   {/* Post Voting */}
-                  <IconButton 
-                    className={`group ${post.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`} 
-                    onClick={(e) => {e.preventDefault; handleVote(true);}}
-                    disabled={!post?.allowAction}
-                    sx={{ opacity: post?.allowAction ? '1 !important' : '0.5 !important' }}
-                  >
-                    <ArrowUpCircle className="group-hover:!text-red-400" size={20} />
-                  </IconButton>
-                  <span className="text-sm font-medium text-slate-300">{post.score}</span>
-                  <IconButton 
-                    className={`group ${post.userVote === -1 ? '!text-blue-400' : '!text-slate-400'}`} 
-                    onClick={(e) => {e.preventDefault; handleVote(false);}}
-                    disabled={!post?.allowAction}
-                    sx={{ opacity: post?.allowAction ? '1 !important' : '0.5 !important' }}
-                  >
-                    <ArrowDownCircle className="group-hover:!text-blue-400" size={20} />
-                  </IconButton>
+                  <Voting
+                    item={post}
+                    handleVote={handlePostVote}
+                  />
                   
                   {/* Post Actions */}
                   <button 
@@ -826,10 +838,7 @@ export default function BlogPost({ params }: PostQueryParams) {
                 {user?.id === post.authorId && (
                   <div className="flex items-center gap-2">
                     <button 
-                      onClick={() => {
-                        setEditedContent(post.content);
-                        toggleIsEditing();
-                      }}
+                      onClick={() => toggleIsEditing()}
                       className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
                       disabled={!post?.allowAction}
                     >
@@ -934,36 +943,12 @@ export default function BlogPost({ params }: PostQueryParams) {
                 >
                   Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
                 </Button>
-                <Menu
+                <SortMenu
+                  sortBy={sortBy}
                   anchorEl={anchorEl}
-                  open={Boolean(anchorEl)}
-                  onClose={() => handleSortClose()}
-                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                  PaperProps={{
-                    sx: {
-                      backgroundColor: 'rgb(30, 41, 59)',
-                      color: 'rgb(226, 232, 240)',
-                      '& .MuiMenuItem-root:hover': {
-                        backgroundColor: 'rgb(51, 65, 85)',
-                      },
-                    },
-                  }}
-                >
-                  {sortOptions.map((option) => (
-                    <MenuItem 
-                      key={option.value}
-                      onClick={() => handleSortClose(option.value)}
-                      selected={sortBy === option.value}
-                      className="!text-slate-300 hover:text-blue-400"
-                    >
-                      <ListItemIcon className="!text-slate-300">
-                        <option.icon size={20} />
-                      </ListItemIcon>
-                      <ListItemText>{option.label}</ListItemText>
-                    </MenuItem>
-                  ))}
-                </Menu>
+                  onClose={handleSortClose}
+                  sortOptions={sortOptions}
+                />
               </div>
 
               {/* Comment section */}
@@ -980,7 +965,7 @@ export default function BlogPost({ params }: PostQueryParams) {
                       key={comment.id} 
                       comment={comment} 
                       post={post}
-                      handleVote={handleVote} 
+                      handleVote={handleCommentVote} 
                       handleReportClick={handleReportClick}
                       fetchComments={fetchComments}
                     />

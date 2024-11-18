@@ -7,44 +7,25 @@ import {
   FormControlLabel,
   Checkbox,
   FormGroup,
-  Avatar,
-  IconButton,
   Modal,
   Box,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
 } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
-import { ArrowUpCircle, ArrowDownCircle, MessageCircle, Star, Clock, TrendingUp, Zap, TriangleAlert, Plus } from "lucide-react";
+import { Star, Clock, TrendingUp, Zap } from "lucide-react";
 import Link from 'next/link';
 import { useAuth } from "../../contexts/AuthContext";
+import { useToast } from "../../contexts/ToastContext";
 import { refreshToken, fetchAuth } from "../../utils/auth";
 import { useRouter } from "next/navigation";
+
 import SideNav from "../../components/SideNav";
-import Image from 'next/image';
 import UserAvatar from '../../components/UserAvatar';
+import SortMenu from "../../components/SortMenu";
+import PostPreview from "./PostPreview";
 
+import { BlogPost } from "../../types/blog";
 const domain = "http://localhost:3000";
-
-interface Tag {
-  id: number;
-  name: string;
-}
-
-interface BlogPost {
-  id: number;
-  title: string;
-  content: string;
-  authorId: string;
-  authorUsername: string;
-  tags: Tag[];
-  createdAt: string;
-  score: number;
-  userVote: number;
-}
 
 export default function BlogPosts() {
   const router = useRouter();
@@ -69,10 +50,10 @@ export default function BlogPosts() {
   // Report states
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
-  const [reportError, setReportError] = useState("");
   const [reportingPostId, setReportingPostId] = useState<number | null>(null);
 
   const { user, accessToken, setAccessToken } = useAuth();
+  const { showToast } = useToast();
 
   // TODO: This needs to be fetched from backend
   const availableTags = [
@@ -102,7 +83,7 @@ export default function BlogPosts() {
     setBlogPosts([]);
     setPage(1);
     fetchBlogPosts(true);
-  }, [debouncedQuery, sortBy, selectedTags]);
+  }, [debouncedQuery, sortBy, selectedTags, user]);
 
   const fetchBlogPosts = async (reset = false) => {
     const currentPage = reset ? 1 : page;
@@ -173,9 +154,27 @@ export default function BlogPosts() {
     });
   };
 
-  const handleVote = async (postId: number, increment: boolean) => {
-    const vote = increment ? 1 : -1;
+  const handleVote = async (postId: number, isUpvote: boolean) => {
+    if (postId === null) {
+      showToast({ 
+        message: 'Failed to submit vote - Please refresh your page', 
+        type: 'error' 
+      });
+      return;
+    }
+
+    if (!user || !accessToken) {
+      showToast({ 
+        message: 'Please log in to vote', 
+        type: 'info' 
+      });
+      router.push('/auth/login');
+      return;
+    }
+    
+    const vote = isUpvote ? 1 : -1;
     let newVote = 0;
+    const previousPosts = blogPosts;
     
     setBlogPosts(prevPosts => 
       prevPosts.map(post => {
@@ -191,45 +190,48 @@ export default function BlogPosts() {
       })
     );
   
-    await sendVote(newVote, postId);
-  };
-
-  const sendVote = async (vote: number, postId: number) => {
-    if (!user || !accessToken) {
-      router.push('/auth/login');
-      return;
-    }
-
-    const method = vote === 0 ? 'DELETE' : 'POST';
     try {
-      const url = '/api/rate/post';
-      const options : RequestInit = {
-        method: method,
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'access-token': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          postId: postId,
-          value: vote
-        }),
-      };
-
-      let response = await fetchAuth({url, options, user, setAccessToken, router});
-      if (!response) return;
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to rate post');
-      }
+      await sendVote(newVote, postId);
+      showToast({ 
+        message: newVote === 0 ? 'Vote removed' : isUpvote ? 'Upvoted' : 'Downvoted', 
+        type: 'success' 
+      });
     } catch (err) {
-      console.error('Error rating post:', err);
-      const msg = err instanceof Error ? err.message : 'Failed to rate post';
-      alert(msg);
+      setBlogPosts(previousPosts);
+      throw err;
     }
+  };
+  
+  const sendVote = async (vote: number, postId: number) => {
+    const method = vote === 0 ? 'DELETE' : 'POST';
+    const url = '/api/rate/post';
+    const options: RequestInit = {
+      method: method,
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'access-token': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        userId: user!.id,
+        postId: postId,
+        value: vote
+      }),
+    };
+  
+    let response = await fetchAuth({url, options, user, setAccessToken, router});
+    
+    if (!response) {
+      throw new Error('Failed to submit vote - no response');
+    }
+  
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to rate post');
+    }
+  
+    return data;
   }
 
   const handleSortClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -250,11 +252,18 @@ export default function BlogPosts() {
     e.preventDefault();
 
     if (!reportReason.trim()) {
-      setReportError("Reason cannot be empty");
+      showToast({
+        message: 'Report reason cannot be empty.',
+        type: 'error'
+      });
       return;
     }
 
     if (!user || !accessToken) {
+      showToast({ 
+        message: 'Please log in to report', 
+        type: 'info' 
+      });
       router.push('/auth/login');
       return;
     }
@@ -284,19 +293,15 @@ export default function BlogPosts() {
         throw new Error(data.message || 'Failed to create report');
       }
 
-      setReportError('');
-    } catch (err) {
-      console.error('Error creating reply:', err);
-      setReportError(err instanceof Error ? err.message : 'Failed to create reply');
-    } finally {
+      showToast({ message: 'Report submitted successfully', type: 'success' });
       setReportReason('');
       setReportModalOpen(false);
-      alert('Report submitted successfully');
+    } catch (err) {
+      showToast({ 
+        message: err instanceof Error ? err.message : 'Failed to create report', 
+        type: 'error' 
+      });
     }
-
-    setReportReason("");
-    setReportError("");
-    setReportModalOpen(false);
   };
 
   const toggleSidebar = () => {
@@ -305,7 +310,7 @@ export default function BlogPosts() {
 
   return (
     <div className="min-h-screen flex bg-slate-900">
-      <SideNav />
+      <SideNav router={router}/>
 
       {/* Modal for reporting */}
       <Modal open={reportModalOpen} onClose={() => setReportModalOpen(false)}>
@@ -327,12 +332,6 @@ export default function BlogPosts() {
           <Typography variant="h6" gutterBottom sx={{ color: "rgb(96, 165, 250)" }}>
             Report Post
           </Typography>
-
-          {reportError && (
-            <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
-              <Typography className="text-red-500">{reportError}</Typography>
-            </div>
-          )}
 
           <TextField
             fullWidth
@@ -380,26 +379,24 @@ export default function BlogPosts() {
       </Modal>
 
       <div className="flex-1 ml-64">
-        {/* Fixed header */}
+        {/* App Bar */}
         <AppBar 
           position="fixed" 
-          className="!bg-slate-800 border-b border-slate-700" // TODO
-          sx= {{ 
-            boxShadow: 'none',
-            // width: 'calc(100% - 256px)' // TODO
-          }}
+          className="!bg-slate-800 border-b border-slate-700"
+          sx= {{ boxShadow: 'none' }}
         >
           <div className="p-3 flex flex-col sm:flex-row items-center gap-3">
             <Link href="/">
               <Typography 
-                className="text-xl sm:text-2xl text-blue-400 flex-shrink-0 cursor-pointer" 
+                className="text-xl sm:text-2xl text-blue-400 flex-shrink-0" 
                 variant="h5"
               >
                 Scriptorium
               </Typography>
             </Link>
+            
             <TextField 
-              className="w-full"
+              className="flex-grow"
               color="info"
               variant="outlined"
               label="Search Posts..."
@@ -427,6 +424,7 @@ export default function BlogPosts() {
                 },
               }}
             />
+
             {user ? (
               <div className="flex items-center gap-2">
                 <UserAvatar username={user.username} userId={user.id} />
@@ -529,16 +527,6 @@ export default function BlogPosts() {
                     />
                   ))}
                 </FormGroup>
-
-                <Link href="/blog-posts/submit" className="mt-4">
-                  <Button 
-                    variant="contained"
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    startIcon={<Plus />}
-                  >
-                    Create Post
-                  </Button>
-                </Link>
               </div>
 
               {/* Mobile toggle button */}
@@ -563,36 +551,12 @@ export default function BlogPosts() {
                 >
                   Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
                 </Button>
-                <Menu
+                <SortMenu
+                  sortBy={sortBy}
                   anchorEl={anchorEl}
-                  open={Boolean(anchorEl)}
-                  onClose={() => handleSortClose()}
-                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                  PaperProps={{
-                    sx: {
-                      backgroundColor: 'rgb(30, 41, 59)',
-                      color: 'rgb(226, 232, 240)',
-                      '& .MuiMenuItem-root:hover': {
-                        backgroundColor: 'rgb(51, 65, 85)',
-                      },
-                    },
-                  }}
-                >
-                  {sortOptions.map((option) => (
-                    <MenuItem 
-                      key={option.value}
-                      onClick={() => handleSortClose(option.value)}
-                      selected={sortBy === option.value}
-                      className="!text-slate-300 hover:text-blue-400"
-                    >
-                      <ListItemIcon className="!text-slate-300">
-                        <option.icon size={20} />
-                      </ListItemIcon>
-                      <ListItemText>{option.label}</ListItemText>
-                    </MenuItem>
-                  ))}
-                </Menu>
+                  onClose={handleSortClose}
+                  sortOptions={sortOptions}
+                />
               </div>
 
               {/* Search status */}
@@ -609,7 +573,7 @@ export default function BlogPosts() {
                 </div>
               )}
               
-              {/* Posts list */}
+              {/* Post Infinite Scroll List */}
               <InfiniteScroll
                 dataLength={blogPosts.length}
                 next={fetchBlogPosts}
@@ -633,95 +597,12 @@ export default function BlogPosts() {
               >
                 <div className="space-y-4">
                 {blogPosts.map((post) => (
-                  <article 
-                    key={post.id} 
-                    className="flex bg-slate-800 rounded-lg border border-slate-700 hover:border-slate-600 transition-all"
-                  >
-                    {/* Vote section */}
-                    <div className="flex flex-col items-center p-2 bg-slate-900/50 rounded-l-lg">
-                    <IconButton 
-                      className={`group ${post.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleVote(post.id, true);
-                      }}
-                    >
-                      <ArrowUpCircle className="group-hover:!text-red-400" size={20} />
-                    </IconButton>
-                    <span className="text-sm font-medium text-slate-300">
-                      {post.score}
-                    </span>
-                    <IconButton 
-                      className={`group ${post.userVote === -1 ? '!text-blue-400' : '!text-slate-400'}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleVote(post.id, false);
-                      }} 
-                    >
-                      <ArrowDownCircle className="group-hover:!text-blue-400" size={20} />
-                    </IconButton>
-                    </div>
-
-                    <Link 
-                      href={`/blog-posts/comments/${post.id}`}
-                      className="flex-1 cursor-pointer"
-                    >
-                      <div className="p-3">
-                      <div className="flex items-center gap-2 mb-4">
-                      <UserAvatar username={post.authorUsername} userId={post.authorId} />
-
-                        <Link href={`/users/${post.authorUsername}`}>
-                          <Typography className={`hover:text-blue-400 ${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
-                            {post.authorUsername}
-                          </Typography>
-                        </Link>
-
-                        <Typography className="text-slate-400">
-                          • {new Date(post.createdAt).toLocaleString()}
-                        </Typography>
-                        </div>
-
-                        <Typography variant="h6" className="text-slate-200 mb-2">
-                          {post.title}
-                        </Typography>
-                        <Typography className="text-slate-300 mb-3 line-clamp-3">
-                          {post.content}
-                        </Typography>
-
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {post.tags.map((tag, index) => (
-                            <span 
-                              key={index}
-                              className="px-2 py-1 bg-slate-800 border border-slate-600 rounded-full text-xs text-blue-300"
-                            >
-                              {tag.name}
-                            </span>
-                          ))}
-                        </div>
-
-                        <div className="flex gap-4">
-                          <Link 
-                            href={`/blog-posts/comments/${post.id}`}
-                            className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MessageCircle size={18} />
-                            <span className="text-sm">Comments</span>
-                          </Link>
-                          <button 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleReportClick(post.id);
-                            }} 
-                            className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
-                          >
-                            <TriangleAlert size={18} />
-                            <span className="text-sm">Report</span>
-                          </button>
-                        </div>
-                      </div>
-                    </Link>
-                  </article>
+                  <PostPreview 
+                    key={post.id}
+                    post={post}
+                    handleVote={handleVote}
+                    handleReportClick={handleReportClick}
+                  />
                 ))}
                 </div>
               </InfiniteScroll>

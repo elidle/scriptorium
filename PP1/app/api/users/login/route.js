@@ -8,7 +8,6 @@ export async function POST(req) {
     if (!username || !password) {
         return Response.json({ status: "error", message: "Missing fields" }, { status: 400 });
     }
-
     try {
         // Check if the user exists
         const user = await prisma.user.findUnique({
@@ -43,16 +42,6 @@ export async function POST(req) {
                 lastname: user.lastname,
                 role: user.role
             },
-<<<<<<< HEAD
-            "access-token": accessToken
-            }, { 
-            status: 200,
-            headers: {
-                'Set-Cookie': `refresh_token=${refreshToken}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${7 * 24 * 60 * 60}`
-            }
-        });
-    
-=======
             }, {
             status: 200,
             headers: {
@@ -65,7 +54,6 @@ export async function POST(req) {
             }
         });
 
->>>>>>> 99cdb3e8f5c35ac23c1697b096e4ddc2cf4652f4
         return response;
     } catch (error) {
         console.error("Error during login:", error);

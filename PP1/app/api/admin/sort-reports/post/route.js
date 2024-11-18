@@ -53,10 +53,10 @@ export async function GET(req) {
       id: post.id,
       title: post.title,
       content: post.content,
-      authorId: post.author?.id,
+      authorId: post.authorId,
       authorUsername: post.author?.username,
       createdAt: post.createdAt,
-      reportCount: post._count.report
+      reportCount: post._count.reports
     }));
 
     const hasMore = paginatedPosts.hasMore;

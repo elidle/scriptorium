@@ -62,8 +62,8 @@ export async function GET(req, { params }) {
     const reports = post.reports.map(report => ({
       id: report.id,
       reason: report.reason,
-      reportedBy: report.reporter.username ?? '[deleted]',
-      reportedAt: report.createdAt
+      reporterUsername: report.reporter.username ?? '[deleted]',
+      createdAt: report.createdAt
     }));
 
     const paginatedReports = fetchCurrentPage(reports, page, limit);
