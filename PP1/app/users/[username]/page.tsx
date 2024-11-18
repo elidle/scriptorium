@@ -1,6 +1,5 @@
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { prisma } from "@/utils/db";
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import AppBar from '@mui/material/AppBar';
@@ -20,20 +19,13 @@ async function getUserData(username: string): Promise<UserProfileProps | null> {
 
     try {
         // Find the corresponding user id from the database
-        const user = await prisma.user.findUnique({
-            where: { username }, // You can also check by email if needed
-        });
-
-        const id = user?.id;
-
-        const response = await fetch(`http://localhost:3000/api/users/${id}/profile`, {
+        const response = await fetch(`http://localhost:3000/api/users?username=${username}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
             },
             cache: 'no-store' // Ensures fresh data is fetched on each request
         });
-
 
         if (!response.ok) {
             console.error('Failed to fetch user data');

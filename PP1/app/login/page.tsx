@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ErrorBox from '@/app/components/ErrorBox';
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 import { UserAuthData } from '@/app/types/user-auth-data';
 
 export default function Login() {

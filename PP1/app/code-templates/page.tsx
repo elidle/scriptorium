@@ -20,7 +20,7 @@ interface CodeTemplate {
   tags: string[];
 }
 
-export function CodeTemplates() {
+export default function CodeTemplates() {
   const [sideBarState, setSideBarState] = useState(false);
   const [codeTemplates, setCodeTemplates] = useState<CodeTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(false);

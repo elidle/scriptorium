@@ -2,7 +2,6 @@
 'use client'; // This directive makes the component a Client Component
 
 import { useState } from 'react';
-import SignupPage from '../../../components/signupPage';
 import { useRouter } from 'next/navigation';
 import ErrorBox from '@/app/components/ErrorBox';
 
