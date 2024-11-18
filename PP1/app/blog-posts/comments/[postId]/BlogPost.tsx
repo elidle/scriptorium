@@ -1,7 +1,6 @@
 "use client";
 import {
   Typography,
-  IconButton,
   Button,
   AppBar,
   TextField,
@@ -9,8 +8,6 @@ import {
   Box
 } from "@mui/material";
 import {
-  ArrowUpCircle,
-  ArrowDownCircle,
   MessageCircle,
   TriangleAlert,
   Star,
@@ -24,18 +21,20 @@ import { useEffect, useState, useRef } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import CommentItem from "./CommentItem";
 
-import { useAuth } from "../../../contexts/AuthContext";
-import { useToast } from "../../../contexts/ToastContext";
+import { useAuth } from "@/app/contexts/AuthContext";
+import { useToast } from "@/app/contexts/ToastContext";
 
-import { refreshToken, fetchAuth } from "../../../utils/auth";
+import { refreshToken, fetchAuth } from "@/app/utils/auth";
 import { useRouter } from "next/navigation";
-import { Tag } from '../../../types/tag';
+import { Tag } from '@/app/types/tag';
 
-import SideNav from "../../../components/SideNav";
-import UserAvatar from "../../../components/UserAvatar";
-import SortMenu from "../../../components/SortMenu";
+import SideNav from "@/app/components/SideNav";
+import UserAvatar from "@/app/components/UserAvatar";
+import SortMenu from "@/app/components/SortMenu";
+import ConfirmationModal from "@/app/components/ConfirmationModal";
 
 import Link from "next/link";
+import Voting from "@/app/blog-posts/Voting";
 
 const domain = "http://localhost:3000";
 
@@ -314,80 +313,86 @@ export default function BlogPost({ params }: PostQueryParams) {
     }
   };
 
-  const handleVote = async (increment: boolean, commentId: number | null = null) => {
-    const vote = increment ? 1 : -1;
-    let newVote = 0;
-
+  const handlePostVote = async (postId: number, isUpvote: boolean) => {
     if (!user || !accessToken) {
+      showToast({ message: 'Please log in to vote', type: 'info' });
+      router.push('/auth/login');
+      return;
+    }
+   
+    if (!post?.allowAction) return;
+   
+    const vote = isUpvote ? 1 : -1;
+    const newVote = post.userVote === vote ? 0 : vote;
+    const previousPost = post;
+   
+    setPost({
+      ...post,
+      score: post.score + newVote - post.userVote,
+      userVote: newVote
+    });
+   
+    try {
+      await sendVote(newVote);
       showToast({ 
-        message: 'Please log in to vote', 
-        type: 'info' 
+        message: newVote === 0 ? 'Vote removed' : isUpvote ? 'Upvoted' : 'Downvoted', 
+        type: 'success' 
       });
+    } catch (err) {
+      setPost(previousPost);
+      throw err;
+    }
+   };
+   
+   const handleCommentVote = async (commentId: number, isUpvote: boolean) => {
+    if (!user || !accessToken) {
+      showToast({ message: 'Please log in to vote', type: 'info' });
       router.push('/auth/login');
       return;
     }
 
-    const previousPost = post;
+    // if (!post?.allowAction) return;
+   
+    const vote = isUpvote ? 1 : -1;
+    let newVote = 0;
+    let prevComments = comments;
 
-    if (commentId === null) {
-      if (!post?.allowAction) return;
-
-      newVote = post.userVote === vote ? 0 : vote;
-      setPost({
-        ...post,
-        score: post.score + newVote - post.userVote,
-        userVote: newVote
-      });
-
-      try {
-        await sendVote(newVote);
-        showToast({ 
-          message: newVote === 0 ? 'Vote removed' : increment ? 'Upvoted' : 'Downvoted', 
-          type: 'success' 
-        });
-      } catch (err) {
-        setPost(previousPost);
-        throw err;
-      }
-    } else {
-      let found = false;
-
-      const updateComments = (comments: Comment[]): Comment[] => {
-        if (found) return comments;
-
-        return comments.map((comment) => {
-          if (comment.id === commentId) {
-            found = true;
-            if (!comment.allowAction) return comment;
-
-            newVote = comment.userVote === vote ? 0 : vote;
-            return {
-              ...comment,
-              score: comment.score + newVote - comment.userVote,
-              userVote: newVote
-            };
-          }
+    let found = false;
+    const updateComments = (comments: Comment[]): Comment[] => {
+      if (found) return comments;
+   
+      return comments.map((comment) => {
+        if (comment.id === commentId) {
+          found = true;
+          if (!comment.allowAction) return comment;
+   
+          newVote = comment.userVote === vote ? 0 : vote;
           return {
             ...comment,
-            replies: updateComments(comment.replies)
+            score: comment.score + newVote - comment.userVote,
+            userVote: newVote
           };
-        });
-      };
-
-      setComments((prevComments) => updateComments(prevComments));
-
-      try {
-        await sendVote(newVote, commentId);
-        showToast({ 
-          message: newVote === 0 ? 'Vote removed' : increment ? 'Upvoted' : 'Downvoted', 
-          type: 'success' 
-        });
-      } catch (err) {
-        setPost(previousPost);
-        throw err;
-      }
+        }
+        return {
+          ...comment,
+          replies: updateComments(comment.replies)
+        };
+      });
+    };
+   
+    setComments((prevComments) => updateComments(prevComments));
+   
+    try {
+      await sendVote(newVote, commentId);
+      showToast({ 
+        message: newVote === 0 ? 'Vote removed' : isUpvote ? 'Upvoted' : 'Downvoted', 
+        type: 'success' 
+      });
+    } catch (err) {
+      setComments(prevComments);
+      throw err;
     }
-  };
+   };
 
   const sendVote = async (vote: number, commentId: number | null = null) => {    
     const url = commentId === null ? '/api/rate/post' : '/api/rate/comment';
@@ -658,48 +663,14 @@ export default function BlogPost({ params }: PostQueryParams) {
         </Box>
       </Modal>
 
-      {/* Modal for deleting */}
-      <Modal open={deleteModalOpen} onClose={() => setDeleteModalOpen(false)}>
-        <Box
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 400,
-            bgcolor: "rgb(15, 23, 42)",
-            border: "1px solid rgb(51, 65, 85)",
-            borderRadius: "8px",
-            p: 4,
-            boxShadow: 24,
-            color: "rgb(203, 213, 225)",
-          }}
-        >
-          <Typography variant="h6" gutterBottom sx={{ color: "rgb(239, 68, 68)" }}>
-            Delete Post
-          </Typography>
-          <Typography className="text-slate-300 mb-4">
-            Are you sure you want to delete this post? This action cannot be undone.
-          </Typography>
-
-          <div className="flex justify-end gap-2 mt-4">
-            <Button
-              variant="contained"
-              className="!bg-red-600 hover:!bg-red-700 text-white"
-              onClick={handleDelete}
-            >
-              Delete
-            </Button>
-            <Button
-              variant="outlined"
-              className="border-slate-600 text-slate-300 hover:border-slate-500"
-              onClick={() => setDeleteModalOpen(false)}
-            >
-              Cancel
-            </Button>
-          </div>
-        </Box>
-      </Modal>
+      {/* Delete Modal */}
+      <ConfirmationModal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+      />
 
       {error && (
         <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-4">
@@ -722,7 +693,9 @@ export default function BlogPost({ params }: PostQueryParams) {
             Scriptorium
             </Typography>
           </Link>
+
           <div className="flex-grow"></div>
+
           {user ? (
           <div className="flex items-center gap-2">
             <UserAvatar username={user.username} userId={user.id} />
@@ -837,33 +810,10 @@ export default function BlogPost({ params }: PostQueryParams) {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   {/* Post Voting */}
-                  <IconButton 
-                    className={`group ${post.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`} 
-                    onClick={async (e) => {
-                      e.preventDefault;
-                      try {
-                        await handleVote(true);
-                      } catch (err) {
-                        showToast({ 
-                          message: err instanceof Error ? err.message : 'Failed to vote', 
-                          type: 'error' 
-                        });
-                      }
-                    }}
-                    disabled={!post?.allowAction}
-                    sx={{ opacity: post?.allowAction ? '1 !important' : '0.5 !important' }}
-                  >
-                    <ArrowUpCircle className="group-hover:!text-red-400" size={20} />
-                  </IconButton>
-                  <span className="text-sm font-medium text-slate-300">{post.score}</span>
-                  <IconButton 
-                    className={`group ${post.userVote === -1 ? '!text-blue-400' : '!text-slate-400'}`} 
-                    onClick={(e) => {e.preventDefault; handleVote(false);}}
-                    disabled={!post?.allowAction}
-                    sx={{ opacity: post?.allowAction ? '1 !important' : '0.5 !important' }}
-                  >
-                    <ArrowDownCircle className="group-hover:!text-blue-400" size={20} />
-                  </IconButton>
+                  <Voting
+                    item={post}
+                    handleVote={handlePostVote}
+                  />
                   
                   {/* Post Actions */}
                   <button 
@@ -1015,7 +965,7 @@ export default function BlogPost({ params }: PostQueryParams) {
                       key={comment.id} 
                       comment={comment} 
                       post={post}
-                      handleVote={handleVote} 
+                      handleVote={handleCommentVote} 
                       handleReportClick={handleReportClick}
                       fetchComments={fetchComments}
                     />

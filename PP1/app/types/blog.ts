@@ -12,3 +12,7 @@ export interface BlogPost {
   userVote: number;
   allowAction: boolean;
 }
+
+export interface ReportedPost extends BlogPost {
+  reportCount: number;
+}

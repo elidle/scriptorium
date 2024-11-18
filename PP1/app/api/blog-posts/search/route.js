@@ -111,7 +111,8 @@ export async function GET(req) {
       tags: post.tags.map(tag => ({ id: tag.id, name: tag.name })),
       createdAt: post.createdAt,
       score: post.metrics.totalScore,
-      userVote: post.userVote
+      userVote: post.userVote,
+      allowAction: true
     }));
     const hasMore = paginatedPosts.hasMore;
     const nextPage = hasMore ? page + 1 : null;

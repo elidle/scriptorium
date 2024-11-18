@@ -7,13 +7,12 @@ import {
   FormControlLabel,
   Checkbox,
   FormGroup,
-  IconButton,
   Modal,
   Box,
 } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
-import { ArrowUpCircle, ArrowDownCircle, MessageCircle, Star, Clock, TrendingUp, Zap, TriangleAlert, Plus } from "lucide-react";
+import { Star, Clock, TrendingUp, Zap } from "lucide-react";
 import Link from 'next/link';
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
@@ -23,6 +22,7 @@ import { useRouter } from "next/navigation";
 import SideNav from "../../components/SideNav";
 import UserAvatar from '../../components/UserAvatar';
 import SortMenu from "../../components/SortMenu";
+import PostPreview from "./PostPreview";
 
 import { BlogPost } from "../../types/blog";
 const domain = "http://localhost:3000";
@@ -154,7 +154,15 @@ export default function BlogPosts() {
     });
   };
 
-  const handleVote = async (postId: number, increment: boolean) => {
+  const handleVote = async (postId: number, isUpvote: boolean) => {
+    if (postId === null) {
+      showToast({ 
+        message: 'Failed to submit vote - Please refresh your page', 
+        type: 'error' 
+      });
+      return;
+    }
+
     if (!user || !accessToken) {
       showToast({ 
         message: 'Please log in to vote', 
@@ -164,7 +172,7 @@ export default function BlogPosts() {
       return;
     }
     
-    const vote = increment ? 1 : -1;
+    const vote = isUpvote ? 1 : -1;
     let newVote = 0;
     const previousPosts = blogPosts;
     
@@ -185,7 +193,7 @@ export default function BlogPosts() {
     try {
       await sendVote(newVote, postId);
       showToast({ 
-        message: newVote === 0 ? 'Vote removed' : increment ? 'Upvoted' : 'Downvoted', 
+        message: newVote === 0 ? 'Vote removed' : isUpvote ? 'Upvoted' : 'Downvoted', 
         type: 'success' 
       });
     } catch (err) {
@@ -371,26 +379,24 @@ export default function BlogPosts() {
       </Modal>
 
       <div className="flex-1 ml-64">
-        {/* Fixed header */}
+        {/* App Bar */}
         <AppBar 
           position="fixed" 
-          className="!bg-slate-800 border-b border-slate-700" // TODO
-          sx= {{ 
-            boxShadow: 'none',
-            // width: 'calc(100% - 256px)' // TODO
-          }}
+          className="!bg-slate-800 border-b border-slate-700"
+          sx= {{ boxShadow: 'none' }}
         >
           <div className="p-3 flex flex-col sm:flex-row items-center gap-3">
             <Link href="/">
               <Typography 
-                className="text-xl sm:text-2xl text-blue-400 flex-shrink-0 cursor-pointer" 
+                className="text-xl sm:text-2xl text-blue-400 flex-shrink-0" 
                 variant="h5"
               >
                 Scriptorium
               </Typography>
             </Link>
+            
             <TextField 
-              className="w-full"
+              className="flex-grow"
               color="info"
               variant="outlined"
               label="Search Posts..."
@@ -418,6 +424,7 @@ export default function BlogPosts() {
                 },
               }}
             />
+
             {user ? (
               <div className="flex items-center gap-2">
                 <UserAvatar username={user.username} userId={user.id} />
@@ -566,7 +573,7 @@ export default function BlogPosts() {
                 </div>
               )}
               
-              {/* Posts list */}
+              {/* Post Infinite Scroll List */}
               <InfiniteScroll
                 dataLength={blogPosts.length}
                 next={fetchBlogPosts}
@@ -590,117 +597,12 @@ export default function BlogPosts() {
               >
                 <div className="space-y-4">
                 {blogPosts.map((post) => (
-                  <article 
-                    key={post.id} 
-                    className="flex bg-slate-800 rounded-lg border border-slate-700 hover:border-slate-600 transition-all"
-                  >
-                    {/* Vote section */}
-                    <div className="flex flex-col items-center p-2 bg-slate-900/50 rounded-l-lg">
-                      <IconButton 
-                        className={`group ${post.userVote === 1 ? '!text-red-400' : '!text-slate-400'}`}
-                        onClick={async (e) => {
-                          e.preventDefault();
-                          try {
-                            await handleVote(post.id, true);
-                          } catch (err) {
-                            showToast({ 
-                              message: err instanceof Error ? err.message : 'Failed to rate post', 
-                              type: 'error' 
-                            });
-                          }
-                        }}
-                      >
-                        <ArrowUpCircle className="group-hover:!text-red-400" size={20} />
-                      </IconButton>
-                      <span className="text-sm font-medium text-slate-300">
-                        {post.score}
-                      </span>
-                      <IconButton 
-                        className={`group ${post.userVote === -1 ? '!text-blue-400' : '!text-slate-400'}`}
-                        onClick={async (e) => {
-                          e.preventDefault();
-                          try {
-                            await handleVote(post.id, false);
-                          } catch (err) {
-                            showToast({ 
-                              message: err instanceof Error ? err.message : 'Failed to rate post', 
-                              type: 'error' 
-                            });
-                          }
-                        }}
-                      >
-                      <ArrowDownCircle className="group-hover:!text-blue-400" size={20} />
-                      </IconButton>
-                    </div>
-
-                    <Link 
-                      href={`/blog-posts/comments/${post.id}`}
-                      className="flex-1 cursor-pointer"
-                    >
-                      <div className="p-3">
-                        <div className="flex items-center gap-2 mb-4">
-                          <UserAvatar username={post.authorUsername} userId={post.authorId} />
-
-                          {
-                            post.authorUsername[0] === '[' ? (
-                              <Typography className="text-slate-400">
-                                {post.authorUsername}
-                              </Typography>
-                            ) : (
-                              <Link href={`/users/${post.authorUsername}`}>
-                                <Typography className={`hover:text-blue-400 ${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
-                                  {post.authorUsername}
-                                </Typography>
-                              </Link>
-                            )
-                          }
-
-                          <Typography className="text-slate-400">
-                            • {new Date(post.createdAt).toLocaleString()}
-                          </Typography>
-                        </div>
-
-                        <Typography variant="h6" className="text-slate-200 mb-2">
-                          {post.title}
-                        </Typography>
-                        <Typography className="text-slate-300 mb-3 line-clamp-3">
-                          {post.content}
-                        </Typography>
-
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {post.tags.map((tag, index) => (
-                            <span 
-                              key={index}
-                              className="px-2 py-1 bg-slate-800 border border-slate-600 rounded-full text-xs text-blue-300"
-                            >
-                              {tag.name}
-                            </span>
-                          ))}
-                        </div>
-
-                        <div className="flex gap-4">
-                          <Link 
-                            href={`/blog-posts/comments/${post.id}`}
-                            className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MessageCircle size={18} />
-                            <span className="text-sm">Comments</span>
-                          </Link>
-                          <button 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleReportClick(post.id);
-                            }} 
-                            className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
-                          >
-                            <TriangleAlert size={18} />
-                            <span className="text-sm">Report</span>
-                          </button>
-                        </div>
-                      </div>
-                    </Link>
-                  </article>
+                  <PostPreview 
+                    key={post.id}
+                    post={post}
+                    handleVote={handleVote}
+                    handleReportClick={handleReportClick}
+                  />
                 ))}
                 </div>
               </InfiniteScroll>
