@@ -171,7 +171,7 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
   };
   
   const handleDelete = async () => {
-    if (user.id !== post?.authorId) return; // Do nothing
+    if (user.id !== comment.authorId) return; // Do nothing
 
     if (!user || !accessToken) {
       showToast({ 

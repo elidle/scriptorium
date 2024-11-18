@@ -164,7 +164,10 @@ export async function GET(req, { params }) {
     const userId = Number(searchParams.get('userId'));
     console.log("Received request to fetch post from user: ", userId);
 
+    let canViewHidden = false; // guest cannot see hidden no matter what
+
     if (userId) {
+      // Check that user id matches the user sending the request
       await authorize(req, ['user', 'admin'], userId);
     }
 
@@ -222,13 +225,32 @@ export async function GET(req, { params }) {
       );
     }
 
+    // set can view hidden
+    // either user is admin, or user is the author of the post
+
+    if (userId) {
+      // at this point userId matches the logged in user
+      // check for adminship first
+      try {
+        await authorize(req, ['admin']);
+        canViewHidden = true;
+      } catch {
+        // not admin, check if user is author
+        canViewHidden = userId === post.author?.id;
+      }
+    }
+
     const postWithVote = {...post, userVote: userId ? post.ratings.find(rating => rating.userId === userId)?.value || 0 : 0};
     const postWithMetrics = itemRatingsToMetrics(postWithVote);
 
     const responsePost = {
       id: postWithMetrics.id,
-      title: post.isHidden ? "[Hidden post]" : postWithMetrics.title,
-      content: post.isHidden ? "This post has been hidden by a moderator." : postWithMetrics.content,
+      title: post.isHidden 
+        ? `[Hidden post] ${canViewHidden ? post.title : ''}`
+        : postWithMetrics.title,
+      content: post.isHidden
+        ? `This post has been hidden by a moderator.${canViewHidden ? '\n\n' + postWithMetrics.content : ''}`
+        : postWithMetrics.content,
       authorId: postWithMetrics.author?.id ?? null,
       authorUsername: postWithMetrics.author?.username ?? "[deleted]",
       tags: postWithMetrics.tags.map(tag => ({ id: tag.id, name: tag.name })),

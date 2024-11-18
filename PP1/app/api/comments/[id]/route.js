@@ -111,6 +111,8 @@ export async function GET(req, { params }) {
     const searchParams = req.nextUrl.searchParams;
     const userId = Number(searchParams.get('userId'));
 
+    let canViewHidden = false;
+
     if (userId) {
       await authorize(req, ['user', 'admin'], userId);
     }
@@ -154,9 +156,26 @@ export async function GET(req, { params }) {
       );
     }
 
+    // set can view hidden
+    // either user is admin, or user is the author of the post
+
+    if (userId) {
+      // at this point userId matches the logged in user
+      // check for adminship first
+      try {
+        await authorize(req, ['admin']);
+        canViewHidden = true;
+      } catch {
+        // not admin, check if user is author
+        canViewHidden = userId === comment.authorId;
+      }
+    }
+
     const processComment = (c) => ({
       id: c.id,
-      content: c.isHidden ? "[Hidden comment]" : c.content,
+      content: c.isHidden
+        ? `This comment has been hidden by a moderator.${canViewHidden ? '\n\n' + c.content : ''}`
+        : c.content,
       authorId: c.authorId,
       authorUsername: c.author?.username ?? "[deleted]",
       createdAt: c.createdAt,
