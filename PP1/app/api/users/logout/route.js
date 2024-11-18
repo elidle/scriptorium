@@ -1,16 +1,28 @@
 export async function POST(req) {
-    // For token-based authentication, the logout action usually involves client-side operations
-    // like removing the token from local storage or cookies.
+  try {
+    // Create response headers with cookie clearing
+    const headers = new Headers();
+    headers.append('Set-Cookie', [
+      'access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; HttpOnly; Secure; SameSite=Strict',
+      'refresh_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; HttpOnly; Secure; SameSite=Strict'
+    ].join(', '));
 
-    // Invalidate the token on the client side
-    // This can include operations like:
-    // - Removing the token from local storage
-    // - Clearing any user data from your state management (e.g., Redux, Context API)
-
-    // Since JWTs are stateless, you typically do not need to do anything on the server side.
-    
-    // You could log the logout event if needed.
-    // Optionally handle any server-side cleanup logic here.
-
-    return Response.json({ message: "Logout successful, directing to Sign-up page" }, { status: 200 });
+    return new Response(
+      JSON.stringify({ message: 'Logged out successfully' }),
+      {
+        status: 200,
+        headers: headers,
+        statusText: 'OK'
+      }
+    );
+  } catch (error) {
+    console.error('Logout error:', error);
+    return new Response(
+      JSON.stringify({ message: 'Internal server error' }),
+      {
+        status: 500,
+        statusText: 'Internal Server Error'
+      }
+    );
+  }
 }
