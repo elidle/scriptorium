@@ -28,7 +28,6 @@ const MAX_DESCRIPTION_LENGTH = 200;
 const TemplateCard: React.FC<TemplateCardProps> = ({ template }) => {
   const router = useRouter();
 
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const needsTruncation = template.explanation.length > MAX_DESCRIPTION_LENGTH;
 
@@ -50,6 +49,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({ template }) => {
   };
 
   const formatCount = (count: number = 0) => {
+    console.log("Current template: ", template);
     if (count >= 1000000) {
       return `${(count / 1000000).toFixed(1)}M`;
     }
@@ -132,7 +132,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({ template }) => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <Eye className="w-4 h-4" />
                   <Typography variant="caption" color="text.secondary">
-                    {formatCount(template.viewCount)}
+                    {formatCount(template.viewCount)}   {/* TODO: Extra */}
                   </Typography>
                 </Box>
               </Tooltip>
