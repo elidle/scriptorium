@@ -66,19 +66,32 @@ export async function GET(req) {
       },
       orderBy: sortBy === 'old' ? { createdAt: 'asc' } : (sortBy === 'new' ? { createdAt: 'desc' } : Prisma.skip),
       include: {
-        tags: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+        tags: true,
         author: {
           select: {
+            id: true,
             username: true,
             avatar: true,
           },
         },
-      },
+        parentFork: {
+          select: {
+            id: true,
+            title: true,
+            author: {
+              select: {
+                username: true,
+              }
+            }
+          }
+        },
+        childForks: {
+          select: {
+            id: true,
+            title: true,
+          }
+        }
+      }
     });
 
     if (!templates || templates.length === 0) {
@@ -93,6 +106,7 @@ export async function GET(req) {
         name: template.author.name,
         avatar: template.author.avatar,
       },
+      forkCount: template.childForks.length,
     }));
 
     let curPage, hasMore;

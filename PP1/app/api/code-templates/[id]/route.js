@@ -33,6 +33,7 @@ export async function GET(req, { params }) {
         },
         author: {
           select: {
+            id: true,
             username: true,
             avatar: true,
           },
@@ -48,6 +49,12 @@ export async function GET(req, { params }) {
               }
             }
           }
+        },
+        childForks: {
+          select: {
+            id: true,
+            title: true,
+          }
         }
       }
 
@@ -59,7 +66,12 @@ export async function GET(req, { params }) {
   if(!template){
     return Response.json({ status: 'error', message: 'Template not found' }, { status: 404 });
   }
-  return Response.json(template, { status: 200 });
+  const response = {
+    ...template,
+    forkCount: template.childForks.length,
+  };
+
+  return Response.json(response, { status: 200 });
 }
 
 /*
