@@ -1,5 +1,6 @@
 import { User } from '@/app/types';
 
+
 // This util function is used to refresh the access token.
 export async function refreshToken(user: User) {
   const response = await fetch('/api/refresh', {
@@ -18,6 +19,7 @@ export async function refreshToken(user: User) {
   if (!response.ok) throw new Error('Failed to refresh token');
 
   return await response.json();
+
 }
 
 type FetchAuthParams = {
@@ -38,8 +40,7 @@ export async function fetchAuth({
   router
 }: FetchAuthParams) {
   options.credentials = 'include'; // To use cookies
-  console.log('fetchAuth: ', options); // TODO: Remove this line
-  console.log('Url: ', url); // TODO: Remove this line
+
   let response = await fetch(url, options);
 
   if (response.status === 401) {
@@ -59,7 +60,6 @@ export async function fetchAuth({
       'access-token': `Bearer ${newToken}`
     };
 
-    console.log('New options: ', options); // TODO: Remove this line
     response = await fetch(url, options);
   }
 

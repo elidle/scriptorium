@@ -2,6 +2,7 @@
 // identified by their id. This could include handling GET requests to fetch user data, PUT requests 
 // to update user data, or DELETE requests to remove a user.
 import { ForbiddenError } from '../../../../errors/ForbiddenError';
+import { UnauthorizedError } from '../../../../errors/UnauthorizedError';
 import { authorize } from '../../../middleware/auth';
 import {prisma} from "../../../../utils/db";
 import {hashPassword} from "../../../../utils/auth.js";
@@ -25,7 +26,7 @@ export async function GET(req, { params }) {
         return Response.json(user,{ status: 200 });
 
     } catch (error) {
-        if (error instanceof ForbiddenError) {
+        if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {
             return Response.json({ status: "error", message: error.message }, { status: error.statusCode });
         }
 
@@ -84,7 +85,7 @@ export async function PUT(req, { params }) {
         return Response.json(updatedUser, { status: 200 });
     } catch (error) {
 
-        if (error instanceof ForbiddenError) {
+        if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {
             return Response.json({ status: "error", message: error.message }, { status: error.statusCode });
         }
 

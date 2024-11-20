@@ -3,6 +3,7 @@ import { createContext, useContext, useState, ReactNode, useEffect } from 'react
 import {User} from "@/app/types";
 import {cookies} from "next/headers";
 
+
 interface AuthContextType {
   accessToken: string | null;
   setAccessToken: (token: string | null) => void;

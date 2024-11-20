@@ -1,15 +1,17 @@
-import { CodeTemplates } from "@/app/code-templates/search/page";
-import React from "react";
-import NotFound from "@/app/views/not-found/page";
+"use client";
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
+const Page = () => {
+  const router = useRouter();
 
-const App: React.FC = () => {
+  useEffect(() => {
+    router.push('/blog-posts/search');
+  }, [router]);
+
   return (
-    <div>
-      <h1>Welcome to the Home Page</h1>
-      <p>This is the home page of your application.</p>
-    </div>
+    <div className="min-h-screen bg-slate-900"></div>
   );
 };
 
-export default App;
+export default Page;

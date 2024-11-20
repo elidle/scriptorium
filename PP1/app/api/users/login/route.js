@@ -54,7 +54,6 @@ export async function POST(req) {
                 ]
             }
         });
-
         return response;
     } catch (error) {
         console.error("Error during login:", error);

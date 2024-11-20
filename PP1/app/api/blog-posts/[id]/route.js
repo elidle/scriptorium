@@ -2,6 +2,7 @@ import { prisma } from '../../../../utils/db';
 import { itemRatingsToMetrics } from '../../../../utils/blog/metrics';
 import { authorize } from '../../../middleware/auth';
 import { ForbiddenError } from '../../../../errors/ForbiddenError';
+import { UnauthorizedError } from '../../../../errors/UnauthorizedError';
 
 export async function PUT(req, { params }) {
   try {
@@ -88,7 +89,7 @@ export async function PUT(req, { params }) {
     return Response.json(updatedPost, { status: 200 });
   } catch (error) {
     console.error(error);
-    if (error instanceof ForbiddenError) {
+    if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {
       return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
     }
     return Response.json(
@@ -145,7 +146,7 @@ export async function DELETE(req, { params }) {
     return Response.json({ status: 'success' }, { status: 200 });
   } catch (error) {
     console.error(error);
-    if (error instanceof ForbiddenError) {
+    if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {
       return Response.json({ status: 'error', message: error.message }, { status: error.statusCode });
     }
     return Response.json(
@@ -156,18 +157,29 @@ export async function DELETE(req, { params }) {
 }
 
 export async function GET(req, { params }) {
-  let { id } = params;
-  id = Number(id);
-  console.log("Received request to fetch post with ID: ", id);
-
-  if (!id) {
-    return Response.json(
-        { status: 'error', error: 'Invalid post ID' }, 
-        { status: 400 }
-    );
-  }
-
   try {
+    const searchParams = req.nextUrl.searchParams;
+
+    // User parameter
+    const userId = Number(searchParams.get('userId'));
+    console.log("Received request to fetch post from user: ", userId);
+
+    let canViewHidden = false; // guest cannot see hidden no matter what
+
+    if (userId) {
+      // Check that user id matches the user sending the request
+      await authorize(req, ['user', 'admin'], userId);
+    }
+
+    let { id } = params;
+    id = Number(id);
+
+    if (!id) {
+      return Response.json(
+          { status: 'error', error: 'Invalid post ID' }, 
+          { status: 400 }
+      );
+    }
     const post = await prisma.blogPost.findUnique({
       where: { id },
       select: {
@@ -176,6 +188,7 @@ export async function GET(req, { params }) {
         content: true,
         createdAt: true,
         isHidden: true,
+        isDeleted: true,
         author: {
           select: {
             id: true,
@@ -190,7 +203,10 @@ export async function GET(req, { params }) {
         },
         ratings: {
           select: {
-            value: true
+            value: true,
+            ...(userId && {
+              userId: true
+            })
           }
         },
         codeTemplates: {
@@ -209,17 +225,39 @@ export async function GET(req, { params }) {
       );
     }
 
-    const postWithMetrics = itemRatingsToMetrics(post);
+    // set can view hidden
+    // either user is admin, or user is the author of the post
+
+    if (userId) {
+      // at this point userId matches the logged in user
+      // check for adminship first
+      try {
+        await authorize(req, ['admin']);
+        canViewHidden = true;
+      } catch {
+        // not admin, check if user is author
+        canViewHidden = userId === post.author?.id;
+      }
+    }
+
+    const postWithVote = {...post, userVote: userId ? post.ratings.find(rating => rating.userId === userId)?.value || 0 : 0};
+    const postWithMetrics = itemRatingsToMetrics(postWithVote);
 
     const responsePost = {
       id: postWithMetrics.id,
-      title: post.isHidden ? "[Hidden post]" : postWithMetrics.title,
-      content: post.isHidden ? "This post has been hidden by a moderator." : postWithMetrics.content,
+      title: post.isHidden 
+        ? `[Hidden post] ${canViewHidden ? post.title : ''}`
+        : postWithMetrics.title,
+      content: post.isHidden
+        ? `This post has been hidden by a moderator.${canViewHidden ? '\n\n' + postWithMetrics.content : ''}`
+        : postWithMetrics.content,
       authorId: postWithMetrics.author?.id ?? null,
       authorUsername: postWithMetrics.author?.username ?? "[deleted]",
       tags: postWithMetrics.tags.map(tag => ({ id: tag.id, name: tag.name })),
       createdAt: postWithMetrics.createdAt,
-      score: postWithMetrics.metrics.totalScore
+      score: postWithMetrics.metrics.totalScore,
+      userVote: postWithMetrics.userVote,
+      allowAction: !post.isDeleted && !post.isHidden,
     }
 
     return Response.json(responsePost, {status: 200} );
