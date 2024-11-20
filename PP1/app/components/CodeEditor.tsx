@@ -34,7 +34,7 @@ import ErrorBox from "@/app/components/ErrorBox";
 import { mode } from "@/app/types";
 import {useRouter, useSearchParams} from "next/navigation";
 import {fetchAuth} from "@/app/utils/auth";
-import {CodeEditorWithHighlight} from "@/app/components/CodeEditorWithHighlight";
+import {CodeEditorWithCodeMirror} from "@/app/components/CodeEditorWithCodeMirror";
 import InputOutputSection from "@/app/components/InputOutputSection";
 
 // Create custom theme to match the slate colors
@@ -900,7 +900,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
               {/* Code Editor */}
               <Paper sx={{ p: 2, bgcolor: 'background.paper', maxWidth: '100%', overflow: 'hidden' }}>
-                <CodeEditorWithHighlight
+                <CodeEditorWithCodeMirror
                   code={code}
                   language={language}
                   onChange={setCode}
