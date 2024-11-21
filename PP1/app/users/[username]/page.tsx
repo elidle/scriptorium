@@ -198,7 +198,7 @@ export default function UserProfile({ params }: { params: { username: string } }
                         <div className="md:w-2/3 md:pl-8">
                             <h2 className="text-xl font-semibold text-indigo-800 dark:text-white mb-4">About Me</h2>
                             <p className="text-gray-700 dark:text-gray-300 mb-6">
-                                {user.about}
+                            <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm">{user.about}</span>
                             </p>
                             <h2 className="text-xl font-semibold text-indigo-800 dark:text-white mb-4">Role</h2>
                             <div className="flex flex-wrap gap-2 mb-6">

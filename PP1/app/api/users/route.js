@@ -20,7 +20,7 @@ export async function GET(req) {
         }
 
         // Create an object with only the desired fields
-        const { firstname, lastname, email, phoneNumber, avatar, role, id } = user;
+        const { firstname, lastname, email, phoneNumber, avatar, role, id, about } = user;
 
         return Response.json({
             firstname : firstname,
@@ -31,6 +31,7 @@ export async function GET(req) {
             role: role,
             username: username,
             id: id,
+            about: about,
         }, {
             status: 200,
         });
