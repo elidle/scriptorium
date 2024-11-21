@@ -178,6 +178,11 @@ export default function CodeTemplates() {
       const data = await API_SERVICE.fetchCodeTemplates(params, accessToken, user, setAccessToken, router);
 
       if (data.status === 'error') {
+        if (data.message === 'No templates found') {
+          setCodeTemplates([]);
+          setHasMore(false);
+          return;
+        }
         throw new Error(data.message);
       }
 
@@ -324,6 +329,64 @@ export default function CodeTemplates() {
       </Button>
     );
   };
+  const NoTemplatesFound = () => (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        py: 8,
+        px: 3,
+        textAlign: 'center',
+        bgcolor: 'background.paper',
+        borderRadius: 1,
+        border: '1px solid',
+        borderColor: 'divider',
+      }}
+    >
+      <FileCode className="w-16 h-16 mb-4 text-slate-400" />
+      <Typography variant="h5" gutterBottom sx={{ color: 'text.primary' }}>
+        No templates found
+      </Typography>
+      <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: '500px', mb: 3 }}>
+        {selectedTags.length > 0
+          ? `No templates match the selected tags: ${selectedTags.join(', ')}`
+          : 'No templates match your search criteria'}
+      </Typography>
+      <Box sx={{ display: 'flex', gap: 2 }}>
+        {selectedTags.length > 0 && (
+          <Button
+            variant="outlined"
+            onClick={() => setSelectedTags([])}
+            sx={{
+              borderColor: 'primary.main',
+              color: 'primary.main',
+              '&:hover': {
+                borderColor: 'primary.light',
+                bgcolor: 'rgba(37, 99, 235, 0.1)'
+              }
+            }}
+          >
+            Clear Filters
+          </Button>
+        )}
+        <Button
+          variant="contained"
+          onClick={handleCreateTemplate}
+          startIcon={<Plus className="w-4 h-4" />}
+          sx={{
+            bgcolor: 'primary.main',
+            '&:hover': {
+              bgcolor: 'primary.dark'
+            }
+          }}
+        >
+          {user ? 'Create Template' : 'Sign In to Create Template'}
+        </Button>
+      </Box>
+    </Box>
+  );
 
   return (
     <ThemeProvider theme={theme}>
@@ -463,25 +526,29 @@ export default function CodeTemplates() {
           </Box>
           {error && <ErrorBox errorMessage={error} />}
 
-          <InfiniteScroll
-            dataLength={codeTemplates.length}
-            next={() => fetchCodeTemplates()}
-            hasMore={hasMore}
-            loader={
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                <CircularProgress />
-              </Box>
-            }
-            endMessage={
-              <Typography variant="body1" align="center" sx={{ p: 2 }}>
-                Yay! You have seen it all
-              </Typography>
-            }
-          >
-            {codeTemplates.map((template, index) => (
-              <TemplateCard key={index} template={template} />
-            ))}
-          </InfiniteScroll>
+          {codeTemplates.length === 0 && !isLoading ? (
+            <NoTemplatesFound />
+          ) : (
+            <InfiniteScroll
+              dataLength={codeTemplates.length}
+              next={() => fetchCodeTemplates()}
+              hasMore={hasMore}
+              loader={
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                  <CircularProgress />
+                </Box>
+              }
+              endMessage={
+                <Typography variant="body1" align="center" sx={{ p: 2 }}>
+                  Yay! You have seen it all
+                </Typography>
+              }
+            >
+              {codeTemplates.map((template, index) => (
+                <TemplateCard key={index} template={template} />
+              ))}
+            </InfiniteScroll>
+          )}
         </Box>
 
         {/* Right Sidebar Drawer */}
