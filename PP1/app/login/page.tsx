@@ -1,19 +1,24 @@
 'use client'; // This directive makes the component a Client Component
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ErrorBox from '@/app/components/ErrorBox';
 import { useAuth } from "../contexts/AuthContext";
 import { UserAuthData } from '@/app/types/user-auth-data';
 
 export default function Login() {
-
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const {user, accessToken, setAccessToken, setUser } = useAuth();
 
     const router = useRouter();
+
+    useEffect(() => {
+        if (accessToken) {
+          router.push('/');
+        }
+      }, [accessToken]);
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
       event.preventDefault(); // Prevent the default form submission
@@ -93,7 +98,17 @@ export default function Login() {
                 Login
               </button>
             </form>
-            {error && <ErrorBox errorMessage={error} />}
+            {error && (
+              <div className="relative">
+              <ErrorBox errorMessage={error} />
+              <button
+                onClick={() => setError(null)}
+                className="absolute top-0 right-0 mt-1 mr-1 text-gray-500 hover:text-gray-700"
+              >
+                &times;
+              </button>
+              </div>
+            )}
             <p className="text-center text-gray-600 mt-4">
               Don't have an account?{' '}
               <a href="views/signup" className="text-blue-500 hover:underline">
