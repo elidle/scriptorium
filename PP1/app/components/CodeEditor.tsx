@@ -153,6 +153,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         try {
           const forkedTemplate: CodeTemplate = JSON.parse(forkedData);
           // Pre-fill the form with forked template data
+          setTitle(forkedTemplate.title || '');
           setCode(forkedTemplate.code || '');
           setLanguage(forkedTemplate.language || 'python');
           setExplanation(forkedTemplate.explanation || '');
@@ -335,11 +336,11 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       const forkedTemplate = forkedData ? JSON.parse(forkedData) : null;
 
       const templateData = {
-        title: isFork ? `Fork of ${initialTemplate?.title}` : title.trim(),
+        title: title.trim(),
         code: code.trim(),
         language,
         explanation: explanation.trim(),
-        tags: [...selectedTags, isFork ? 'Fork' : ''].filter(Boolean), // Add Fork tag if it's a fork
+        tags: [...selectedTags, isFork ? 'fork' : ''].filter(Boolean), // Add Fork tag if it's a fork
         authorId: user?.id,
         isForked: isFork,
         ...(isFork && { parentTemplateId: forkedTemplate?.forkedFrom?.id })
@@ -693,7 +694,8 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   );
 
   const ForkLabel = ({ parentTemplate }) => {
-    if (!parentTemplate) return null;
+
+    const isParentDeleted = !(parentTemplate ?? 0); // Add this flag to your parentTemplate type/data
 
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 2 }}>
@@ -702,20 +704,34 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
           label={
             <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               Forked from{' '}
-              <span
-                style={{ cursor: 'pointer', textDecoration: 'underline' }}
-                onClick={() => router.push(`/code-templates/${parentTemplate.author.username}/${parentTemplate.id}`)}
-              >
-                {parentTemplate.title}
-              </span>
+              {isParentDeleted ? (
+                <span style={{ color: 'rgb(239, 68, 68)', fontStyle: 'italic' }}>
+                  (deleted template)
+                </span>
+              ) : (
+                <span
+                  style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                  onClick={() => router.push(`/code-templates/${parentTemplate.author.username}/${parentTemplate.id}`)}
+                >
+                  {parentTemplate.title}
+                </span>
+              )}
             </Typography>
           }
           sx={{
-            backgroundColor: 'rgba(37, 99, 235, 0.1)',
-            borderColor: 'rgb(37, 99, 235)',
-            color: 'rgb(147, 197, 253)',
+            backgroundColor: isParentDeleted
+              ? 'rgba(239, 68, 68, 0.1)' // red background for deleted parent
+              : 'rgba(37, 99, 235, 0.1)', // original blue background
+            borderColor: isParentDeleted
+              ? 'rgb(239, 68, 68)' // red border for deleted parent
+              : 'rgb(37, 99, 235)', // original blue border
+            color: isParentDeleted
+              ? 'rgb(252, 165, 165)' // lighter red text for deleted parent
+              : 'rgb(147, 197, 253)', // original blue text
             '& .MuiChip-icon': {
-              color: 'rgb(147, 197, 253)',
+              color: isParentDeleted
+                ? 'rgb(252, 165, 165)' // lighter red icon for deleted parent
+                : 'rgb(147, 197, 253)', // original blue icon
             },
             height: 'auto',
             '& .MuiChip-label': {
@@ -899,7 +915,33 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
               </Paper>
 
               {/* Code Editor */}
-              <Paper sx={{ p: 2, bgcolor: 'background.paper', maxWidth: '100%', overflow: 'hidden' }}>
+              <Paper
+                sx={{
+                  p: 2,
+                  bgcolor: 'background.paper',
+                  maxWidth: '100%',
+                  '& .cm-editor': {
+                    // Set a fixed height for the CodeMirror editor
+                    maxHeight: '500px',
+                    overflow: 'auto',
+                    // Optional: Add custom scrollbar styling
+                    '&::-webkit-scrollbar': {
+                      width: '8px',
+                      height: '8px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      background: 'rgba(0,0,0,0.1)',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      background: 'rgba(255,255,255,0.2)',
+                      borderRadius: '4px',
+                    },
+                    '&::-webkit-scrollbar-thumb:hover': {
+                      background: 'rgba(255,255,255,0.3)',
+                    },
+                  }
+                }}
+              >
                 <CodeEditorWithCodeMirror
                   code={code}
                   language={language}
