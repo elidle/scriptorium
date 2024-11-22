@@ -1,5 +1,5 @@
 import { prisma } from '../../../../utils/db';
-import { writeFile, readFile, mkdir } from 'fs/promises'
+import { writeFile, readFile, mkdir, unlink } from 'fs/promises'
 import { join } from 'path'
 import { authorize } from '../../../middleware/auth';
 import { ForbiddenError } from '../../../../errors/ForbiddenError';
@@ -11,26 +11,46 @@ export async function GET(req, { params }) {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { avatar: true }
+      select: { 
+        avatar: true,
+        updatedAt: true  // Add this to use as version parameter
+      },
     });
 
     if (!user?.avatar) {
       return Response.json({ error: 'Avatar not found' }, { status: 404 });
     }
 
-    const path = join(process.cwd(), `public/${user.avatar}`);
-    const file = await readFile(path);
+    const filePath = join(process.cwd(), `public/${user.avatar}`);
     
+    // Check if the file exists
+    try {
+      await fs.access(filePath);
+    } catch (err) {
+      return Response.json({ error: 'Avatar file not found on server' }, { status: 404 });
+    }
+
+    // Read the file if it exists
+    const file = await fs.readFile(filePath);
+
+    // Convert updatedAt to timestamp for version parameter
+    const version = user.updatedAt.getTime();
+
     return new Response(file, {
       headers: {
         'Content-Type': 'image/jpeg',
-        'Cache-Control': 'public, max-age=31536000'
-      }
-    })
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'ETag': `"${version}"`,
+      },
+    });
   } catch (e) {
-    return Response.json({ error: 'Avatar not found' }, { status: 404 });
+    console.error(e);
+    return Response.json({ error: 'An error occurred while fetching the avatar' }, { status: 500 });
   }
 }
+
 
 export async function POST(req, { params }) {
   try {

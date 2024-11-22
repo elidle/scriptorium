@@ -95,6 +95,8 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
   const [message, setMessage] = useState("");
   const [about, setAbout] = useState(user?.about || "");
   const [error, setError] = useState("");
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isCurrentUser, setIsCurrentUser] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -106,11 +108,14 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
       setPhoneNumber(user.phoneNumber || "");
       setAbout(user.about || "");
     }
+    setIsLoaded(true);
+    if (currentUser?.username === params.username) {
+      setIsCurrentUser(true);
+    }
   }, [user]); // Only re-run this effect when 'user' changes
 
   const router = useRouter();
   const {user: currentUser, accessToken, setAccessToken} = useAuth();
-  const isCurrentUser = currentUser?.username === params.username;
 
   useEffect(() => {
     if (error) {
@@ -143,11 +148,10 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
 
   const handleAvatarDelete = (userid : number | String) => {
 
-
-
     const option =  {
       method: 'DELETE',
     };
+
     fetchAuth({url : `/api/avatar/${userid}`, options : option, user:currentUser, setAccessToken, router})
       .then((response) => response ? response.json() : Promise.reject('Response is null'))
       .then((data) => {
@@ -157,13 +161,9 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
       .catch((error) => console.error('Error deleting avatar:', error));
   }
 
-  // Redirect if user is not authorized to view this page
-  if (!isCurrentUser){
-    return <div className="min-h-screen flex items-center justify-center">You are not authorized to view this page</div>;
-  }
-
+  
   // Fetch user data if not already available
-
+  
   interface FormData {
     firstname: string;
     lastname: string;
@@ -171,14 +171,22 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
     phoneNumber: string
     about?: string;
   }
-
+  
   interface ApiResponse {
     message?: string;
     error?: string;
   }
+  
+  // Redirect if user is not authorized to view this page
+  if (!isCurrentUser){
+    return <div className="min-h-screen flex items-center justify-center">You are not authorized to view this page</div>;
+  }
 
-  if (!user) {
+  if (!isLoaded) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+  else if (!user) {
+    return <div className="min-h-screen flex items-center justify-center">User not found</div>;
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
