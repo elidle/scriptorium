@@ -192,7 +192,12 @@ export default function UserProfile({ params }: { params: { username: string } }
                           <h1 className="text-2xl font-bold text-indigo-800 dark:text-white mb-2">{user.firstname + " " + user.lastname}</h1>
                           <p className="text-gray-600 dark:text-gray-300">{user.username}</p>
                           {canEdit && (
-                            <button className="mt-4 bg-indigo-800 text-white px-4 py-2 rounded-lg hover:bg-blue-900 transition-colors duration-300">Edit Profile</button>
+                            <button 
+                              className="mt-4 bg-indigo-800 text-white px-4 py-2 rounded-lg hover:bg-blue-900 transition-colors duration-300"
+                              onClick={() => window.location.href = `/users/${user.username}/edit-profile`}
+                            >
+                              Edit Profile
+                            </button>
                           )}
                         </div>
                         <div className="md:w-2/3 md:pl-8">

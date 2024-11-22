@@ -7,6 +7,10 @@ import { useAuth } from "@/app/contexts/AuthContext";
 import UserAvatar from "@/app/components/UserAvatar";
 import { notFound } from "next/navigation";
 import UserProfileAvatar from "@/app/components/UserProfileAvatar";
+import { fetchAuth } from "@/app/utils/auth";
+import { RequestInit } from "next/dist/server/web/spec-extension/request";
+import { useRouter} from "next/navigation";
+import { User } from '@/app/types';
 
 interface InitialData {
   avatar?: string;
@@ -17,6 +21,11 @@ interface InitialData {
   about?: string;
 }
 
+interface AuthUserData {
+  id: string | number;
+  username: string;
+  role: string;
+}
 
 interface UserProfileProps {
   avatar: string;
@@ -31,19 +40,26 @@ interface UserProfileProps {
 }
 
 // This function runs on the server and fetches user data.
-async function getUserData(username: string): Promise<UserProfileProps | null> {
-
+async function getUserData(currentUser: User, setAccessToken: (token: string) => void, router: ReturnType<typeof useRouter> ): Promise<UserProfileProps | null> {
   try {
+      const option: RequestInit =  {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        cache: 'no-store' // Ensures fresh data is fetched on each request
+    };
+
       // Find the corresponding user id from the database
-      const response = await fetch(`http://localhost:3000/api/users?username=${username}`, {
-          method: 'GET',
-          headers: {
-              'Content-Type': 'application/json',
-          },
-          cache: 'no-store' // Ensures fresh data is fetched on each request
+      const response = await fetchAuth({
+        url: `http://localhost:3000/api/users?username=${currentUser.username}`,
+        options: option,
+        user: currentUser,
+        setAccessToken,
+        router
       });
 
-      if (!response.ok) {
+      if (!response || !response.ok) {
           console.error('Failed to fetch user data');
           notFound(); // Triggers the 404 page
       }
@@ -63,7 +79,7 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
   
   useEffect(() => {
     const fetchUserData = async () => {
-      const data = await getUserData(params.username);
+      const data = await getUserData(currentUser, setAccessToken, router);
       setUser(data);
     };
     fetchUserData();
@@ -92,7 +108,8 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
     }
   }, [user]); // Only re-run this effect when 'user' changes
 
-  const {user: currentUser } = useAuth();
+  const router = useRouter();
+  const {user: currentUser, accessToken, setAccessToken} = useAuth();
   const isCurrentUser = currentUser?.username === params.username;
 
   useEffect(() => {
@@ -110,12 +127,13 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
   const handleFileUpload = (file: File, userid : number | String) => {
     const formData = new FormData();
     formData.append('image', file);
-  
-    fetch(`/api/avatar/${userid}`, {
+    const option =  {
       method: 'POST',
       body: formData,
-    })
-      .then((response) => response.json())
+    }
+
+      fetchAuth({url : `/api/avatar/${userid}`, options : option, user:currentUser, setAccessToken, router})
+      .then((response) => response ? response.json() : Promise.reject('Response is null'))
       .then((data) => {
           console.log('File uploaded successfully:', data);
           setMessage("File uploaded successfully");
@@ -124,10 +142,14 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
   };
 
   const handleAvatarDelete = (userid : number | String) => {
-    fetch(`/api/avatar/${userid}`, {
+
+
+
+    const option =  {
       method: 'DELETE',
-    })
-      .then((response) => response.json())
+    };
+    fetchAuth({url : `/api/avatar/${userid}`, options : option, user:currentUser, setAccessToken, router})
+      .then((response) => response ? response.json() : Promise.reject('Response is null'))
       .then((data) => {
           console.log('Avatar deleted successfully:', data);
           setMessage("Avatar deleted successfully");
@@ -143,8 +165,8 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
   // Fetch user data if not already available
 
   interface FormData {
-    firstName: string;
-    lastName: string;
+    firstname: string;
+    lastname: string;
     email: string;
     phoneNumber: string
     about?: string;
@@ -166,26 +188,32 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
 
     // Request data
     const data: FormData = {
-      firstName,
-      lastName,
-      email,
-      phoneNumber,
-      about,
+      firstname : firstName,
+      lastname : lastName,
+      email :email,
+      phoneNumber :phoneNumber,
+      about : about,
     };
 
     try {
-
-      // Send the request to change the user's profile
-      const response = await fetch(`/api/users/${user.id}`, {
+      
+      const option = {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
-      });
+      }
+
+      // Send the request to change the user's profile
+      const response = await fetchAuth({url: `/api/users/${user.id}/profile`, options: option, user: currentUser, setAccessToken, router});
 
       console.log(response);
 
+      if (!response) {
+        setError("Failed to update profile");
+        return;
+      }
       const result: ApiResponse = await response.json();
       if (response.ok) {
         setMessage(result.message || "Profile updated successfully");

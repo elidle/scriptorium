@@ -50,7 +50,6 @@ export async function PUT(req, { params }) {
             where: { id: parseInt(id) },
         });
 
-        
         if (!user) {
             console.log("User not found");
             return Response.json({ status: "error", message: "User not found" }, { status: 404 });
