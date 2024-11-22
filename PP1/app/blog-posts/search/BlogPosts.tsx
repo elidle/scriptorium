@@ -8,11 +8,11 @@ import {
   Checkbox,
   FormGroup,
   Modal,
-  Box, Drawer, Divider, IconButton, Theme, ThemeProvider, createTheme,
+  Box, Drawer, Divider, IconButton, Theme, ThemeProvider, createTheme
 } from "@mui/material";
 import React, {useCallback, useEffect, useState} from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
-import {Star, Clock, TrendingUp, Zap, Plus, ChevronRight, ChevronLeft} from "lucide-react";
+import {Star, Clock, TrendingUp, Zap, Plus, ChevronRight, ChevronLeft, Menu} from "lucide-react";
 import Link from 'next/link';
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
@@ -77,6 +77,8 @@ export default function BlogPosts() {
   const [blogPosts, setBlogPosts] = useState<Post[]>([]);
   const [error, setError] = useState("");
 
+  const [isSideNavOpen, setIsSideNavOpen] = useState(false);
+
   // Pagination states
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -98,10 +100,9 @@ export default function BlogPosts() {
   const [reportReason, setReportReason] = useState("");
   const [reportingPostId, setReportingPostId] = useState<number | null>(null);
 
-  const { user, accessToken, setAccessToken } = useAuth();
+  const { user, accessToken, setAccessToken, loading } = useAuth();
   const { showToast } = useToast();
-
-
+  
   const sortOptions = [
     { value: "new", label: "New", icon: Star },
     { value: "old", label: "Old", icon: Clock },
@@ -120,7 +121,7 @@ export default function BlogPosts() {
   useEffect(() => {
     setBlogPosts([]);
     setPage(1);
-    fetchBlogPosts(true);
+    if(!loading) fetchBlogPosts(true);
   }, [debouncedQuery, sortBy, selectedTags, user]);
 
   useEffect(() => {
@@ -163,6 +164,10 @@ export default function BlogPosts() {
         } catch (err) {
           response = await fetch(url, {}); // Fall back to guest view if token refresh fails
         }
+      }
+
+      if (!response.ok) {
+        response = await fetch(url, {}); // Fall back to guest view if anything else fails
       }
 
       const data = await response.json();
@@ -403,8 +408,18 @@ export default function BlogPosts() {
   return (
     <ThemeProvider theme={theme}>
       <div className="min-h-screen flex bg-slate-900">
-        <SideNav router={router}/>
-
+        <div 
+          className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${
+            isSideNavOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
+          onClick={() => setIsSideNavOpen(false)}
+        />
+        <div className={`fixed left-0 top-0 h-screen w-64 bg-slate-900 border-r border-slate-800 z-50 transition-transform duration-300 transform ${
+          isSideNavOpen ? "translate-x-0" : "-translate-x-full"
+        }`}>
+          <SideNav router={router} />
+        </div>
+  
         {/* Modal for reporting */}
         <Modal open={reportModalOpen} onClose={() => setReportModalOpen(false)}>
           <Box
@@ -425,7 +440,7 @@ export default function BlogPosts() {
             <Typography variant="h6" gutterBottom sx={{ color: "rgb(96, 165, 250)" }}>
               Report Post
             </Typography>
-
+  
             <TextField
               fullWidth
               label="Reason"
@@ -470,24 +485,35 @@ export default function BlogPosts() {
             </div>
           </Box>
         </Modal>
-
-        <div className="flex-1 ml-64">
+  
+        <div className="flex-1">
           {/* App Bar */}
           <AppBar
             position="fixed"
-            className="!bg-slate-800 border-b border-slate-700"
-            sx= {{ boxShadow: 'none' }}
+            sx={{
+              width: '100%',
+              zIndex: (theme: Theme) => theme.zIndex.drawer + 1,
+              bgcolor: 'background.paper'
+            }}
           >
-            <div className="p-3 flex flex-col sm:flex-row items-center gap-3">
-              <Link href="/">
-                <Typography
-                  className="text-xl sm:text-2xl text-blue-400 flex-shrink-0"
-                  variant="h5"
+            <div className="p-3 flex items-center gap-3">
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setIsSideNavOpen(!isSideNavOpen)}
+                  className="p-1 hover:bg-slate-700 rounded-lg transition-colors"
                 >
-                  Scriptorium
-                </Typography>
-              </Link>
-
+                  <Menu size={24} className="text-slate-300" />
+                </button>
+                <Link href="/">
+                  <Typography 
+                    className="text-xl sm:text-2xl text-blue-400 flex-shrink-0" 
+                    variant="h5"
+                  >
+                    Scriptorium
+                  </Typography>
+                </Link>
+              </div>
+  
               <TextField
                 className="flex-grow"
                 color="info"
@@ -517,13 +543,12 @@ export default function BlogPosts() {
                   },
                 }}
               />
-
+  
               {user ? (
                 <div className="flex items-center gap-2">
                   <UserAvatar username={user.username} userId={user.id} />
-
                   <Link href={`/users/${user.username}`}>
-                    <Typography className="text-slate-200 hover:text-blue-400">
+                    <Typography className="text-slate-200 hover:text-blue-400 text-sm sm:text-base">
                       {user.username}
                     </Typography>
                   </Link>
@@ -541,38 +566,31 @@ export default function BlogPosts() {
               )}
             </div>
           </AppBar>
-
+  
           {/* Content container */}
-          <div className="pt-16">
-            <div className="flex flex-row-reverse relative">
-              {/* Overlay */}
-              <div
-                onClick={toggleSidebar}
-                className={`fixed inset-0 bg-black transition-opacity duration-300 ${
-                  sideBarState ? "opacity-50 visible" : "opacity-0 invisible"
-                } md:hidden`}
-              />
-
+          <Box sx={{ display: 'flex' }}>
               {/* Right Sidebar */}
               <Drawer
-                variant="persistent"
                 anchor="right"
                 open={sideBarState}
+                variant="temporary"
+                ModalProps={{
+                  keepMounted: true,
+                }}
                 sx={{
                   width: rightDrawerWidth,
                   flexShrink: 0,
                   '& .MuiDrawer-paper': {
                     width: rightDrawerWidth,
                     boxSizing: 'border-box',
-                    // Add overlay effect instead of pushing content
                     borderLeft: '1px solid',
                     borderColor: 'divider',
-                    // Optional: add subtle shadow
                     boxShadow: '-4px 0 15px rgba(0, 0, 0, 0.1)',
+                    marginTop: '64px',
                   },
-                  // Optional: add backdrop for better visibility
                   '& .MuiBackdrop-root': {
-                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    marginTop: '64px',
                   },
                 }}
               >
@@ -587,14 +605,14 @@ export default function BlogPosts() {
                   </Box>
                 </Box>
               </Drawer>
-
+  
               {/* Right Sidebar Toggle Button */}
               <IconButton
                 onClick={toggleSidebar}
                 sx={{
                   position: 'fixed',
                   right: sideBarState ? rightDrawerWidth : 0,
-                  top: '80px',
+                  top: '50%',
                   zIndex: (theme: Theme) => theme.zIndex.drawer + 2,
                   bgcolor: 'background.paper',
                   '&:hover': {
@@ -608,9 +626,20 @@ export default function BlogPosts() {
               >
                 {sideBarState ? <ChevronRight /> : <ChevronLeft />}
               </IconButton>
-
+  
               {/* Main content */}
-              <main className="flex-1 p-4 max-w-3xl mx-auto">
+              <Box
+                component="main"
+                sx={{
+                  flexGrow: 1,
+                  p: 3,
+                  marginTop: '64px',
+                  transition: (theme) => theme.transitions.create(['margin'], {
+                    easing: theme.transitions.easing.sharp,
+                    duration: theme.transitions.duration.standard,
+                  }),
+                }}
+              >
                 {/* Sorting Section */}
                 <div className="flex justify-between items-center mb-4">
                   <Typography variant="h6" className="text-blue-400">
@@ -629,21 +658,21 @@ export default function BlogPosts() {
                     sortOptions={sortOptions}
                   />
                 </div>
-
+  
                 {/* Search status */}
                 {debouncedQuery && (
                   <Typography className="mb-4 text-slate-400">
                     Showing results for "{debouncedQuery}"
                   </Typography>
                 )}
-
+  
                 {/* Error message */}
                 {error && (
                   <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-4">
                     <Typography className="text-red-500">{error}</Typography>
                   </div>
                 )}
-
+  
                 {/* Post Infinite Scroll List */}
                 <InfiniteScroll
                   dataLength={blogPosts.length}
@@ -666,7 +695,7 @@ export default function BlogPosts() {
                     )
                   }
                 >
-                  <div className="space-y-4">
+                  <div className="space-y-4 max-w-full">
                     {blogPosts.map((post) => (
                       <PostPreview
                         key={post.id}
@@ -677,9 +706,8 @@ export default function BlogPosts() {
                     ))}
                   </div>
                 </InfiniteScroll>
-              </main>
-            </div>
-          </div>
+              </Box>
+          </Box>
         </div>
       </div>
     </ThemeProvider>
