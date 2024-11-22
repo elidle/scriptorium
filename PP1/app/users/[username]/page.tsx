@@ -1,9 +1,9 @@
 'use client';
 
-import { notFound } from 'next/navigation';
+import {notFound, useRouter} from 'next/navigation';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect } from 'react';
 import TemplateCard from '@/app/components/TemplateCard';
 import UserAvatar from '@/app/components/UserAvatar';
 import { CodeTemplate } from '@/app/types';
@@ -96,6 +96,7 @@ async function getTemplates(username: string): Promise<CodeTemplate[]> {
 }
 
 export default function UserProfile({ params }: { params: { username: string } }) {
+  const router = useRouter();
   const [user, setUser] = useState<UserProfileProps | null>(null);
   const [view, setView] = useState("templates");
   const [comments, setComments] = useState<any[]>([]);
@@ -192,7 +193,9 @@ export default function UserProfile({ params }: { params: { username: string } }
                           <h1 className="text-2xl font-bold text-indigo-800 dark:text-white mb-2">{user.firstname + " " + user.lastname}</h1>
                           <p className="text-gray-600 dark:text-gray-300">{user.username}</p>
                           {canEdit && (
-                            <button className="mt-4 bg-indigo-800 text-white px-4 py-2 rounded-lg hover:bg-blue-900 transition-colors duration-300">Edit Profile</button>
+                            <button
+                              onClick={() => router.push(`/users/${params.username}/edit-profile`)}
+                              className="mt-4 bg-indigo-800 text-white px-4 py-2 rounded-lg hover:bg-blue-900 transition-colors duration-300">Edit Profile</button>
                           )}
                         </div>
                         <div className="md:w-2/3 md:pl-8">

@@ -43,6 +43,7 @@ export async function POST(req) {
                 about: user.about,
                 role: user.role
             },
+            'access-token': accessToken,
             }, {
             status: 200,
             headers: {
