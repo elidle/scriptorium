@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ToastProvider } from "./contexts/ToastContext";
+import ThemeRegistry from "@/app/providers/ThemeRegistry";
 
 export const metadata: Metadata = {
   title: "Scriptorium",
@@ -14,7 +15,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <AuthProvider>
           <ToastProvider>
-            {children}
+            <ThemeRegistry>
+              {children}
+            </ThemeRegistry>
           </ToastProvider>
         </AuthProvider>
       </body>
