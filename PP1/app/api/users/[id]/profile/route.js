@@ -4,6 +4,7 @@ import {prisma} from "../../../../../utils/db";
 
 export async function GET(req, { params }) {
   const userId = params.id;
+
   try {
     // Retrieve the user's profile information
     const user = await prisma.user.findUnique({
@@ -15,7 +16,7 @@ export async function GET(req, { params }) {
     }
 
     // Create an object with only the desired fields
-    const { firstname, lastname, email, phoneNumber, avatar } = user;
+    const { firstname, lastname, email, phoneNumber, avatar, role, username, id, about } = user;
 
     return Response.json({
         firstname : firstname,
@@ -23,6 +24,10 @@ export async function GET(req, { params }) {
         email : email,
         phoneNumber : phoneNumber,
         avatar : avatar,
+        role: role,
+        username: username,
+        id: id,
+        about: about
     }, {
         status: 200,
     });

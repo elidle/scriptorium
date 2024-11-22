@@ -9,6 +9,7 @@ const Page = () => {
     router.push('/blog-posts/search');
   }, [router]);
 
+
   return (
     <div className="min-h-screen bg-slate-900"></div>
   );

@@ -110,6 +110,10 @@ export async function POST(req) {
                 const execChild = spawn(path.join(process.cwd(), 'output'));
                 // execChild.stdin.write(input); // Provide input
 
+                const timeout = setTimeout(() => {
+                    child.kill();
+                }, TIME_LIMIT);
+
                 const inputs = input.split("\n"); // Split the input by newlines
 
                 for (const line of inputs) {
@@ -154,6 +158,10 @@ export async function POST(req) {
 
                 // Execute the compiled Java class file
                 const execChild = spawn('java', ['-cp', process.cwd(), 'Main']); // Ensure 'Main' matches the class name
+
+                const timeout = setTimeout(() => {
+                    child.kill();
+                }, TIME_LIMIT);
 
                 // execChild.stdin.write(input); // Provide input
 

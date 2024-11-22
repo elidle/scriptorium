@@ -3,15 +3,22 @@ import {prisma} from "../../../../utils/db";
 
 export async function POST(req) {
 
-    const { username, firstname, lastname, email, password, phoneNumber } = await req.json(); // Using req.json() to parse JSON body
+    const { username, firstname, lastname, email, password, confirmPassword, phoneNumber } = await req.json(); // Using req.json() to parse JSON body
+
+    console.log("Received data:", { username, firstname, lastname, email, password, confirmPassword, phoneNumber });
 
     // Validate input
-    if (!username || !email || !password || !firstname || !lastname ||!phoneNumber) {
+    if (!username || !email || !password || !firstname || !lastname ||!phoneNumber || !confirmPassword) {
         return Response.json({ status: "error", message: "Missing fields" }, { status: 400 });
     }
 
     if (password.length < 6) {
+        console.log("Password must be at least 6 characters long");
         return Response.json({ status: "error", message: "Password must be at least 6 characters long" }, { status: 400 });
+    }
+
+    if (password !== confirmPassword) {
+        return Response.json({ status: "error", message: "Passwords do not match" }, { status: 400 });
     }
 
     // Regular expression for validating a phone number (simple example)
@@ -23,6 +30,7 @@ export async function POST(req) {
 
     // Hash the password
     const hashedPassword = await hashPassword(password);
+
     try {
         // Check if email already exists
         const existingUserByEmail = await prisma.user.findUnique({
@@ -30,6 +38,7 @@ export async function POST(req) {
         });
 
         if (existingUserByEmail) {
+            console.log("User already exists with this email");
             return Response.json({ status: "error", message: "User already exists with this email" }, { status: 400 });
         }
 

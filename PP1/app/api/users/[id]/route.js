@@ -37,10 +37,12 @@ export async function GET(req, { params }) {
 
 // A similar implementation is on the profile/route.js
 export async function PUT(req, { params }) {
+    console.log("User not found");
 
     const { id } = params;
     const updateData = await req.json();
     try {
+        console.log("User not found");
         await authorize(req, ['admin', 'user'], parseInt(id));
         updateData.hashedPassword = updateData.password ? await hashPassword(updateData.password) : undefined;
         delete updateData.password;
@@ -48,9 +50,12 @@ export async function PUT(req, { params }) {
             where: { id: parseInt(id) },
         });
 
+        
         if (!user) {
+            console.log("User not found");
             return Response.json({ status: "error", message: "User not found" }, { status: 404 });
         }
+        console.log("User not found");
 
         // Validate that the updateData doesn't contain a change to the 'id' field
         if (updateData.id && updateData.id !== user.id) {
