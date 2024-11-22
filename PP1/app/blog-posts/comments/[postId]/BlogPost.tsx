@@ -5,8 +5,7 @@ import {
   AppBar,
   TextField,
   Modal,
-  Box,
-  IconButton, Theme, ThemeProvider, createTheme
+  Box
 } from "@mui/material";
 import {
   MessageCircle,
@@ -16,8 +15,7 @@ import {
   TrendingUp,
   Zap,
   Edit,
-  Trash2,
-  Menu
+  Trash2
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
@@ -28,6 +26,7 @@ import { useToast } from "@/app/contexts/ToastContext";
 
 import { refreshToken, fetchAuth } from "@/app/utils/auth";
 import { useRouter } from "next/navigation";
+import { Tag } from '@/app/types/tag';
 
 import SideNav from "@/app/components/SideNav";
 import UserAvatar from "@/app/components/UserAvatar";
@@ -48,26 +47,6 @@ interface PostQueryParams {
   }
 }
 
-const theme = createTheme({
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#2563eb',
-    },
-    secondary: {
-      main: '#7c3aed',
-    },
-    background: {
-      default: '#0f172a',
-      paper: '#1e293b',
-    },
-    text: {
-      primary: '#f8fafc',
-      secondary: '#cbd5e1',
-    },
-  },
-});
-
 export default function BlogPost({ params }: PostQueryParams) {
   const { showToast } = useToast();
 
@@ -77,7 +56,7 @@ export default function BlogPost({ params }: PostQueryParams) {
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [error, setError] = useState<string>("");
-
+  
   // Pagination states
   const [page, setPage] = useState<number>(1);
   const [hasMore, setHasMore] = useState<boolean>(true);
@@ -105,8 +84,6 @@ export default function BlogPost({ params }: PostQueryParams) {
     setIsEditing(!isEditing)
   };
   const [editedContent, setEditedContent] = useState("");
-
-  const [isSideNavOpen, setIsSideNavOpen] = useState(false);
 
   const { user, accessToken, setAccessToken } = useAuth();
 
@@ -595,20 +572,8 @@ export default function BlogPost({ params }: PostQueryParams) {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-    <div className="min-h-screen flex bg-slate-900">
-      <div 
-        className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${
-          isSideNavOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-        onClick={() => setIsSideNavOpen(false)}
-      />
-
-      <div className={`fixed left-0 top-0 h-screen w-64 bg-slate-900 border-r border-slate-800 z-50 transition-transform duration-300 transform ${
-        isSideNavOpen ? "translate-x-0" : "-translate-x-full"
-      }`}>
-        <SideNav router={router} />
-      </div>
+    <div className="min-h-screen flex bg-slate-900 text-slate-200">
+      <SideNav router={router} />
 
       {/* Modal for reporting */}
       <Modal open={reportModalOpen} onClose={() => setReportModalOpen(false)}>
@@ -691,134 +656,246 @@ export default function BlogPost({ params }: PostQueryParams) {
         </div>
       )}
 
-        <div className="flex-1">
-          {/* App Bar */}
-          <AppBar 
-            position="fixed" 
-            sx={{
-              width: '100%',
-              zIndex: (theme: Theme) => theme.zIndex.drawer + 1,
-              bgcolor: 'background.paper'
-            }}
-          >
-            <div className="p-3 flex items-center gap-3">
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={() => setIsSideNavOpen(!isSideNavOpen)}
-                className="p-1 hover:bg-slate-700 rounded-lg transition-colors"
-              >
-                <Menu size={24} className="text-slate-300" />
-              </button>
+      {/* App Bar */}
+      <AppBar 
+        position="fixed" 
+        className="!bg-slate-800 border-b border-slate-700"
+        sx={{ boxShadow: 'none' }}
+      >
+        <div className="p-3 flex flex-col sm:flex-row items-center gap-3">
+          <Link href="/">
+            <Typography 
+              className="text-xl sm:text-2xl text-blue-400 flex-shrink-0" 
+              variant="h5"
+            >
+            Scriptorium
+            </Typography>
+          </Link>
 
-              <Link href="/">
-                <Typography 
-                  className="text-xl sm:text-2xl text-blue-400 flex-shrink-0" 
-                  variant="h5"
-                >
-                Scriptorium
-                </Typography>
-              </Link>
-            </div>
+          <div className="flex-grow"></div>
 
-              <div className="flex-grow"></div>
+          {user ? (
+          <div className="flex items-center gap-2">
+            <UserAvatar username={user.username} userId={user.id} />
 
-              {user ? (
-              <div className="flex items-center gap-2">
-                <UserAvatar username={user.username} userId={user.id} />
+            <Typography className="text-slate-200">
+              {user.username}
+            </Typography>
+          </div>
+          ) : (
+          <Link href="/auth/login">
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
+              variant="contained"
+              size="small"
+            >
+              Log In
+            </Button>
+          </Link>
+          )}
+        </div>
+      </AppBar>
 
-                <Typography className="text-slate-200 hover:text-blue-400 text-sm sm:text-base">
-                  {user.username}
+      <main className="flex-1 p-4 max-w-3xl w-full mx-auto mt-12 mb-10">
+        {error ? (
+          <div className="bg-slate-800 rounded-lg border border-slate-700 p-8 text-center">
+            <Typography variant="h5" className="text-red-400 mb-4">
+              {error}
+            </Typography>
+            <Button 
+              href="/blog-posts/search"
+              variant="contained"
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Back to Posts
+            </Button>
+          </div>
+        ) : post ? (
+          <>
+            {/* Post Section */}
+            <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px] flex flex-col justify-between">
+                <div className="flex items-center gap-2 mb-2 mt-2">
+                <UserAvatar username={post.authorUsername} userId={post.authorId} />
+
+                {
+                  post.authorUsername[0] === '[' ? (
+                    <Typography className={`${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
+                      {post.authorUsername}
+                    </Typography>
+                  ) : (
+                    <Link href={`/users/${post.authorUsername}`}>
+                      <Typography className={`hover:text-blue-400 ${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
+                        {post.authorUsername}
+                      </Typography>
+                    </Link>
+                  )
+                }
+
+                <Typography className="text-slate-400">
+                  • {new Date(post.createdAt).toLocaleString()}
                 </Typography>
               </div>
-              ) : (
-              <Link href="/auth/login">
-                <Button 
-                  className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
-                  variant="contained"
-                  size="small"
-                >
-                  Log In
-                </Button>
-              </Link>
-              )}
-            </div>
-          </AppBar>
-          <main className="flex-1 p-4 max-w-7xl mx-auto mt-20">
-            {error ? (
-            <div className="bg-slate-800 rounded-lg border border-slate-700 p-8 text-center">
-              <Typography variant="h5" className="text-red-400 mb-4">
-                {error}
+
+              <Typography variant="h4" className="text-slate-300">
+                {post.title === null ? "[Deleted post]" : post.title}
               </Typography>
-              <Button 
-                href="/blog-posts/search"
-                variant="contained"
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Back to Posts
-              </Button>
-            </div>
-            ) : post ? (
-              <>
-                {/* Post Section */}
-                <div className="bg-slate-800 rounded-lg border border-slate-700 p-2 sm:p-4 mb-4 min-h-[200px] flex flex-col justify-between">
-                  <div className="flex items-center gap-2 mb-2 mt-2">
-                    <UserAvatar username={post.authorUsername} userId={post.authorId} />
 
-                    {
-                      post.authorUsername[0] === '[' ? (
-                        <Typography className={`${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
-                          {post.authorUsername}
-                        </Typography>
-                      ) : (
-                        <Link href={`/users/${post.authorUsername}`}>
-                          <Typography className={`hover:text-blue-400 ${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
-                            {post.authorUsername}
-                          </Typography>
-                        </Link>
-                      )
-                    }
-
-                    <Typography className="text-slate-400">
-                      • {new Date(post.createdAt).toLocaleString()}
-                    </Typography>
+              {isEditing ? (
+                <form onSubmit={handleEditSubmit} className="space-y-4 mb-2 mt-2">
+                  <TextField
+                    fullWidth
+                    multiline
+                    minRows={4}
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    className="bg-slate-900"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        height: '100%',
+                        color: 'rgb(226, 232, 240)',
+                        '& fieldset': { borderColor: 'rgb(51, 65, 85)' },
+                        '&:hover fieldset': { borderColor: 'rgb(59, 130, 246)' },
+                        '&.Mui-focused fieldset': { borderColor: 'rgb(59, 130, 246)' },
+                      },
+                    }}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      type="submit"
+                      variant="contained"
+                      className="bg-blue-600 hover:bg-blue-700 px-6"
+                    >
+                      Save
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        setEditedContent("");
+                        setIsEditing(false);
+                      }}
+                      variant="outlined"
+                      className="text-slate-300 border-slate-700 hover:border-blue-400"
+                    >
+                      Cancel
+                    </Button>
                   </div>
+                </form>
+              ) : (
+                <Typography variant="body1" className="text-slate-300 mb-2 mt-2" sx={{ whiteSpace: "pre-wrap" }}>
+                  {post.content === null ? "[This post has been deleted by its author.]" : post.content}
+                </Typography>
+              )}
 
-                  <Typography variant="h4" className="text-slate-300 text-xl sm:text-2xl break-words">
-                    {post.title === null ? "[Deleted post]" : post.title}
-                  </Typography>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  {/* Post Voting */}
+                  <Voting
+                    item={post}
+                    handleVote={handlePostVote}
+                  />
+                  
+                  {/* Post Actions */}
+                  <button 
+                    onClick={scrollToComment} 
+                    className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
+                    disabled={!post?.allowAction}
+                  >
+                    <MessageCircle size={18} />
+                    <span className="text-sm"> Comment </span>
+                  </button>
+                  
+                  {user?.id !== post.authorId && (
+                    <button
+                      onClick={() => { if (post.allowAction) handleReportClick(post.id)}}
+                      className={`flex items-center gap-1 text-slate-400 ${post.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
+                      disabled={!post.allowAction}
+                    >
+                      <TriangleAlert size={18} />
+                      <span className="text-xs">Report</span>
+                    </button>
+                  )}
+                </div>
 
-                  {isEditing ? (
-                    <form onSubmit={handleEditSubmit} className="space-y-4 mb-2 mt-2">
+                {/* Author buttons */}
+                {user?.id === post.authorId && (
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => toggleIsEditing()}
+                      className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
+                      disabled={!post?.allowAction}
+                    >
+                      <Edit size={18} />
+                      <span className="text-sm"> Edit </span>
+                    </button>
+                    <button 
+                      onClick={() => setDeleteModalOpen(true)}
+                      className={'flex items-center gap-1 text-slate-400 hover:text-red-400'}
+                    >
+                      <Trash2 size={18} />
+                      <span className="text-sm"> Delete </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* New Comment Input Section */}
+              {post?.allowAction ? (
+                <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px]">
+                  <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px]">
+                    <Typography variant="h6" className="text-blue-400 mb-3">
+                      Add a Comment
+                    </Typography>
+
+                    {newCommentError && (
+                      <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
+                        <Typography className="text-red-500">{newCommentError}</Typography>
+                      </div>
+                    )}
+
+                    <form 
+                      onSubmit={handleCommentSubmit} 
+                      className="space-y-4"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          handleCommentSubmit(e);
+                        } else if (e.key === 'Escape') {
+                          commentInputRef.current?.blur();
+                        }
+                      }}
+                    >
                       <TextField
                         fullWidth
                         multiline
-                        minRows={4}
-                        value={editedContent}
-                        onChange={(e) => setEditedContent(e.target.value)}
+                        rows={4}
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder="What are your thoughts?"
                         className="bg-slate-900"
+                        inputRef={commentInputRef}
                         sx={{
                           '& .MuiOutlinedInput-root': {
-                            height: '100%',
                             color: 'rgb(226, 232, 240)',
-                            '& fieldset': { borderColor: 'rgb(51, 65, 85)' },
-                            '&:hover fieldset': { borderColor: 'rgb(59, 130, 246)' },
-                            '&.Mui-focused fieldset': { borderColor: 'rgb(59, 130, 246)' },
+                            '& fieldset': {
+                              borderColor: 'rgb(51, 65, 85)',
+                            },
+                            '&:hover fieldset': {
+                              borderColor: 'rgb(59, 130, 246)',
+                            },
+                            '&.Mui-focused fieldset': {
+                              borderColor: 'rgb(59, 130, 246)',
+                            },
                           },
                         }}
                       />
-                      <div className="flex justify-end gap-2">
+                      <div className="flex gap-2">
                         <Button 
                           type="submit"
                           variant="contained"
                           className="bg-blue-600 hover:bg-blue-700 px-6"
                         >
-                          Save
+                          Submit
                         </Button>
                         <Button 
-                          onClick={() => {
-                            setEditedContent("");
-                            setIsEditing(false);
-                          }}
+                          onClick={() => setNewComment("")}
                           variant="outlined"
                           className="text-slate-300 border-slate-700 hover:border-blue-400"
                         >
@@ -826,187 +903,64 @@ export default function BlogPost({ params }: PostQueryParams) {
                         </Button>
                       </div>
                     </form>
-                  ) : (
-                    <Typography variant="body1" className="text-slate-300 mb-2 mt-2" sx={{ whiteSpace: "pre-wrap" }}>
-                      {post.content === null ? "[This post has been deleted by its author.]" : post.content}
-                    </Typography>
-                  )}
-
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {/* Post Voting */}
-                      <Voting item={post} handleVote={handlePostVote} />
-                      
-                      {/* Post Actions */}
-                      <button 
-                        onClick={scrollToComment} 
-                        className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
-                        disabled={!post?.allowAction}
-                      >
-                        <MessageCircle size={18} />
-                        <span className="text-sm"> Comment </span>
-                      </button>
-                      
-                      {user?.id !== post.authorId && (
-                        <div className="flex items-center gap-2 mt-2 sm:mt-0">
-                          <button
-                            onClick={() => { if (post.allowAction) handleReportClick(post.id)}}
-                            className={`flex items-center gap-1 text-slate-400 ${post.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
-                            disabled={!post.allowAction}
-                          >
-                            <TriangleAlert size={18} />
-                            <span className="text-xs">Report</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Author buttons */}
-                    {user?.id === post.authorId && (
-                      <div className="flex items-center gap-2">
-                        <button 
-                          onClick={() => toggleIsEditing()}
-                          className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
-                          disabled={!post?.allowAction}
-                        >
-                          <Edit size={18} />
-                          <span className="text-sm"> Edit </span>
-                        </button>
-                        <button 
-                          onClick={() => setDeleteModalOpen(true)}
-                          className={'flex items-center gap-1 text-slate-400 hover:text-red-400'}
-                        >
-                          <Trash2 size={18} />
-                          <span className="text-sm"> Delete </span>
-                        </button>
-                      </div>
-                    )}
                   </div>
-
-                  {/* New Comment Input Section */}
-                  {post?.allowAction ? (
-                    <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px]">
-                        <Typography variant="h6" className="text-blue-400 mb-3">
-                          Add a Comment
-                        </Typography>
-
-                        {newCommentError && (
-                          <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
-                            <Typography className="text-red-500">{newCommentError}</Typography>
-                          </div>
-                        )}
-
-                        <form 
-                          onSubmit={handleCommentSubmit} 
-                          className="space-y-4"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              handleCommentSubmit(e);
-                            } else if (e.key === 'Escape') {
-                              commentInputRef.current?.blur();
-                            }
-                          }}
-                        >
-                          <TextField
-                            fullWidth
-                            multiline
-                            rows={4}
-                            value={newComment}
-                            onChange={(e) => setNewComment(e.target.value)}
-                            placeholder="What are your thoughts?"
-                            className="bg-slate-900"
-                            inputRef={commentInputRef}
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                color: 'rgb(226, 232, 240)',
-                                '& fieldset': {
-                                  borderColor: 'rgb(51, 65, 85)',
-                                },
-                                '&:hover fieldset': {
-                                  borderColor: 'rgb(59, 130, 246)',
-                                },
-                                '&.Mui-focused fieldset': {
-                                  borderColor: 'rgb(59, 130, 246)',
-                                },
-                              },
-                            }}
-                          />
-                          <div className="flex gap-2">
-                            <Button 
-                              type="submit"
-                              variant="contained"
-                              className="bg-blue-600 hover:bg-blue-700 px-6"
-                            >
-                              Submit
-                            </Button>
-                            <Button 
-                              onClick={() => setNewComment("")}
-                              variant="outlined"
-                              className="text-slate-300 border-slate-700 hover:border-blue-400"
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </form>
-                    </div>
-                  ) : (
-                    <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4">
-                      <Typography className="text-slate-400">
-                        Comments are disabled for this post.
-                      </Typography>
-                    </div>
-                  )}
-
-                  {/* Sorting Section */}
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
-                    <Typography variant="h6" className="text-blue-400">
-                      Comments
-                    </Typography>
-                    <Button
-                      onClick={handleSortClick}
-                      className="!text-slate-300 hover:text-blue-400"
-                    >
-                      Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
-                    </Button>
-                    <SortMenu
-                      sortBy={sortBy}
-                      anchorEl={anchorEl}
-                      onClose={handleSortClose}
-                      sortOptions={sortOptions}
-                    />
-                  </div>
-
-                  {/* Comment section */}
-                  <InfiniteScroll
-                    dataLength={comments.length}
-                    next={fetchComments}
-                    hasMore={hasMore}
-                    loader={<Typography className="text-blue-400">Loading comments...</Typography>}
-                    endMessage={<Typography className="text-slate-400">End of comments</Typography>}
-                  >
-                    <div className="space-y-4">
-                      {comments.map((comment) => (
-                        <CommentItem 
-                          key={comment.id} 
-                          comment={comment} 
-                          post={post}
-                          handleVote={handleCommentVote} 
-                          handleReportClick={handleReportClick}
-                          fetchComments={fetchComments}
-                        />
-                      ))}
-                    </div>
-                  </InfiniteScroll>
                 </div>
-              </>
-            ) : (
-              <div className="flex justify-center items-center">
-                <Typography className="text-blue-400">Loading post...</Typography>
+              ) : (
+                <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4">
+                  <Typography className="text-slate-400">
+                    Comments are disabled for this post.
+                  </Typography>
+                </div>
+              )}
+
+              {/* Sorting Section */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+                <Typography variant="h6" className="text-blue-400">
+                  Comments
+                </Typography>
+                <Button
+                  onClick={handleSortClick}
+                  className="!text-slate-300 hover:text-blue-400"
+                >
+                  Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
+                </Button>
+                <SortMenu
+                  sortBy={sortBy}
+                  anchorEl={anchorEl}
+                  onClose={handleSortClose}
+                  sortOptions={sortOptions}
+                />
               </div>
-            )}
-        </main>
-      </div>
+
+              {/* Comment section */}
+              <InfiniteScroll
+                dataLength={comments.length}
+                next={fetchComments}
+                hasMore={hasMore}
+                loader={<Typography className="text-blue-400">Loading comments...</Typography>}
+                endMessage={<Typography className="text-slate-400">End of comments</Typography>}
+              >
+                <div className="space-y-4">
+                  {comments.map((comment) => (
+                    <CommentItem 
+                      key={comment.id} 
+                      comment={comment} 
+                      post={post}
+                      handleVote={handleCommentVote} 
+                      handleReportClick={handleReportClick}
+                      fetchComments={fetchComments}
+                    />
+                  ))}
+                </div>
+              </InfiniteScroll>
+            </div>
+          </>
+        ) : (
+          <div className="flex justify-center items-center">
+            <Typography className="text-blue-400">Loading post...</Typography>
+          </div>
+        )}
+      </main>
     </div>
-    </ThemeProvider>
   );
 }
