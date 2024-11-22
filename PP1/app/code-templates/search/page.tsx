@@ -215,8 +215,8 @@ export default function CodeTemplates() {
 
   // Effects
   useEffect(() => {
-    console.log("CD, User: ", user); // TODO: Remove this line
-    console.log("CD, Access Token: ", accessToken); // TODO: Remove this line
+    console.log("User: ", user); // TODO: Remove this line
+    console.log("Access Token: ", accessToken); // TODO: Remove this line
     fetchCodeTemplates();
     fetchTags();
   }, []);
@@ -271,12 +271,12 @@ export default function CodeTemplates() {
     {
       title: 'Blog Posts',
       icon: <BookOpen className="w-4 h-4" />,
-      path: '/blog-posts/search'
+      path: '/blog'
     },
     ...(user ? [{
       title: 'Profile',
       icon: <User className="w-4 h-4" />,
-      path: `/users/${user ? `/${user.username}` : ''}`
+      path: '/profile'
     }] : []),
   ];
 

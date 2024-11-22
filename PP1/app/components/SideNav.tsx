@@ -14,14 +14,12 @@ import {
   Flag,
   Eye
 } from 'lucide-react';
-import {logoutUser} from "@/app/utils/auth";
 
 const SideNav = ({ router }: { router: ReturnType<typeof useRouter> }) => {
   const pathname = usePathname();
   const { user, setUser, setAccessToken } = useAuth();
 
-  const handleLogout = async () => {
-    await logoutUser();
+  const handleLogout = () => {
     setUser(null);
     setAccessToken(null);
     router.refresh();
@@ -52,8 +50,8 @@ const SideNav = ({ router }: { router: ReturnType<typeof useRouter> }) => {
   return (
     <div className="h-full overflow-y-auto pt-20 px-4">
       <NavSection title="Code">
-        <NavLink href="/code-templates/new">
-          <Code size={18}/> Run Code
+        <NavLink href="/code-templates/editor">
+          <Code size={18} /> Run Code
         </NavLink>
         <NavLink href="/code-templates/search">
           <Search size={18}/> Code Templates

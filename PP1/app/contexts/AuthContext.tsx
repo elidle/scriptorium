@@ -95,9 +95,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const verifySession = async () => {
       try {
+        // Try to verify with existing token
         const response = await fetch('/api/auth/verify', {
           credentials: 'include'
         });
+
         const data = await response.json();
 
         if (response.ok) {
