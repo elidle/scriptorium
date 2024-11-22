@@ -81,13 +81,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const verifySession = async () => {
       try {
+        setLoading(true);
         // Try to verify with existing token
+        console.log('Verifying session...');
         const response = await fetch('/api/auth/verify', {
           credentials: 'include'
         });
-
+        console.log('Session Response:', response);
         const data = await response.json();
-
+        console.log('Session Data:', data);
         if (response.ok) {
           console.log('Data:', data['access-token']);
           handleSetUser(data.user);

@@ -49,7 +49,6 @@ const TemplateCard: React.FC<TemplateCardProps> = ({ template }) => {
   };
 
   const formatCount = (count: number = 0) => {
-    console.log("Current template: ", template);
     if (count >= 1000000) {
       return `${(count / 1000000).toFixed(1)}M`;
     }
