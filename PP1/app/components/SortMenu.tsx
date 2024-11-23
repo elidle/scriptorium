@@ -33,6 +33,8 @@ export default function SortMenu({ sortBy, anchorEl, onClose, sortOptions }: Sor
             border: 1,
             borderColor: 'divider',
             '& .MuiMenuItem-root': {
+              fontFamily: theme.typography.fontFamily,
+              fontSize: theme.typography.body1.fontSize,
               color: 'text.primary',
               '&:hover': {
                 bgcolor: isDarkMode ? 'rgba(51, 65, 85, 0.8)' : 'rgba(241, 245, 249, 0.8)',
@@ -43,6 +45,10 @@ export default function SortMenu({ sortBy, anchorEl, onClose, sortOptions }: Sor
                   bgcolor: isDarkMode ? 'rgba(51, 65, 85, 0.8)' : 'rgba(241, 245, 249, 0.8)',
                 },
               },
+            },
+            '& .MuiListItemText-primary': {
+              fontFamily: theme.typography.fontFamily,
+              fontSize: theme.typography.body1.fontSize,
             },
           },
         }}

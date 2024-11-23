@@ -101,6 +101,11 @@ export default function BlogPost({ params }: PostQueryParams) {
     }
   }, []);
 
+  useEffect(() => {
+    setPost(null);
+    if(!loading) fetchBlogPost();
+  }, [user]);
+
   const scrollToComment = () => {
     if (newCommentRef.current) {
       const y = newCommentRef.current.getBoundingClientRect().top + 
@@ -228,12 +233,11 @@ export default function BlogPost({ params }: PostQueryParams) {
         }
       }
 
-      const data = await response.json();
-
       if (!response.ok) {
-        setError(`${response.status} - ${data.error}`);
-        return;
+        response = await fetch(url, {}); // Fall back to guest view if anything else fails
       }
+
+      const data = await response.json();
 
       setPost(data);
       await fetchComments(true);
@@ -279,12 +283,11 @@ export default function BlogPost({ params }: PostQueryParams) {
         }
       }
   
-      const data = await response.json();
-  
       if (!response.ok) {
-        setError(`${response.status} - ${data.error}`);
-        return;
+        response = await fetch(url, {}); // Fall back to guest view if anything else fails
       }
+
+      const data = await response.json();
   
       reset ? setComments(data.comments) : setComments((prevComments) => [...prevComments, ...data.comments]);
       setHasMore(data.hasMore);

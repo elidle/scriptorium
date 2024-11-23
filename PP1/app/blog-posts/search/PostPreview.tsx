@@ -28,7 +28,7 @@ export default function PostPreview({ post, handleVote, handleReportClick }: Pos
         sx={{
           display: 'flex',
           borderRadius: 1,
-          border: 1,
+          border: '2px solid',
           borderColor: 'divider',
           bgcolor: 'background.paper',
           '&:hover': {
@@ -133,7 +133,7 @@ export default function PostPreview({ post, handleVote, handleReportClick }: Pos
                   py: 0.5,
                   borderRadius: 'full',
                   fontSize: '0.75rem',
-                  bgcolor: isDarkMode ? 'background.default' : 'background.default',
+                  bgcolor: theme.palette.background.default,
                   border: 1,
                   borderColor: 'divider',
                   color: 'primary.main',

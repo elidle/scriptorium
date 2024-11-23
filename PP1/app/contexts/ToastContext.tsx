@@ -1,6 +1,7 @@
 "use client";
 import React, { createContext, useContext, useState } from 'react';
 import { Alert, Snackbar } from '@mui/material';
+import { useTheme } from './ThemeContext';
 
 interface Toast {
   message: string;
@@ -16,6 +17,7 @@ const ToastContext = createContext<ToastContextType | null>(null);
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toast, setToast] = useState<Toast | null>(null);
   const [open, setOpen] = useState(false);
+  const { isDarkMode } = useTheme();
 
   const showToast = (newToast: Toast) => {
     setToast(newToast);
@@ -46,6 +48,17 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                     toast?.type === 'success' ? 'rgb(34, 197, 94)' : 
                     toast?.type === 'warning' ? 'rgb(234, 179, 8)' : 
                     'rgb(59, 130, 246)',
+            '& .MuiAlert-message': {
+              color: isDarkMode ? 'rgb(248, 250, 252)' : 'rgb(15, 23, 42)', // slate-50 for dark, slate-900 for light
+            },
+            '& .MuiAlert-icon': {
+              color: isDarkMode ? 'rgb(248, 250, 252)' : 'rgb(15, 23, 42)',
+            },
+            '& .MuiAlert-action': {
+              '& .MuiIconButton-root': {
+                color: isDarkMode ? 'rgb(248, 250, 252)' : 'rgb(15, 23, 42)',
+              }
+            }
           }}
         >
           {toast?.message}
