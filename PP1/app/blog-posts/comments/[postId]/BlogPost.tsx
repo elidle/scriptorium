@@ -5,7 +5,8 @@ import {
   AppBar,
   TextField,
   Modal,
-  Box, IconButton, Theme, ThemeProvider, createTheme
+  Box, Theme, ThemeProvider,
+  IconButton
 } from "@mui/material";
 import {
   MessageCircle,
@@ -24,6 +25,7 @@ import CommentItem from "./CommentItem";
 
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useToast } from "@/app/contexts/ToastContext";
+import { useTheme } from "@/app/contexts/ThemeContext";
 
 import { refreshToken, fetchAuth } from "@/app/utils/auth";
 import { useRouter } from "next/navigation";
@@ -32,6 +34,7 @@ import SideNav from "@/app/components/SideNav";
 import UserAvatar from "@/app/components/UserAvatar";
 import SortMenu from "@/app/components/SortMenu";
 import ConfirmationModal from "@/app/components/ConfirmationModal";
+import ThemeToggle from "@/app/components/ThemeToggle";
 
 import Link from "next/link";
 import Voting from "@/app/blog-posts/Voting";
@@ -47,28 +50,9 @@ interface PostQueryParams {
   }
 }
 
-const theme = createTheme({
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#2563eb',
-    },
-    secondary: {
-      main: '#7c3aed',
-    },
-    background: {
-      default: '#0f172a',
-      paper: '#1e293b',
-    },
-    text: {
-      primary: '#f8fafc',
-      secondary: '#cbd5e1',
-    },
-  },
-});
-
 export default function BlogPost({ params }: PostQueryParams) {
   const { showToast } = useToast();
+  const { theme, isDarkMode } = useTheme();
 
   const router = useRouter();
   const postId = Number(params.postId);
@@ -108,7 +92,7 @@ export default function BlogPost({ params }: PostQueryParams) {
   };
   const [editedContent, setEditedContent] = useState("");
 
-  const { user, accessToken, setAccessToken } = useAuth();
+  const { user, accessToken, setAccessToken, loading } = useAuth();
 
   useEffect(() => {
     const appBar = document.querySelector('.MuiAppBar-root');
@@ -209,14 +193,14 @@ export default function BlogPost({ params }: PostQueryParams) {
   ];
 
   useEffect(() => {
-    fetchBlogPost();
-  }, []);
+    if(!loading) fetchBlogPost();
+  }, [user]);
 
   useEffect(() => {
     setComments([]);
     setPage(1);
-    fetchComments(true);
-  }, [sortBy]);
+    if(!loading) fetchComments(true);
+  }, [sortBy, user]);
 
   const fetchBlogPost = async () => {
     try {
@@ -596,378 +580,545 @@ export default function BlogPost({ params }: PostQueryParams) {
 
   return (
     <ThemeProvider theme={theme}>
-    <div className="min-h-screen flex bg-slate-900">
-      {/* SideNav */}
-      <div 
-        className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${
-          isSideNavOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-        onClick={() => setIsSideNavOpen(false)}
-      />
-      
-      <div className={`fixed left-0 top-0 h-screen w-64 bg-slate-900 border-r border-slate-800 z-50 transition-transform duration-300 transform ${
-        isSideNavOpen ? "translate-x-0" : "-translate-x-full"
-      }`}>
-        <SideNav router={router} />
-      </div>
-
-      {/* Modal for reporting */}
-      <Modal open={reportModalOpen} onClose={() => setReportModalOpen(false)}>
+      <Box sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        bgcolor: 'background.default'
+      }}>
+        {/* SideNav backdrop */}
         <Box
           sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
+            position: 'fixed',
+            inset: 0,
+            bgcolor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 40,
+            transition: 'opacity 0.3s',
+            opacity: isSideNavOpen ? 1 : 0,
+            pointerEvents: isSideNavOpen ? 'auto' : 'none',
+          }}
+          onClick={() => setIsSideNavOpen(false)}
+        />
+        
+        {/* SideNav */}
+        <Box sx={{
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          height: '100vh',
+          width: '256px',
+          bgcolor: 'background.paper',
+          borderRight: 1,
+          borderColor: 'divider',
+          zIndex: 50,
+          transition: 'transform 0.3s',
+          transform: isSideNavOpen ? 'translateX(0)' : 'translateX(-100%)',
+        }}>
+          <SideNav router={router} />
+        </Box>
+
+        {/* Report Modal */}
+        <Modal open={reportModalOpen} onClose={() => setReportModalOpen(false)}>
+          <Box sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
             width: 400,
-            bgcolor: "rgb(15, 23, 42)",
-            border: "1px solid rgb(51, 65, 85)",
-            borderRadius: "8px",
-            p: 4,
+            bgcolor: 'background.paper',
+            border: 1,
+            borderColor: 'divider',
+            borderRadius: 1,
             boxShadow: 24,
-            color: "rgb(203, 213, 225)",
+            p: 4,
+          }}>
+            <Typography variant="h6" sx={{ color: 'primary.main', mb: 2 }}>
+              Report {reportingCommentId === null ? "Post" : "Comment"}
+            </Typography>
+
+            <TextField
+              fullWidth
+              label="Reason"
+              variant="outlined"
+              multiline
+              rows={4}
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  handleReportSubmit(e);
+                }
+                if (e.key === 'Escape') {
+                  setReportModalOpen(false);
+                }
+              }}
+              sx={{
+                mb: 2,
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: 'background.default',
+                  '& fieldset': {
+                    borderColor: 'divider',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'text.secondary',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: 'primary.main',
+                  },
+                },
+              }}
+            />
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+              <Button
+                variant="contained"
+                onClick={handleReportSubmit}
+                sx={{
+                  bgcolor: 'primary.main',
+                  '&:hover': {
+                    bgcolor: 'primary.dark',
+                  },
+                }}
+              >
+                Submit
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => setReportModalOpen(false)}
+                sx={{
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  '&:hover': {
+                    borderColor: 'primary.dark',
+                    color: 'primary.dark',
+                  },
+                }}
+              >
+                Cancel
+              </Button>
+            </Box>
+          </Box>
+        </Modal>
+
+        {/* AppBar */}
+        <AppBar 
+          position="fixed"
+          sx={{
+            width: '100%',
+            zIndex: (theme: Theme) => theme.zIndex.drawer + 1,
+            bgcolor: 'background.paper',
+            borderBottom: 1,
+            borderColor: 'divider',
           }}
         >
-          <Typography variant="h6" gutterBottom sx={{ color: "rgb(96, 165, 250)" }}>
-            Report {reportingCommentId === null ? "Post" : "Comment"}
-          </Typography>
-
-          <TextField
-            fullWidth
-            label="Reason"
-            variant="outlined"
-            multiline
-            rows={4}
-            value={reportReason}
-            onChange={(e) => setReportReason(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                handleReportSubmit(e);
-              }
-              if (e.key === 'Escape') {
-                setReportModalOpen(false);
-              }
-            }}
-            InputProps={{
-              style: {
-                backgroundColor: "rgb(30, 41, 59)",
-                color: "rgb(203, 213, 225)",
-              },
-            }}
-            InputLabelProps={{
-              style: { color: "rgb(148, 163, 184)" },
-            }}
-          />
-          <div className="flex justify-end gap-2 mt-4">
-            <Button
-              variant="contained"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-              onClick={handleReportSubmit}
+          <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <IconButton
+              onClick={() => setIsSideNavOpen(!isSideNavOpen)}
+              sx={{
+                p: 1,
+                color: 'text.secondary',
+                '&:hover': {
+                  bgcolor: isDarkMode ? 'rgba(51, 65, 85, 0.8)' : 'rgba(241, 245, 249, 0.8)',
+                },
+              }}
             >
-              Submit
-            </Button>
-            <Button
-              variant="outlined"
-              className="border-blue-600 text-blue-600 hover:border-blue-700 hover:text-blue-700"
-              onClick={() => setReportModalOpen(false)}
-            >
-              Cancel
-            </Button>
-          </div>
-        </Box>
-      </Modal>
+              <Menu size={24} />
+            </IconButton>
+            
+            <Link href="/">
+              <Typography 
+                variant="h5" 
+                sx={{ 
+                  color: 'primary.main',
+                  fontSize: { xs: '1.25rem', sm: '1.5rem' },
+                  flexShrink: 0,
+                }}
+              >
+                Scriptorium
+              </Typography>
+            </Link>
 
-      {/* Delete Modal */}
-      <ConfirmationModal
-        open={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        onConfirm={handleDelete}
-        title="Delete Post"
-        message="Are you sure you want to delete this post? This action cannot be undone."
-      />
+            <Box sx={{ flexGrow: 1 }} />
 
-      {error && (
-        <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-4">
-          <Typography className="text-red-500">{error}</Typography>
-        </div>
-      )}
-
-        <div className="flex-1">
-          {/* App Bar */}
-          <AppBar 
-            position="fixed"
-            sx={{
-              width: '100%',
-              zIndex: (theme: Theme) => theme.zIndex.drawer + 1,
-              bgcolor: 'background.paper'
-            }}
-          >
-            <div className="p-3 flex items-center gap-3">
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => setIsSideNavOpen(!isSideNavOpen)}
-                  className="p-1 hover:bg-slate-700 rounded-lg transition-colors"
-                >
-                  <Menu size={24} className="text-slate-300" />
-                </button>
-                <Link href="/">
-                  <Typography 
-                    className="text-xl sm:text-2xl text-blue-400 flex-shrink-0" 
-                    variant="h5"
-                  >
-                    Scriptorium
-                  </Typography>
-                </Link>
-              </div>
-
-              <div className="flex-grow"/>
-
-              {user ? (
-              <div className="flex items-center gap-2">
+            <ThemeToggle />
+            
+            {user ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <UserAvatar username={user.username} userId={user.id} />
-
-                <Link href={`/users/${user.username}`}>
-                  <Typography className="text-slate-200 hover:text-blue-400 text-sm sm:text-base">
+                <Link href={`/users/${user.username}`} className="hidden md:block">
+                  <Typography sx={{ 
+                    color: 'text.primary',
+                    '&:hover': { color: 'primary.main' },
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                  }}>
                     {user.username}
                   </Typography>
                 </Link>
-              </div>
-              ) : (
+              </Box>
+            ) : (
               <Link href="/auth/login">
-                <Button 
-                  className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
+                <Button
                   variant="contained"
                   size="small"
+                  sx={{
+                    px: 3,
+                    minWidth: '100px',
+                    height: '36px',
+                    whiteSpace: 'nowrap',
+                    bgcolor: 'primary.main',
+                    '&:hover': {
+                      bgcolor: 'primary.dark',
+                    },
+                  }}
                 >
                   Log In
                 </Button>
               </Link>
-              )}
-            </div>
-          </AppBar>
+            )}
+          </Box>
+        </AppBar>
 
-          <main className="flex-1 p-4 max-w-7xl mx-auto mt-20">
-            {error ? (
-            <div className="bg-slate-800 rounded-lg border border-slate-700 p-8 text-center">
-              <Typography variant="h5" className="text-red-400 mb-4">
+        {/* Main Content */}
+        <Box component="main" sx={{ 
+          flexGrow: 1,
+          p: 2,
+          maxWidth: '1200px',
+          mx: 'auto',
+          mt: '80px'
+        }}>
+          {error ? (
+            <Box sx={{
+              bgcolor: 'background.paper',
+              borderRadius: 1,
+              border: 1,
+              borderColor: 'divider',
+              p: 4,
+              textAlign: 'center'
+            }}>
+              <Typography 
+                variant="h5" 
+                sx={{ color: 'error.main', mb: 2 }}
+              >
                 {error}
               </Typography>
               <Button 
                 href="/blog-posts/search"
                 variant="contained"
-                className="bg-blue-600 hover:bg-blue-700"
+                sx={{
+                  bgcolor: 'primary.main',
+                  '&:hover': { bgcolor: 'primary.dark' }
+                }}
               >
                 Back to Posts
               </Button>
-            </div>
-            ) : post ? (
-              <>
-                {/* Post Section */}
-                <div className="bg-slate-800 rounded-lg border border-slate-700 p-2 sm:p-4 mb-4 min-h-[200px] flex flex-col justify-between">
-                  <div className="flex items-center gap-2 mb-2 mt-2">
-                    <UserAvatar username={post.authorUsername} userId={post.authorId} />
-
-                    {
-                      post.authorUsername[0] === '[' ? (
-                        <Typography className={`${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
-                          {post.authorUsername}
-                        </Typography>
-                      ) : (
-                        <Link href={`/users/${post.authorUsername}`}>
-                          <Typography className={`hover:text-blue-400 ${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
-                            {post.authorUsername}
-                          </Typography>
-                        </Link>
-                      )
-                    }
-
-                    <Typography className="text-slate-400">
-                      • {new Date(post.createdAt).toLocaleString()}
+            </Box>
+          ) : post ? (
+            <>
+              {/* Post Section */}
+              <Box sx={{
+                bgcolor: 'background.paper',
+                borderRadius: 1,
+                border: 1,
+                borderColor: 'divider',
+                p: { xs: 1, sm: 2 },
+                mb: 2,
+                minHeight: '200px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}>
+                {/* Author Info */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, mt: 1 }}>
+                  <UserAvatar username={post.authorUsername} userId={post.authorId} />
+                  {post.authorUsername[0] === '[' ? (
+                    <Typography sx={{ 
+                      color: user?.id === post.authorId ? 'success.main' : 'text.secondary' 
+                    }}>
+                      {post.authorUsername}
                     </Typography>
-                  </div>
-
-                  <Typography variant="h4" className="text-slate-300 text-xl sm:text-2xl break-words">
-                    {post.title === null ? "[Deleted post]" : post.title}
-                  </Typography>
-
-                  {isEditing ? (
-                    <form onSubmit={handleEditSubmit} className="space-y-4 mb-2 mt-2">
-                      <TextField
-                        fullWidth
-                        multiline
-                        minRows={4}
-                        value={editedContent}
-                        onChange={(e) => setEditedContent(e.target.value)}
-                        className="bg-slate-900"
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            height: '100%',
-                            color: 'rgb(226, 232, 240)',
-                            '& fieldset': { borderColor: 'rgb(51, 65, 85)' },
-                            '&:hover fieldset': { borderColor: 'rgb(59, 130, 246)' },
-                            '&.Mui-focused fieldset': { borderColor: 'rgb(59, 130, 246)' },
-                          },
-                        }}
-                      />
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          type="submit"
-                          variant="contained"
-                          className="bg-blue-600 hover:bg-blue-700 px-6"
-                        >
-                          Save
-                        </Button>
-                        <Button 
-                          onClick={() => {
-                            setEditedContent("");
-                            setIsEditing(false);
-                          }}
-                          variant="outlined"
-                          className="text-slate-300 border-slate-700 hover:border-blue-400"
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </form>
                   ) : (
-                    <Typography variant="body1" className="text-slate-300 mb-2 mt-2" sx={{ whiteSpace: "pre-wrap" }}>
-                      {post.content === null ? "[This post has been deleted by its author.]" : post.content}
-                    </Typography>
+                    <Link href={`/users/${post.authorUsername}`}>
+                      <Typography sx={{
+                        color: user?.id === post.authorId ? 'success.main' : 'text.secondary',
+                        '&:hover': { color: 'primary.main' }
+                      }}>
+                        {post.authorUsername}
+                      </Typography>
+                    </Link>
                   )}
+                  <Typography sx={{ color: 'text.secondary' }}>
+                    • {new Date(post.createdAt).toLocaleString()}
+                  </Typography>
+                </Box>
 
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {/* Post Voting */}
-                      <Voting item={post} handleVote={handlePostVote} />
-                      
-                      {/* Post Actions */}
-                      <button 
-                        onClick={scrollToComment} 
-                        className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
-                        disabled={!post?.allowAction}
+                {/* Post Title */}
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    color: 'text.primary',
+                    fontSize: { xs: '1.25rem', sm: '1.5rem' },
+                    wordBreak: 'break-word'
+                  }}
+                >
+                  {post.title === null ? "[Deleted post]" : post.title}
+                </Typography>
+
+                {/* Post Content */}
+                {isEditing ? (
+                  <Box 
+                    component="form" 
+                    onSubmit={handleEditSubmit}
+                    sx={{ display: 'flex', flexDirection: 'column', gap: 2, my: 1 }}
+                  >
+                    <TextField
+                      fullWidth
+                      multiline
+                      minRows={4}
+                      value={editedContent}
+                      onChange={(e) => setEditedContent(e.target.value)}
+                      sx={{
+                        bgcolor: 'background.default',
+                        '& .MuiOutlinedInput-root': {
+                          height: '100%',
+                          color: 'text.primary',
+                          '& fieldset': { borderColor: 'divider' },
+                          '&:hover fieldset': { borderColor: 'text.secondary' },
+                          '&.Mui-focused fieldset': { borderColor: 'primary.main' },
+                        }
+                      }}
+                    />
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                      <Button 
+                        type="submit"
+                        variant="contained"
+                        sx={{
+                          bgcolor: 'primary.main',
+                          '&:hover': { bgcolor: 'primary.dark' }
+                        }}
                       >
-                        <MessageCircle size={18} />
-                        <span className="text-sm"> Comment </span>
-                      </button>
-                      
-                      {user?.id !== post.authorId && (
-                        <div className="flex items-center gap-2 mt-2 sm:mt-0">
-                          <button
-                            onClick={() => { if (post.allowAction) handleReportClick(post.id)}}
-                            className={`flex items-center gap-1 text-slate-400 ${post.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
-                            disabled={!post.allowAction}
-                          >
-                            <TriangleAlert size={18} />
-                            <span className="text-xs">Report</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                        Save
+                      </Button>
+                      <Button 
+                        onClick={() => {
+                          setEditedContent("");
+                          setIsEditing(false);
+                        }}
+                        variant="outlined"
+                        sx={{
+                          borderColor: 'divider',
+                          color: 'text.primary',
+                          '&:hover': { borderColor: 'primary.main' }
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </Box>
+                  </Box>
+                ) : (
+                  <Typography 
+                    sx={{ 
+                      color: 'text.primary',
+                      my: 1,
+                      whiteSpace: 'pre-wrap'
+                    }}
+                  >
+                    {post.content === null ? "[This post has been deleted by its author.]" : post.content}
+                  </Typography>
+                )}
 
-                    {/* Author buttons */}
-                    {user?.id === post.authorId && (
-                      <div className="flex items-center gap-2">
-                        <button 
-                          onClick={() => toggleIsEditing()}
-                          className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
-                          disabled={!post?.allowAction}
-                        >
-                          <Edit size={18} />
-                          <span className="text-sm"> Edit </span>
-                        </button>
-                        <button 
-                          onClick={() => setDeleteModalOpen(true)}
-                          className={'flex items-center gap-1 text-slate-400 hover:text-red-400'}
-                        >
-                          <Trash2 size={18} />
-                          <span className="text-sm"> Delete </span>
-                        </button>
-                      </div>
+                {/* Post Actions */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  justifyContent: 'space-between',
+                  alignItems: { xs: 'start', sm: 'center' },
+                  gap: 1,
+                  mb: 2
+                }}>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
+                    {/* Voting */}
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Voting item={post} handleVote={handlePostVote} />
+                    </Box>
+                    
+                    {/* Comment Button */}
+                    <Button
+                      onClick={scrollToComment}
+                      disabled={!post?.allowAction}
+                      startIcon={<MessageCircle size={18} />}
+                      sx={{
+                        color: 'text.secondary',
+                        opacity: !post?.allowAction ? 0.5 : 1,
+                        '&:hover': { color: 'primary.main' },
+                      }}
+                    >
+                      Comment
+                    </Button>
+                    
+                    {/* Report Button */}
+                    {user?.id !== post.authorId && (
+                      <Button
+                        onClick={() => { if (post.allowAction) handleReportClick(post.id)}}
+                        disabled={!post.allowAction}
+                        startIcon={<TriangleAlert size={18} />}
+                        sx={{
+                          color: 'text.secondary',
+                          opacity: !post.allowAction ? 0.5 : 1,
+                          '&:hover': { color: 'primary.main' },
+                        }}
+                      >
+                        Report
+                      </Button>
                     )}
-                  </div>
+                  </Box>
 
-                  {/* New Comment Input Section */}
+                  {/* Author Actions */}
+                  {user?.id === post.authorId && (
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
+                        onClick={() => toggleIsEditing()}
+                        disabled={!post?.allowAction}
+                        startIcon={<Edit size={18} />}
+                        sx={{
+                          color: 'text.secondary',
+                          opacity: !post?.allowAction ? 0.5 : 1,
+                          '&:hover': { color: 'primary.main' },
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        onClick={() => setDeleteModalOpen(true)}
+                        startIcon={<Trash2 size={18} />}
+                        sx={{
+                          color: 'text.secondary',
+                          '&:hover': { color: 'error.main' },
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
+
+                {/* New Comment Section */}
+                <Box
+                  ref={newCommentRef}
+                  sx={{
+                    bgcolor: 'background.paper',
+                    borderRadius: 1,
+                    border: 1,
+                    borderColor: 'divider',
+                    p: 2,
+                    mb: 2,
+                    minHeight: '200px'
+                  }}
+                >
                   {post?.allowAction ? (
-                    <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px]">
-                        <Typography variant="h6" className="text-blue-400 mb-3">
-                          Add a Comment
-                        </Typography>
+                    <>
+                      <Typography 
+                        variant="h6" 
+                        sx={{ color: 'primary.main', mb: 1.5 }}
+                      >
+                        Add a Comment
+                      </Typography>
 
-                        {newCommentError && (
-                          <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
-                            <Typography className="text-red-500">{newCommentError}</Typography>
-                          </div>
-                        )}
+                      {newCommentError && (
+                        <Box sx={{
+                          bgcolor: 'error.main',
+                          opacity: 0.1,
+                          border: 1,
+                          borderColor: 'error.main',
+                          borderRadius: 1,
+                          p: 2,
+                          mb: 3
+                        }}>
+                          <Typography sx={{ color: 'error.main' }}>
+                            {newCommentError}
+                          </Typography>
+                        </Box>
+                      )}
 
-                        <form 
-                          onSubmit={handleCommentSubmit} 
-                          className="space-y-4"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              handleCommentSubmit(e);
-                            } else if (e.key === 'Escape') {
-                              commentInputRef.current?.blur();
+                      <Box 
+                        component="form" 
+                        onSubmit={handleCommentSubmit}
+                        sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            handleCommentSubmit(e);
+                          } else if (e.key === 'Escape') {
+                            commentInputRef.current?.blur();
+                          }
+                        }}
+                      >
+                        <TextField
+                          fullWidth
+                          multiline
+                          rows={4}
+                          value={newComment}
+                          onChange={(e) => setNewComment(e.target.value)}
+                          placeholder="What are your thoughts?"
+                          inputRef={commentInputRef}
+                          sx={{
+                            bgcolor: 'background.default',
+                            '& .MuiOutlinedInput-root': {
+                              color: 'text.primary',
+                              '& fieldset': { borderColor: 'divider' },
+                              '&:hover fieldset': { borderColor: 'text.secondary' },
+                              '&.Mui-focused fieldset': { borderColor: 'primary.main' },
                             }
                           }}
-                        >
-                          <TextField
-                            fullWidth
-                            multiline
-                            rows={4}
-                            value={newComment}
-                            onChange={(e) => setNewComment(e.target.value)}
-                            placeholder="What are your thoughts?"
-                            className="bg-slate-900"
-                            inputRef={commentInputRef}
+                        />
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button 
+                            type="submit"
+                            variant="contained"
                             sx={{
-                              '& .MuiOutlinedInput-root': {
-                                color: 'rgb(226, 232, 240)',
-                                '& fieldset': {
-                                  borderColor: 'rgb(51, 65, 85)',
-                                },
-                                '&:hover fieldset': {
-                                  borderColor: 'rgb(59, 130, 246)',
-                                },
-                                '&.Mui-focused fieldset': {
-                                  borderColor: 'rgb(59, 130, 246)',
-                                },
-                              },
+                              bgcolor: 'primary.main',
+                              '&:hover': { bgcolor: 'primary.dark' }
                             }}
-                          />
-                          <div className="flex gap-2">
-                            <Button 
-                              type="submit"
-                              variant="contained"
-                              className="bg-blue-600 hover:bg-blue-700 px-6"
-                            >
-                              Submit
-                            </Button>
-                            <Button 
-                              onClick={() => setNewComment("")}
-                              variant="outlined"
-                              className="text-slate-300 border-slate-700 hover:border-blue-400"
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </form>
-                    </div>
+                          >
+                            Submit
+                          </Button>
+                          <Button 
+                            onClick={() => setNewComment("")}
+                            variant="outlined"
+                            sx={{
+                              borderColor: 'divider',
+                              color: 'text.primary',
+                              '&:hover': { borderColor: 'primary.main' }
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </Box>
+                      </Box>
+                    </>
                   ) : (
-                    <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4">
-                      <Typography className="text-slate-400">
-                        Comments are disabled for this post.
-                      </Typography>
-                    </div>
+                    <Typography sx={{ color: 'text.secondary' }}>
+                      Comments are disabled for this post.
+                    </Typography>
                   )}
+                </Box>
 
-                  {/* Sorting Section */}
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
-                    <Typography variant="h6" className="text-blue-400">
+                {/* Comments Section */}
+                <Box sx={{ mb: 2 }}>
+                  {/* Sorting Header */}
+                  <Box sx={{ 
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    justifyContent: 'space-between',
+                    alignItems: { xs: 'start', sm: 'center' },
+                    gap: 1,
+                    mb: 2
+                  }}>
+                    <Typography variant="h6" sx={{ color: 'primary.main' }}>
                       Comments
                     </Typography>
                     <Button
                       onClick={handleSortClick}
-                      className="!text-slate-300 hover:text-blue-400"
+                      sx={{
+                        color: 'text.primary',
+                        '&:hover': { color: 'primary.main' }
+                      }}
                     >
                       Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
                     </Button>
@@ -977,17 +1128,25 @@ export default function BlogPost({ params }: PostQueryParams) {
                       onClose={handleSortClose}
                       sortOptions={sortOptions}
                     />
-                  </div>
+                  </Box>
 
-                  {/* Comment section */}
+                  {/* Comments List */}
                   <InfiniteScroll
                     dataLength={comments.length}
                     next={fetchComments}
                     hasMore={hasMore}
-                    loader={<Typography className="text-blue-400">Loading comments...</Typography>}
-                    endMessage={<Typography className="text-slate-400">End of comments</Typography>}
+                    loader={
+                      <Typography sx={{ color: 'primary.main' }}>
+                        Loading comments...
+                      </Typography>
+                    }
+                    endMessage={
+                      <Typography sx={{ color: 'text.secondary' }}>
+                        End of comments
+                      </Typography>
+                    }
                   >
-                    <div className="space-y-4">
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       {comments.map((comment) => (
                         <CommentItem 
                           key={comment.id} 
@@ -998,18 +1157,29 @@ export default function BlogPost({ params }: PostQueryParams) {
                           fetchComments={fetchComments}
                         />
                       ))}
-                    </div>
+                    </Box>
                   </InfiniteScroll>
-                </div>
-              </>
-            ) : (
-              <div className="flex justify-center items-center">
-                <Typography className="text-blue-400">Loading post...</Typography>
-              </div>
-            )}
-        </main>
-      </div>
-    </div>
+                </Box>
+              </Box>
+            </>
+          ) : (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <Typography sx={{ color: 'primary.main' }}>
+                Loading post...
+              </Typography>
+            </Box>
+          )}
+        </Box>
+      </Box>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+      />
     </ThemeProvider>
   );
 }

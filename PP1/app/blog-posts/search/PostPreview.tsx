@@ -1,7 +1,8 @@
-import { Typography } from "@mui/material";
+import { Typography, ThemeProvider, Box, useTheme as useMuiTheme } from "@mui/material";
 import { MessageCircle, TriangleAlert } from "lucide-react";
 import Link from 'next/link';
 import { useAuth } from "../../contexts/AuthContext";
+import { useTheme } from "../../contexts/ThemeContext";
 
 import UserAvatar from '../../components/UserAvatar';
 
@@ -16,86 +17,193 @@ interface PostPreviewProps {
 
 export default function PostPreview({ post, handleVote, handleReportClick }: PostPreviewProps) {
   const { user } = useAuth();
+  const { theme, isDarkMode } = useTheme();
+  const muiTheme = useMuiTheme();
 
   return (
-    <article 
-      key={post.id} 
-      className="flex bg-slate-800 rounded-lg border border-slate-700 hover:border-slate-600 transition-all"
-    >
-      {/* Vote section */}
-      <div className="flex flex-col items-center p-2 bg-slate-900/50 rounded-l-lg">
-        <Voting item={post} handleVote={handleVote} />
-      </div>
+    <ThemeProvider theme={theme}>
+      <Box
+        key={post.id} 
+        component="article"
+        sx={{
+          display: 'flex',
+          borderRadius: 1,
+          border: 1,
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+          '&:hover': {
+            borderColor: 'text.secondary',
+          },
+          transition: 'all 0.2s ease-in-out',
+        }}
+      >
+        {/* Vote section */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            p: 1,
+            borderTopLeftRadius: 1,
+            borderBottomLeftRadius: 1,
+            bgcolor: isDarkMode ? 'rgba(15, 23, 42, 0.5)' : 'rgba(241, 245, 249, 0.8)',
+          }}
+        >
+          <Voting item={post} handleVote={handleVote} />
+        </Box>
 
-      <div className="p-3">
-        <div className="flex items-center gap-2 mb-4 text-xs sm:text-sm">
-          <UserAvatar username={post.authorUsername} userId={post.authorId} />
+        <Box sx={{ p: 1.5 }}>
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1, 
+              mb: 2,
+              fontSize: { xs: '0.75rem', sm: '0.875rem' } 
+            }}
+          >
+            <UserAvatar username={post.authorUsername} userId={post.authorId} />
 
-          {
-            post.authorUsername[0] === '[' ? (
-              <Typography className="text-slate-400">
+            {post.authorUsername[0] === '[' ? (
+              <Typography sx={{ color: 'text.secondary' }}>
                 {post.authorUsername}
               </Typography>
             ) : (
               <Link href={`/users/${post.authorUsername}`}>
-                <Typography className={`hover:text-blue-400 ${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
+                <Typography 
+                  sx={{
+                    color: user?.id === post.authorId ? 'success.main' : 'text.secondary',
+                    '&:hover': {
+                      color: 'primary.main',
+                    },
+                  }}
+                >
                   {post.authorUsername}
                 </Typography>
               </Link>
-            )
-          }
+            )}
 
-          <Typography className="text-slate-400">
-            • {new Date(post.createdAt).toLocaleString()}
-          </Typography>
-        </div>
-        
-        <Link 
-          href={`/blog-posts/comments/${post.id}`}
-          className="flex-1 cursor-pointer"
-        >
-          <Typography variant="h6" className="text-slate-200 mb-2 text-base sm:text-xl">
-            {post.title}
-          </Typography>
-          <Typography className="text-slate-300 mb-3 line-clamp-3 text-sm sm:text-base">
-            {post.content}
-          </Typography>
-        </Link>
-
-        <div className="flex flex-wrap gap-2 mb-3">
-          {post.tags.map((tag, index) => (
-            <span 
-              key={index}
-              className="px-2 py-1 bg-slate-800 border border-slate-600 rounded-full text-xs text-blue-300"
-            >
-              {tag.name}
-            </span>
-          ))}
-        </div>
-
-        <div className="flex gap-4">
+            <Typography sx={{ color: 'text.secondary' }}>
+              • {new Date(post.createdAt).toLocaleString()}
+            </Typography>
+          </Box>
+          
           <Link 
             href={`/blog-posts/comments/${post.id}`}
-            className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
-            onClick={(e) => e.stopPropagation()}
+            style={{ display: 'block' }}
           >
-            <MessageCircle size={18} />
-            <span className="text-sm">Comments</span>
-          </Link>
-          {user?.id !== post.authorId && (
-            <button 
-              onClick={(e) => {
-                e.preventDefault();
-                handleReportClick(post.id);
-              }} 
-              className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
+            <Typography 
+              variant="h6" 
+              sx={{
+                mb: 1,
+                fontSize: { xs: '1rem', sm: '1.25rem' },
+                color: 'text.primary',
+              }}
             >
-              <TriangleAlert size={18} />
-              <span className="text-sm">Report</span>
-            </button>
-          )}
-        </div>
-      </div>
-    </article>
-  )
-} 
+              {post.title}
+            </Typography>
+            <Typography 
+              sx={{
+                mb: 1.5,
+                display: '-webkit-box',
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                fontSize: { xs: '0.875rem', sm: '1rem' },
+                color: 'text.secondary',
+              }}
+            >
+              {post.content}
+            </Typography>
+          </Link>
+
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              flexWrap: 'wrap', 
+              gap: 1, 
+              mb: 1.5 
+            }}
+          >
+            {post.tags.map((tag, index) => (
+              <Box
+                key={index}
+                sx={{
+                  px: 1,
+                  py: 0.5,
+                  borderRadius: 'full',
+                  fontSize: '0.75rem',
+                  bgcolor: isDarkMode ? 'background.default' : 'background.default',
+                  border: 1,
+                  borderColor: 'divider',
+                  color: 'primary.main',
+                }}
+              >
+                {tag.name}
+              </Box>
+            ))}
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Link 
+              href={`/blog-posts/comments/${post.id}`}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                color: 'inherit',
+                textDecoration: 'none',
+              }}
+            >
+              <Typography
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  color: 'text.secondary',
+                  '&:hover': {
+                    color: 'primary.main',
+                  },
+                }}
+              >
+                <MessageCircle size={18} />
+                <span style={{ fontSize: '0.875rem' }}>Comments</span>
+              </Typography>
+            </Link>
+            
+            {user?.id !== post.authorId && (
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleReportClick(post.id);
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                }}
+              >
+                <Typography
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    color: 'text.secondary',
+                    '&:hover': {
+                      color: 'primary.main',
+                    },
+                  }}
+                >
+                  <TriangleAlert size={18} />
+                  <span style={{ fontSize: '0.875rem' }}>Report</span>
+                </Typography>
+              </button>
+            )}
+          </Box>
+        </Box>
+      </Box>
+    </ThemeProvider>
+  );
+}

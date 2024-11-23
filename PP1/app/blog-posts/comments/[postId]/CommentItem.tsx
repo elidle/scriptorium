@@ -4,6 +4,9 @@ import {
   Button,
   Collapse,
   TextField,
+  Box,
+  ThemeProvider,
+  IconButton,
 } from "@mui/material";
 import {
   MessageCircle,
@@ -15,8 +18,10 @@ import {
 import { useState } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useToast } from "@/app/contexts/ToastContext";
+import { useTheme } from "@/app/contexts/ThemeContext";
 import { fetchAuth } from "../../../utils/auth";
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 import UserAvatar from "@/app/components/UserAvatar";
 import ConfirmationModal from "@/app/components/ConfirmationModal";
@@ -35,6 +40,7 @@ interface CommentItemProps {
 
 export default function CommentItem({ comment, post, handleVote, handleReportClick, fetchComments }: CommentItemProps) {
   const router = useRouter();
+  const { theme, isDarkMode } = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(false);
   
   // Reply states
@@ -209,218 +215,290 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
   };
 
   return (
-    <div className="ml-2 sm:ml-4 border-l border-slate-700 pl-2 sm:pl-4">
-      {/* Delete Modal */}
-      <ConfirmationModal
-        open={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        onConfirm={handleDelete}
-        title="Delete Comment"
-        message="Are you sure you want to delete this comment?"
-      />
+    <ThemeProvider theme={theme}>
+      <Box sx={{
+        ml: { xs: 1, sm: 2 },
+        borderLeft: 1,
+        borderColor: 'divider',
+        pl: { xs: 1, sm: 2 },
+      }}>
+        {/* Delete Modal */}
+        <ConfirmationModal
+          open={deleteModalOpen}
+          onClose={() => setDeleteModalOpen(false)}
+          onConfirm={handleDelete}
+          title="Delete Comment"
+          message="Are you sure you want to delete this comment?"
+        />
 
-      {/* Header with voting and user info */}
-      <div className="flex items-center gap-2 mb-2">
-        <div className="flex items-center gap-2">
-          <UserAvatar username={comment.authorUsername} userId={comment.authorId} size={32} />
+        {/* Header with voting and user info */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <UserAvatar username={comment.authorUsername} userId={comment.authorId} />
 
-          <Typography className={`text-sm ${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
-            {comment.authorUsername}
-          </Typography>
-          <Typography className="text-sm text-slate-400">
-            • {new Date(comment.createdAt).toLocaleString()}
-          </Typography>
-        </div>
+            <Link href={`/users/${comment.authorUsername}`}>
+              <Typography sx={{
+                color: user?.id === comment.authorId ? 'success.main' : 'text.secondary',
+                '&:hover': { color: 'primary.main' }
+              }}>
+                {comment.authorUsername}
+              </Typography>
+            </Link>
 
-        <Voting item={comment} handleVote={handleVote} />
-      </div>
+            <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+              • {new Date(comment.createdAt).toLocaleString()}
+            </Typography>
+          </Box>
 
-      {/* Comment content */}
-      {isEditing ? (
-        <form onSubmit={handleEditSubmit} className="space-y-4 ml-10">
-          <TextField
-            fullWidth
-            multiline
-            minRows={2}
-            value={editedContent}
-            onChange={(e) => setEditedContent(e.target.value)}
-            className="bg-slate-900"
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                color: 'rgb(226, 232, 240)',
-                '& fieldset': { borderColor: 'rgb(51, 65, 85)' },
-                '&:hover fieldset': { borderColor: 'rgb(59, 130, 246)' },
-                '&.Mui-focused fieldset': { borderColor: 'rgb(59, 130, 246)' },
-              },
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Voting item={comment} handleVote={handleVote} />
+          </Box>
+        </Box>
+
+        {/* Comment content */}
+        {isEditing ? (
+          <Box 
+            component="form" 
+            onSubmit={handleEditSubmit}
+            sx={{ 
+              ml: 5,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2
             }}
-          />
-          <div className="flex justify-end gap-2">
-            <Button 
-              type="submit"
-              variant="contained"
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              Save
-            </Button>
-            <Button 
-              onClick={() => {
-                setIsEditing(false);
-                setEditedContent("");
-              }}
-              variant="outlined"
-              className="text-slate-300 border-slate-700 hover:border-blue-400"
-            >
-              Cancel
-            </Button>
-          </div>
-        </form>
-      ) : (
-        <Typography className="text-slate-300 mb-2 mt-2 ml-10" sx={{ whiteSpace: "pre-wrap" }}>
-          {comment.content === null ? "[This comment has been deleted by its author.]" : comment.content}
-        </Typography>
-      )}
-
-      {/* Action buttons */}
-      <div className="flex items-center gap-4 ml-10 mb-2">
-        {comment.replies.length > 0 && (
-          <button
-            onClick={toggleCollapse}
-            className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
           >
-            <ChevronUp
-              size={16}
-              className={`transition-transform duration-300 ${
-                isCollapsed ? "rotate-0" : "rotate-180"
-              }`}
+            <TextField
+              fullWidth
+              multiline
+              minRows={2}
+              value={editedContent}
+              onChange={(e) => setEditedContent(e.target.value)}
+              sx={{
+                bgcolor: 'background.default',
+                '& .MuiOutlinedInput-root': {
+                  color: 'text.primary',
+                  '& fieldset': { borderColor: 'divider' },
+                  '&:hover fieldset': { borderColor: 'text.secondary' },
+                  '&.Mui-focused fieldset': { borderColor: 'primary.main' },
+                },
+              }}
             />
-            <span className="text-xs">
-              {isCollapsed ? "Show Replies" : "Hide Replies"}
-            </span>
-          </button>
-        )}
-        <button
-          onClick={() => toggleReplying()}
-          className={`flex items-center gap-1 text-slate-400 ${comment.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
-          disabled={!comment.allowAction}
-        >
-          <MessageCircle size={16} />
-          <span className="text-xs">Reply</span>
-        </button>
-        {user?.id !== comment.authorId && (
-          <button
-            onClick={() => { if (comment.allowAction) handleReportClick(comment.id)}}
-            className={`flex items-center gap-1 text-slate-400 ${comment.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
-            disabled={!comment.allowAction}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+              <Button 
+                type="submit"
+                variant="contained"
+                sx={{
+                  bgcolor: 'primary.main',
+                  '&:hover': { bgcolor: 'primary.dark' }
+                }}
+              >
+                Save
+              </Button>
+              <Button 
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditedContent("");
+                }}
+                variant="outlined"
+                sx={{
+                  borderColor: 'divider',
+                  color: 'text.primary',
+                  '&:hover': { borderColor: 'primary.main' }
+                }}
+              >
+                Cancel
+              </Button>
+            </Box>
+          </Box>
+        ) : (
+          <Typography 
+            sx={{ 
+              color: 'text.primary',
+              my: 1,
+              ml: 5,
+              whiteSpace: 'pre-wrap'
+            }}
           >
-            <TriangleAlert size={16} />
-            <span className="text-xs">Report</span>
-          </button>
+            {comment.content === null ? "[This comment has been deleted by its author.]" : comment.content}
+          </Typography>
         )}
-        {user?.id === comment.authorId && (
-          <>
-            <button 
-              onClick={() => toggleIsEditing()}
-              className={`flex items-center gap-1 text-slate-400 ${comment.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
-              disabled={!comment.allowAction}
-            >
-              <Edit size={16} />
-            <span className="text-sm"> Edit </span>
-            </button>
-            <button
-              onClick={() => setDeleteModalOpen(true)}
-              className="flex items-center gap-1 text-slate-400 hover:text-red-400"
-            >
-              <Trash2 size={16} />
-              <span className="text-xs">Delete</span>
-            </button>
-          </>
-        )}
-      </div>
 
-      {/* Reply input field */}
-      {isReplying && (
-        <div className="ml-10 mb-4">
-          {comment.allowAction ? (
-            <form 
-              onSubmit={handleReplySubmit} 
-              className="space-y-4"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  handleReplySubmit(e);
-                } else if (e.key === 'Escape') {
-                  setIsReplying(false);
-                  setReplyContent('');
-                }
+        {/* Action buttons */}
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 2,
+          ml: 5,
+          mb: 1
+        }}>
+          {comment.replies.length > 0 && (
+            <Button
+              onClick={toggleCollapse}
+              startIcon={
+                <ChevronUp
+                  size={16}
+                  className={`transition-transform duration-300 ${
+                    isCollapsed ? "rotate-0" : "rotate-180"
+                  }`}
+                />
+              }
+              sx={{
+                color: 'text.secondary',
+                fontSize: '0.75rem',
+                '&:hover': { color: 'primary.main' },
               }}
             >
-              <TextField
-                fullWidth
-                multiline
-                rows={2}
-                value={replyContent}
-                onChange={(e) => setReplyContent(e.target.value)}
-                placeholder="Write your reply..."
-                className="bg-slate-900"
+              {isCollapsed ? "Show Replies" : "Hide Replies"}
+            </Button>
+          )}
+          
+          <Button
+            onClick={() => toggleReplying()}
+            disabled={!comment.allowAction}
+            startIcon={<MessageCircle size={16} />}
+            sx={{
+              color: 'text.secondary',
+              fontSize: '0.75rem',
+              opacity: !comment.allowAction ? 0.8 : 1,
+              '&:hover': { color: 'primary.main' },
+            }}
+          >
+            Reply
+          </Button>
+
+          {user?.id !== comment.authorId && (
+            <Button
+              onClick={() => { if (comment.allowAction) handleReportClick(comment.id)}}
+              disabled={!comment.allowAction}
+              startIcon={<TriangleAlert size={16} />}
+              sx={{
+                color: 'text.secondary',
+                fontSize: '0.75rem',
+                opacity: !comment.allowAction ? 0.8 : 1,
+                '&:hover': { color: 'primary.main' },
+              }}
+            >
+              Report
+            </Button>
+          )}
+
+          {user?.id === comment.authorId && (
+            <>
+              <Button 
+                onClick={() => toggleIsEditing()}
+                disabled={!comment.allowAction}
+                startIcon={<Edit size={16} />}
                 sx={{
-                  '& .MuiOutlinedInput-root': {
-                    color: 'rgb(226, 232, 240)',
-                    '& fieldset': {
-                      borderColor: 'rgb(51, 65, 85)',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: 'rgb(59, 130, 246)',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: 'rgb(59, 130, 246)',
-                    },
-                  },
+                  color: 'text.secondary',
+                  fontSize: '0.75rem',
+                  opacity: !comment.allowAction ? 0.5 : 1,
+                  '&:hover': { color: 'primary.main' },
                 }}
-              />
-              <div className="flex gap-2">
-                <Button 
-                  type="submit"
-                  variant="contained"
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Submit
-                </Button>
-                <Button 
-                  onClick={() => {
+              >
+                Edit
+              </Button>
+              <Button
+                onClick={() => setDeleteModalOpen(true)}
+                startIcon={<Trash2 size={16} />}
+                sx={{
+                  color: 'text.secondary',
+                  fontSize: '0.75rem',
+                  '&:hover': { color: 'error.main' },
+                }}
+              >
+                Delete
+              </Button>
+            </>
+          )}
+        </Box>
+
+        {/* Reply input field */}
+        {isReplying && (
+          <Box sx={{ ml: 5, mb: 2 }}>
+            {comment.allowAction ? (
+              <Box 
+                component="form" 
+                onSubmit={handleReplySubmit}
+                sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    handleReplySubmit(e);
+                  } else if (e.key === 'Escape') {
                     setIsReplying(false);
                     setReplyContent('');
+                  }
+                }}
+              >
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={2}
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  placeholder="Write your reply..."
+                  sx={{
+                    bgcolor: 'background.default',
+                    '& .MuiOutlinedInput-root': {
+                      color: 'text.primary',
+                      '& fieldset': { borderColor: 'divider' },
+                      '&:hover fieldset': { borderColor: 'text.secondary' },
+                      '&.Mui-focused fieldset': { borderColor: 'primary.main' },
+                    },
                   }}
-                  variant="outlined"
-                  className="text-slate-300 border-slate-700 hover:border-blue-400"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          ) : (
-            <Typography className="text-slate-400">
-              Replies are disabled for this comment.
-            </Typography>
-          )}
-        </div>
-      )}
+                />
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button 
+                    type="submit"
+                    variant="contained"
+                    sx={{
+                      bgcolor: 'primary.main',
+                      '&:hover': { bgcolor: 'primary.dark' }
+                    }}
+                  >
+                    Submit
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setIsReplying(false);
+                      setReplyContent('');
+                    }}
+                    variant="outlined"
+                    sx={{
+                      borderColor: 'divider',
+                      color: 'text.primary',
+                      '&:hover': { borderColor: 'primary.main' }
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </Box>
+              </Box>
+            ) : (
+              <Typography sx={{ color: 'text.secondary' }}>
+                Replies are disabled for this comment.
+              </Typography>
+            )}
+          </Box>
+        )}
 
-      {/* Replies */}
-      {comment.replies.length > 0 && (
-        <Collapse in={!isCollapsed} timeout="auto">
-          <div className="pl-4">
-            {comment.replies.map((reply) => (
-              <CommentItem 
-                key={reply.id}
-                comment={reply}
-                post={post}
-                handleVote={handleVote}
-                handleReportClick={handleReportClick}
-                fetchComments={fetchComments}
-              />
-            ))}
-          </div>
-        </Collapse>
-      )}
-    </div>
+        {/* Replies */}
+        {comment.replies.length > 0 && (
+          <Collapse in={!isCollapsed} timeout="auto">
+            <Box sx={{ pl: 2 }}>
+              {comment.replies.map((reply) => (
+                <CommentItem 
+                  key={reply.id}
+                  comment={reply}
+                  post={post}
+                  handleVote={handleVote}
+                  handleReportClick={handleReportClick}
+                  fetchComments={fetchComments}
+                />
+              ))}
+            </Box>
+          </Collapse>
+        )}
+      </Box>
+    </ThemeProvider>
   );
 }

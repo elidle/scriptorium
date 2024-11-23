@@ -8,7 +8,7 @@ import {
   Checkbox,
   FormGroup,
   Modal,
-  Box, Drawer, Divider, IconButton, Theme, ThemeProvider, createTheme
+  Box, Drawer, Divider, IconButton, Theme, ThemeProvider
 } from "@mui/material";
 import React, {useCallback, useEffect, useState} from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
@@ -16,6 +16,8 @@ import {Star, Clock, TrendingUp, Zap, Plus, ChevronRight, ChevronLeft, Menu} fro
 import Link from 'next/link';
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
+import { useTheme } from "../../contexts/ThemeContext";
+import ThemeToggle from "../../components/ThemeToggle";
 import { refreshToken, fetchAuth } from "../../utils/auth";
 import { useRouter } from "next/navigation";
 
@@ -26,52 +28,13 @@ import PostPreview from "./PostPreview";
 
 import { Post } from "../../types/post";
 import debounce from "lodash.debounce";
-import {Tag} from "@/app/types";
+import { Tag } from "@/app/types";
 import TagsContainer from "@/app/components/TagsContainer";
-import SearchBar from "@/app/components/SearchBar";
 const domain = "http://localhost:3000";
-
-const theme = createTheme({
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#2563eb', // blue-600
-    },
-    secondary: {
-      main: '#7c3aed', // violet-600
-    },
-    background: {
-      default: '#0f172a', // slate-900
-      paper: '#1e293b', // slate-800
-    },
-    text: {
-      primary: '#f8fafc', // slate-50
-      secondary: '#cbd5e1', // slate-300
-    },
-  },
-  components: {
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          backgroundColor: '#1e293b',
-          marginBottom: '1rem',
-        },
-      },
-    },
-    MuiDrawer: {
-      styleOverrides: {
-        paper: {
-          backgroundColor: '#1e293b',
-          borderRight: '1px solid #334155',
-          marginTop: '64px',
-        },
-      },
-    },
-  },
-});
 
 export default function BlogPosts() {
   const router = useRouter();
+  const { theme, isDarkMode } = useTheme();
 
   const [sideBarState, setSideBarState] = useState(false);
   const [blogPosts, setBlogPosts] = useState<Post[]>([]);
@@ -407,14 +370,18 @@ export default function BlogPosts() {
   let rightDrawerWidth = 300;
   return (
     <ThemeProvider theme={theme}>
-      <div className="min-h-screen flex bg-slate-900">
+      <div className={`min-h-screen flex ${isDarkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
+        {/* SideNav */}
         <div 
           className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${
             isSideNavOpen ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
           onClick={() => setIsSideNavOpen(false)}
         />
-        <div className={`fixed left-0 top-0 h-screen w-64 bg-slate-900 border-r border-slate-800 z-50 transition-transform duration-300 transform ${
+
+        <div className={`fixed left-0 top-0 h-screen w-64 ${
+          isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+        } border-r z-50 transition-transform duration-300 transform ${
           isSideNavOpen ? "translate-x-0" : "-translate-x-full"
         }`}>
           <SideNav router={router} />
@@ -429,15 +396,15 @@ export default function BlogPosts() {
               left: "50%",
               transform: "translate(-50%, -50%)",
               width: 400,
-              bgcolor: "rgb(15, 23, 42)",
-              border: "1px solid rgb(51, 65, 85)",
+              bgcolor: theme.palette.background.paper,
+              border: `1px solid ${theme.palette.divider}`,
               borderRadius: "8px",
               p: 4,
               boxShadow: 24,
-              color: "rgb(203, 213, 225)",
+              color: theme.palette.text.primary,
             }}
           >
-            <Typography variant="h6" gutterBottom sx={{ color: "rgb(96, 165, 250)" }}>
+            <Typography variant="h6" gutterBottom sx={{ color: theme.palette.primary.main }}>
               Report Post
             </Typography>
   
@@ -459,12 +426,12 @@ export default function BlogPosts() {
               }}
               InputProps={{
                 style: {
-                  backgroundColor: "rgb(30, 41, 59)",
-                  color: "rgb(203, 213, 225)",
+                  backgroundColor: theme.palette.background.default,
+                  color: theme.palette.text.primary,
                 },
               }}
               InputLabelProps={{
-                style: { color: "rgb(148, 163, 184)" },
+                style: { color: theme.palette.text.secondary },
               }}
             />
             <div className="flex justify-end gap-2 mt-4">
@@ -477,7 +444,8 @@ export default function BlogPosts() {
               </Button>
               <Button
                 variant="outlined"
-                className="border-blue-600 text-blue-600 hover:border-blue-700 hover:text-blue-700"
+                className={`${isDarkMode ? 'border-blue-600 text-blue-600 hover:border-blue-700 hover:text-blue-700' 
+                  : 'border-blue-500 text-blue-500 hover:border-blue-600 hover:text-blue-600'}`}
                 onClick={() => setReportModalOpen(false)}
               >
                 Cancel
@@ -500,13 +468,17 @@ export default function BlogPosts() {
               <div className="flex items-center gap-3">
                 <button 
                   onClick={() => setIsSideNavOpen(!isSideNavOpen)}
-                  className="p-1 hover:bg-slate-700 rounded-lg transition-colors"
+                  className={`p-1 rounded-lg transition-colors ${
+                    isDarkMode 
+                      ? 'hover:bg-slate-700 text-slate-300' 
+                      : 'hover:bg-slate-200 text-slate-700'
+                  }`}
                 >
-                  <Menu size={24} className="text-slate-300" />
+                  <Menu size={24} />
                 </button>
                 <Link href="/">
                   <Typography 
-                    className="text-xl sm:text-2xl text-blue-400 flex-shrink-0" 
+                    className="text-xl sm:text-2xl text-blue-500 flex-shrink-0" 
                     variant="h5"
                   >
                     Scriptorium
@@ -524,46 +496,57 @@ export default function BlogPosts() {
                 onChange={handleSearch}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    backgroundColor: 'rgb(30, 41, 59)',
+                    backgroundColor:  isDarkMode
+                      ? 'rgba(30, 41, 59, 1)' 
+                      : 'rgba(241, 245, 249, 1)',
                     '&:hover': {
-                      backgroundColor: 'rgb(30, 41, 59, 0.8)',
+                      backgroundColor: isDarkMode 
+                        ? 'rgba(30, 41, 59, 0.8)' 
+                        : 'rgba(241, 245, 249, 0.8)',
                     },
                     '& fieldset': {
-                      borderColor: 'rgb(100, 116, 139)',
+                      borderColor: theme.palette.divider,
                     },
                     '&:hover fieldset': {
-                      borderColor: 'rgb(148, 163, 184)',
+                      borderColor: theme.palette.text.secondary,
                     },
                   },
                   '& .MuiInputLabel-root': {
-                    color: 'rgb(148, 163, 184)',
+                    color: theme.palette.text.secondary,
                   },
                   '& input': {
-                    color: 'rgb(226, 232, 240)',
+                    color: theme.palette.text.primary,
                   },
                 }}
               />
   
-              {user ? (
-                <div className="flex items-center gap-2">
-                  <UserAvatar username={user.username} userId={user.id} />
-                  <Link href={`/users/${user.username}`}>
-                    <Typography className="text-slate-200 hover:text-blue-400 text-sm sm:text-base">
-                      {user.username}
-                    </Typography>
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                {user ? (
+                  <div className="flex items-center gap-2">
+                    <UserAvatar username={user.username} userId={user.id} />
+                    <Link href={`/users/${user.username}`} className="hidden sm:block">
+                      <Typography className={`${
+                        isDarkMode 
+                          ? 'text-slate-200 hover:text-blue-400' 
+                          : 'text-slate-800 hover:text-blue-600'
+                        } text-sm sm:text-base`}>
+                        {user.username}
+                      </Typography>
+                    </Link>
+                  </div>
+                ) : (
+                  <Link href="/auth/login">
+                    <Button
+                      className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
+                      variant="contained"
+                      size="small"
+                    >
+                      Log In
+                    </Button>
                   </Link>
-                </div>
-              ) : (
-                <Link href="/auth/login">
-                  <Button
-                    className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
-                    variant="contained"
-                    size="small"
-                  >
-                    Log In
-                  </Button>
-                </Link>
-              )}
+                )}
+              </div>
             </div>
           </AppBar>
   
@@ -587,6 +570,7 @@ export default function BlogPosts() {
                     borderColor: 'divider',
                     boxShadow: '-4px 0 15px rgba(0, 0, 0, 0.1)',
                     marginTop: '64px',
+                    bgcolor: 'background.paper',
                   },
                   '& .MuiBackdrop-root': {
                     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -615,6 +599,7 @@ export default function BlogPosts() {
                   top: '50%',
                   zIndex: (theme: Theme) => theme.zIndex.drawer + 2,
                   bgcolor: 'background.paper',
+                  border: '2px solid',
                   '&:hover': {
                     bgcolor: 'background.default',
                   },
@@ -642,12 +627,16 @@ export default function BlogPosts() {
               >
                 {/* Sorting Section */}
                 <div className="flex justify-between items-center mb-4">
-                  <Typography variant="h6" className="text-blue-400">
+                  <Typography variant="h6" className="text-blue-500">
                     Posts
                   </Typography>
                   <Button
                     onClick={handleSortClick}
-                    className="!text-slate-300 hover:text-blue-400"
+                    className={`${
+                      isDarkMode 
+                        ? '!text-slate-300 hover:text-blue-400' 
+                        : '!text-slate-700 hover:text-blue-600'
+                    }`}
                   >
                     Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
                   </Button>
@@ -680,16 +669,20 @@ export default function BlogPosts() {
                   hasMore={hasMore}
                   loader={
                     <div className="text-center p-4">
-                      <Typography className="text-blue-400">Loading...</Typography>
+                      <Typography className="text-blue-500">Loading...</Typography>
                     </div>
                   }
                   endMessage={
                     blogPosts.length > 0 ? (
-                      <Typography className="text-center p-4 text-slate-400">
+                      <Typography className={`text-center p-4 ${
+                        isDarkMode ? 'text-slate-400' : 'text-slate-600'
+                      }`}>
                         You've reached the end!
                       </Typography>
                     ) : (
-                      <Typography className="text-center p-4 text-slate-400">
+                      <Typography className={`text-center p-4 ${
+                        isDarkMode ? 'text-slate-400' : 'text-slate-600'
+                      }`}>
                         No posts found{debouncedQuery ? ` for "${debouncedQuery}"` : ''}
                       </Typography>
                     )
