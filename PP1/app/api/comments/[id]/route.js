@@ -174,7 +174,7 @@ export async function GET(req, { params }) {
     const processComment = (c) => ({
       id: c.id,
       content: c.isHidden
-        ? `This comment has been hidden by a moderator.${canViewHidden ? '\n\n' + c.content : ''}`
+        ? `[This comment has been hidden by a moderator.]${canViewHidden ? '\n\n' + c.content : ''}`
         : c.content,
       authorId: c.authorId,
       authorUsername: c.author?.username ?? "[deleted]",

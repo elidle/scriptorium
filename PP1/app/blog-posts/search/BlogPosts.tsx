@@ -4,11 +4,8 @@ import {
   Typography,
   TextField,
   Button,
-  FormControlLabel,
-  Checkbox,
-  FormGroup,
   Modal,
-  Box, Drawer, Divider, IconButton, Theme, ThemeProvider, createTheme,
+  Box,
 } from "@mui/material";
 import React, {useCallback, useEffect, useState} from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
@@ -31,50 +28,13 @@ import TagsContainer from "@/app/components/TagsContainer";
 import SearchBar from "@/app/components/SearchBar";
 import SearchTemplate from "@/app/components/SearchTemplate";
 import BaseLayout from "@/app/components/BaseLayout";
-import RightDrawer from "@/app/components/RightDrawer";
+import FilterDrawer from "@/app/components/FilterDrawer";
+import {useTheme} from "@/app/contexts/ThemeContext";
 const domain = "http://localhost:3000";
-
-const theme = createTheme({
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#2563eb', // blue-600
-    },
-    secondary: {
-      main: '#7c3aed', // violet-600
-    },
-    background: {
-      default: '#0f172a', // slate-900
-      paper: '#1e293b', // slate-800
-    },
-    text: {
-      primary: '#f8fafc', // slate-50
-      secondary: '#cbd5e1', // slate-300
-    },
-  },
-  components: {
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          backgroundColor: '#1e293b',
-          marginBottom: '1rem',
-        },
-      },
-    },
-    MuiDrawer: {
-      styleOverrides: {
-        paper: {
-          backgroundColor: '#1e293b',
-          borderRight: '1px solid #334155',
-          marginTop: '64px',
-        },
-      },
-    },
-  },
-});
 
 export default function BlogPosts() {
   const router = useRouter();
+  const { theme, isDarkMode } = useTheme();
 
   const [sideBarState, setSideBarState] = useState(false);
   const [blogPosts, setBlogPosts] = useState<Post[]>([]);
@@ -381,7 +341,7 @@ export default function BlogPosts() {
       onSearch={handleSearch}
       type="post"
     >
-      <div className="min-h-screen flex bg-slate-900">
+      <div className={`min-h-screen flex ${isDarkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
         {/* Modal for reporting */}
         <Modal open={reportModalOpen} onClose={() => setReportModalOpen(false)}>
           <Box
@@ -391,15 +351,15 @@ export default function BlogPosts() {
               left: "50%",
               transform: "translate(-50%, -50%)",
               width: 400,
-              bgcolor: "rgb(15, 23, 42)",
-              border: "1px solid rgb(51, 65, 85)",
+              bgcolor: theme.palette.background.paper,
+              border: `1px solid ${theme.palette.divider}`,
               borderRadius: "8px",
               p: 4,
               boxShadow: 24,
-              color: "rgb(203, 213, 225)",
+              color: theme.palette.text.primary,
             }}
           >
-            <Typography variant="h6" gutterBottom sx={{ color: "rgb(96, 165, 250)" }}>
+            <Typography variant="h6" gutterBottom sx={{ color: theme.palette.primary.main }}>
               Report Post
             </Typography>
 
@@ -419,27 +379,45 @@ export default function BlogPosts() {
                   setReportModalOpen(false);
                 }
               }}
-              InputProps={{
-                style: {
-                  backgroundColor: "rgb(30, 41, 59)",
-                  color: "rgb(203, 213, 225)",
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: theme.palette.background.default,
+                  color: theme.palette.text.primary,
+                  '& fieldset': {
+                    borderColor: theme.palette.divider,
+                  },
+                  '&:hover fieldset': {
+                    borderColor: theme.palette.text.secondary,
+                  },
                 },
-              }}
-              InputLabelProps={{
-                style: { color: "rgb(148, 163, 184)" },
+                '& .MuiInputLabel-root': {
+                  color: theme.palette.text.secondary,
+                },
               }}
             />
             <div className="flex justify-end gap-2 mt-4">
               <Button
                 variant="contained"
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                sx={{
+                  bgcolor: theme.palette.primary.main,
+                  '&:hover': {
+                    bgcolor: theme.palette.primary.dark,
+                  },
+                }}
                 onClick={handleReportSubmit}
               >
                 Submit
               </Button>
               <Button
                 variant="outlined"
-                className="border-blue-600 text-blue-600 hover:border-blue-700 hover:text-blue-700"
+                sx={{
+                  borderColor: theme.palette.primary.main,
+                  color: theme.palette.primary.main,
+                  '&:hover': {
+                    borderColor: theme.palette.primary.dark,
+                    color: theme.palette.primary.dark,
+                  },
+                }}
                 onClick={() => setReportModalOpen(false)}
               >
                 Cancel
@@ -461,12 +439,18 @@ export default function BlogPosts() {
               />
 
               {/* Right Sidebar */}
-               <RightDrawer
+              <FilterDrawer
                 isOpen={sideBarState}
                 onToggle={toggleSidebar}
                 width={rightDrawerWidth}
+                sx={{
+                  '& .MuiDrawer-paper': {
+                    bgcolor: theme.palette.background.paper,
+                    borderLeft: `1px solid ${theme.palette.divider}`,
+                  },
+                }}
               >
-                <Box sx={{ mt: 2 }}>
+                <Box sx={{mt: 2}}>
                   <SearchTemplate
                     selectedTemplates={selectedTemplates}
                     onTemplateSelect={setSelectedTemplates}
@@ -479,18 +463,26 @@ export default function BlogPosts() {
                     mode="search"
                   />
                 </Box>
-              </RightDrawer>
+              </FilterDrawer>
 
               {/* Main content */}
               <main className="flex-1 p-4 max-w-3xl mx-auto">
                 {/* Sorting Section */}
                 <div className="flex justify-between items-center mb-4">
-                  <Typography variant="h6" className="text-blue-400">
+                  <Typography
+                    variant="h6"
+                    sx={{ color: theme.palette.primary.main }}
+                  >
                     Posts
                   </Typography>
                   <Button
                     onClick={handleSortClick}
-                    className="!text-slate-300 hover:text-blue-400"
+                    sx={{
+                      color: theme.palette.text.secondary,
+                      '&:hover': {
+                        color: theme.palette.primary.main,
+                      },
+                    }}
                   >
                     Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
                   </Button>
@@ -504,7 +496,7 @@ export default function BlogPosts() {
 
                 {/* Search status */}
                 {debouncedQuery && (
-                  <Typography className="mb-4 text-slate-400">
+                  <Typography sx={{ color: theme.palette.text.secondary }} className="mb-4">
                     Showing results for "{debouncedQuery}"
                   </Typography>
                 )}
@@ -523,12 +515,14 @@ export default function BlogPosts() {
                   hasMore={hasMore}
                   loader={
                     <div className="text-center p-4">
-                      <Typography className="text-blue-400">Loading...</Typography>
+                      <Typography sx={{ color: theme.palette.primary.main }} className="text-center p-4">
+                        Loading...
+                      </Typography>
                     </div>
                   }
                   endMessage={
                     blogPosts.length > 0 ? (
-                      <Typography className="text-center p-4 text-slate-400">
+                      <Typography sx={{ color: theme.palette.text.secondary }} className="text-center p-4">
                         You've reached the end!
                       </Typography>
                     ) : (

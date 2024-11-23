@@ -225,7 +225,7 @@ export async function GET(req) {
     const optimizeComment = (comment) => ({
       id: comment.id,
       content: comment.isHidden
-        ? `This comment has been hidden by a moderator.${canViewHidden || comment.author?.id === userId ? '\n\n' + comment.content : ''}`
+        ? `[This comment has been hidden by a moderator.]${canViewHidden || comment.author?.id === userId ? '\n\n' + comment.content : ''}`
         : comment.content,
       authorId: comment.author?.id ?? null,
       authorUsername: comment.author?.username ?? "[deleted]",

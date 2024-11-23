@@ -5,7 +5,8 @@ import {
   AppBar,
   TextField,
   Modal,
-  Box
+  Box,
+  ThemeProvider
 } from "@mui/material";
 import {
   MessageCircle,
@@ -41,6 +42,9 @@ const domain = "http://localhost:3000";
 import { Post } from "@/app/types/post";
 import { Comment } from "@/app/types/comment";
 import TemplateCard from "@/app/components/TemplateCard";
+import ThemeToggle from "@/app/components/ThemeToggle";
+import {useTheme} from "@/app/contexts/ThemeContext";
+import BaseLayout from "@/app/components/BaseLayout";
 
 interface PostQueryParams {
   params: {
@@ -50,6 +54,7 @@ interface PostQueryParams {
 
 export default function BlogPost({ params }: PostQueryParams) {
   const { showToast } = useToast();
+  const { theme, isDarkMode } = useTheme();
 
   const router = useRouter();
   const postId = Number(params.postId);
@@ -589,378 +594,198 @@ export default function BlogPost({ params }: PostQueryParams) {
     }
   };
 
+  function handleSearch() {
+    router.push('/blog-posts/search');
+  }
+
   return (
-    <div className="min-h-screen flex bg-slate-900 text-slate-200">
-      <SideNav router={router} />
-
-      {/* Modal for reporting */}
-      <Modal open={reportModalOpen} onClose={() => setReportModalOpen(false)}>
-        <Box
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 400,
-            bgcolor: "rgb(15, 23, 42)",
-            border: "1px solid rgb(51, 65, 85)",
-            borderRadius: "8px",
-            p: 4,
-            boxShadow: 24,
-            color: "rgb(203, 213, 225)",
-          }}
-        >
-          <Typography variant="h6" gutterBottom sx={{ color: "rgb(96, 165, 250)" }}>
-            Report {reportingCommentId === null ? "Post" : "Comment"}
-          </Typography>
-
-          <TextField
-            fullWidth
-            label="Reason"
-            variant="outlined"
-            multiline
-            rows={4}
-            value={reportReason}
-            onChange={(e) => setReportReason(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                handleReportSubmit(e);
-              }
-              if (e.key === 'Escape') {
-                setReportModalOpen(false);
-              }
-            }}
-            InputProps={{
-              style: {
-                backgroundColor: "rgb(30, 41, 59)",
-                color: "rgb(203, 213, 225)",
-              },
-            }}
-            InputLabelProps={{
-              style: { color: "rgb(148, 163, 184)" },
-            }}
-          />
-          <div className="flex justify-end gap-2 mt-4">
-            <Button
-              variant="contained"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-              onClick={handleReportSubmit}
-            >
-              Submit
-            </Button>
-            <Button
-              variant="outlined"
-              className="border-blue-600 text-blue-600 hover:border-blue-700 hover:text-blue-700"
-              onClick={() => setReportModalOpen(false)}
-            >
-              Cancel
-            </Button>
-          </div>
-        </Box>
-      </Modal>
-
-      {/* Delete Modal */}
-      <ConfirmationModal
-        open={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        onConfirm={handleDelete}
-        title="Delete Post"
-        message="Are you sure you want to delete this post? This action cannot be undone."
-      />
-
-      {error && (
-        <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-4">
-          <Typography className="text-red-500">{error}</Typography>
-        </div>
-      )}
-
-      {/* App Bar */}
-      <AppBar 
-        position="fixed" 
-        className="!bg-slate-800 border-b border-slate-700"
-        sx={{ boxShadow: 'none' }}
+    <ThemeProvider theme={theme}>
+      <BaseLayout
+        user={user}
+        onSearch={handleSearch}
+        type="post"
       >
-        <div className="p-3 flex flex-col sm:flex-row items-center gap-3">
-          <Link href="/">
-            <Typography 
-              className="text-xl sm:text-2xl text-blue-400 flex-shrink-0" 
-              variant="h5"
+        <div className={`min-h-screen flex ${isDarkMode ? 'bg-slate-900' : 'bg-slate-100'}`}>
+          {/* Modal for reporting */}
+          <Modal open={reportModalOpen} onClose={() => setReportModalOpen(false)}>
+            <Box
+              sx={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                width: 400,
+                bgcolor: theme.palette.background.paper,
+                border: 1,
+                borderColor: theme.palette.divider,
+                borderRadius: 1,
+                p: 4,
+                boxShadow: 24,
+                color: theme.palette.text.primary,
+              }}
             >
-            Scriptorium
-            </Typography>
-          </Link>
-
-          <div className="flex-grow"></div>
-
-          {user ? (
-          <div className="flex items-center gap-2">
-            <UserAvatar username={user.username} userId={user.id} />
-
-            <Typography className="text-slate-200">
-              {user.username}
-            </Typography>
-          </div>
-          ) : (
-          <Link href="/auth/login">
-            <Button 
-              className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
-              variant="contained"
-              size="small"
-            >
-              Log In
-            </Button>
-          </Link>
-          )}
-        </div>
-      </AppBar>
-
-      <main className="flex-1 p-4 max-w-3xl w-full mx-auto mt-12 mb-10">
-        {error ? (
-          <div className="bg-slate-800 rounded-lg border border-slate-700 p-8 text-center">
-            <Typography variant="h5" className="text-red-400 mb-4">
-              {error}
-            </Typography>
-            <Button 
-              href="/blog-posts/search"
-              variant="contained"
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              Back to Posts
-            </Button>
-          </div>
-        ) : post ? (
-          <>
-            {/* Post Section */}
-            <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px] flex flex-col justify-between">
-                <div className="flex items-center gap-2 mb-2 mt-2">
-                <UserAvatar username={post.authorUsername} userId={post.authorId} />
-
-                {
-                  post.authorUsername[0] === '[' ? (
-                    <Typography className={`${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
-                      {post.authorUsername}
-                    </Typography>
-                  ) : (
-                    <Link href={`/users/${post.authorUsername}`}>
-                      <Typography className={`hover:text-blue-400 ${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
-                        {post.authorUsername}
-                      </Typography>
-                    </Link>
-                  )
-                }
-
-                <Typography className="text-slate-400">
-                  • {new Date(post.createdAt).toLocaleString()}
-                </Typography>
-              </div>
-
-              <Typography variant="h4" className="text-slate-300">
-                {post.title === null ? "[Deleted post]" : post.title}
+              <Typography variant="h6" gutterBottom sx={{color: "rgb(96, 165, 250)"}}>
+                Report {reportingCommentId === null ? "Post" : "Comment"}
               </Typography>
 
-              {isEditing ? (
-                <form onSubmit={handleEditSubmit} className="space-y-4 mb-2 mt-2">
-                  <TextField
-                    fullWidth
-                    multiline
-                    minRows={4}
-                    value={editedContent}
-                    onChange={(e) => setEditedContent(e.target.value)}
-                    className="bg-slate-900"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        height: '100%',
-                        color: 'rgb(226, 232, 240)',
-                        '& fieldset': { borderColor: 'rgb(51, 65, 85)' },
-                        '&:hover fieldset': { borderColor: 'rgb(59, 130, 246)' },
-                        '&.Mui-focused fieldset': { borderColor: 'rgb(59, 130, 246)' },
-                      },
-                    }}
-                  />
-                  <div className="flex justify-end gap-2">
-                    <Button 
-                      type="submit"
-                      variant="contained"
-                      className="bg-blue-600 hover:bg-blue-700 px-6"
-                    >
-                      Save
-                    </Button>
-                    <Button 
-                      onClick={() => {
-                        setEditedContent("");
-                        setIsEditing(false);
-                      }}
-                      variant="outlined"
-                      className="text-slate-300 border-slate-700 hover:border-blue-400"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
-              ) : (
-                <div className="my-5">
-                  <Typography variant="body1" className="text-slate-300" sx={{whiteSpace: "pre-wrap"}}>
-                    {post.content === null ? "[This post has been deleted by its author.]" : post.content}
-                  </Typography>
-                </div>
-              )}
+              <TextField
+                fullWidth
+                label="Reason"
+                variant="outlined"
+                multiline
+                rows={4}
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    handleReportSubmit(e);
+                  }
+                  if (e.key === 'Escape') {
+                    setReportModalOpen(false);
+                  }
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    bgcolor: theme.palette.background.default,
+                    color: theme.palette.text.primary,
+                    '& fieldset': {
+                      borderColor: theme.palette.divider,
+                    },
+                    '&:hover fieldset': {
+                      borderColor: theme.palette.text.secondary,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: theme.palette.primary.main,
+                    },
+                  },
+                }}
+              />
+              <div className="flex justify-end gap-2 mt-4">
+                <Button
+                  variant="contained"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={handleReportSubmit}
+                >
+                  Submit
+                </Button>
+                <Button
+                  variant="outlined"
+                  className="border-blue-600 text-blue-600 hover:border-blue-700 hover:text-blue-700"
+                  onClick={() => setReportModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </Box>
+          </Modal>
 
-              {/* Tags and Templates Section */}
-              <div className="space-y-4 mb-4">
-                {/* Code Templates */}
-                {post.codeTemplates && post.codeTemplates.length > 0 && (
-                  <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
-                    <Typography variant="subtitle2" className="text-slate-400 mb-3">
-                      Related Code Templates
-                    </Typography>
-                    <div className="space-y-2">
-                      {post.codeTemplates.map((template, index) => (
-                        <TemplateCard key={index} template={template} />
-                      ))}
-                    </div>
-                  </div>
-                )}
+          {/* Delete Modal */}
+          <ConfirmationModal
+            open={deleteModalOpen}
+            onClose={() => setDeleteModalOpen(false)}
+            onConfirm={handleDelete}
+            title="Delete Post"
+            message="Are you sure you want to delete this post? This action cannot be undone."
+          />
 
-                {/* Tags */}
-                {post.tags && post.tags.length > 0 && (
-                  <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
-                    <Typography variant="subtitle2" className="text-slate-400 mb-3">
-                      Tags
-                    </Typography>
-                    <div className="flex flex-wrap gap-2">
-                      {post.tags.map((tag, index) => (
-                        <Link
-                          key={index}
-                          href={`/blog-posts/search?tags=${tag.name}`}
-                          className="px-2 py-1 bg-slate-700/50 hover:bg-slate-700 border border-slate-600 rounded-full text-xs text-blue-300 transition-colors"
-                        >
-                          {tag.name}
+          {error && (
+            <div className={`${
+              isDarkMode ? 'bg-red-500/10 border-red-500' : 'bg-red-100 border-red-400'
+            } border rounded-lg p-4 mb-4`}>
+              <Typography className="text-red-500">{error}</Typography>
+            </div>
+          )}
+
+          <main className="flex-1 p-4 max-w-3xl w-full mx-auto mt-12 mb-10">
+            {error ? (
+              <div className="bg-slate-800 rounded-lg border border-slate-700 p-8 text-center">
+                <Typography variant="h5" className="text-red-400 mb-4">
+                  {error}
+                </Typography>
+                <Button
+                  href="/blog-posts/search"
+                  variant="contained"
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Back to Posts
+                </Button>
+              </div>
+            ) : post ? (
+              <>
+                {/* Post Section */}
+                <div className={`${
+                  isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+                } rounded-lg border p-4 mb-4 min-h-[200px] flex flex-col justify-between`}>
+                  <div className="flex items-center gap-2 mb-2 mt-2">
+                    <UserAvatar username={post.authorUsername} userId={post.authorId}/>
+
+                    {
+                      post.authorUsername[0] === '[' ? (
+                        <Typography className={`${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
+                          {post.authorUsername}
+                        </Typography>
+                      ) : (
+                        <Link href={`/users/${post.authorUsername}`}>
+                          <Typography className={`hover:text-blue-400 ${
+                            user?.id === post.authorId 
+                              ? 'text-green-400' 
+                              : isDarkMode ? 'text-slate-400' : 'text-slate-600'
+                          }`}>
+                            {post.authorUsername}
+                          </Typography>
                         </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  {/* Post Voting */}
-                  <Voting
-                    item={post}
-                    handleVote={handlePostVote}
-                  />
+                      )
+                    }
 
-                  {/* Post Actions */}
-                  <button
-                    onClick={scrollToComment}
-                    className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
-                    disabled={!post?.allowAction}
-                  >
-                    <MessageCircle size={18}/>
-                    <span className="text-sm"> Comment </span>
-                  </button>
-
-                  {user?.id !== post.authorId && (
-                    <button
-                      onClick={() => {
-                        if (post.allowAction) handleReportClick(post.id)
-                      }}
-                      className={`flex items-center gap-1 text-slate-400 ${post.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
-                      disabled={!post.allowAction}
-                    >
-                      <TriangleAlert size={18}/>
-                      <span className="text-xs">Report</span>
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleShare(post.id)}
-                    className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
-                  >
-                    <Share2 size={18}/>
-                    <span className="text-sm">Share</span>
-                  </button>
-                </div>
-
-                {/* Author buttons */}
-                {user?.id === post.authorId && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => toggleIsEditing()}
-                      className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
-                      disabled={!post?.allowAction}
-                    >
-                      <Edit size={18} />
-                      <span className="text-sm"> Edit </span>
-                    </button>
-                    <button 
-                      onClick={() => setDeleteModalOpen(true)}
-                      className={'flex items-center gap-1 text-slate-400 hover:text-red-400'}
-                    >
-                      <Trash2 size={18} />
-                      <span className="text-sm"> Delete </span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* New Comment Input Section */}
-              {post?.allowAction ? (
-                <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px]">
-                  <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4 min-h-[200px]">
-                    <Typography variant="h6" className="text-blue-400 mb-3">
-                      Add a Comment
+                    <Typography className="text-slate-400">
+                      • {new Date(post.createdAt).toLocaleString()}
                     </Typography>
+                  </div>
 
-                    {newCommentError && (
-                      <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
-                        <Typography className="text-red-500">{newCommentError}</Typography>
-                      </div>
-                    )}
+                  <Typography className={`${
+                    isDarkMode ? 'text-slate-300' : 'text-slate-900'
+                  }`}>
+                    {post.title === null ? "[Deleted post]" : post.title}
+                  </Typography>
 
-                    <form 
-                      onSubmit={handleCommentSubmit} 
-                      className="space-y-4"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          handleCommentSubmit(e);
-                        } else if (e.key === 'Escape') {
-                          commentInputRef.current?.blur();
-                        }
-                      }}
-                    >
+                  {isEditing ? (
+                    <form onSubmit={handleEditSubmit} className="space-y-4 mb-2 mt-2">
                       <TextField
                         fullWidth
                         multiline
-                        rows={4}
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        placeholder="What are your thoughts?"
+                        minRows={4}
+                        value={editedContent}
+                        onChange={(e) => setEditedContent(e.target.value)}
                         className="bg-slate-900"
-                        inputRef={commentInputRef}
                         sx={{
                           '& .MuiOutlinedInput-root': {
-                            color: 'rgb(226, 232, 240)',
+                            bgcolor: theme.palette.background.default,
+                            color: theme.palette.text.primary,
                             '& fieldset': {
-                              borderColor: 'rgb(51, 65, 85)',
+                              borderColor: theme.palette.divider,
                             },
                             '&:hover fieldset': {
-                              borderColor: 'rgb(59, 130, 246)',
+                              borderColor: theme.palette.text.secondary,
                             },
                             '&.Mui-focused fieldset': {
-                              borderColor: 'rgb(59, 130, 246)',
+                              borderColor: theme.palette.primary.main,
                             },
                           },
                         }}
                       />
-                      <div className="flex gap-2">
-                        <Button 
+                      <div className="flex justify-end gap-2">
+                        <Button
                           type="submit"
                           variant="contained"
                           className="bg-blue-600 hover:bg-blue-700 px-6"
                         >
-                          Submit
+                          Save
                         </Button>
-                        <Button 
-                          onClick={() => setNewComment("")}
+                        <Button
+                          onClick={() => {
+                            setEditedContent("");
+                            setIsEditing(false);
+                          }}
                           variant="outlined"
                           className="text-slate-300 border-slate-700 hover:border-blue-400"
                         >
@@ -968,64 +793,249 @@ export default function BlogPost({ params }: PostQueryParams) {
                         </Button>
                       </div>
                     </form>
+                  ) : (
+                    <div className="my-5">
+                      <Typography variant="body1" className="text-slate-300" sx={{whiteSpace: "pre-wrap"}}>
+                        {post.content === null ? "[This post has been deleted by its author.]" : post.content}
+                      </Typography>
+                    </div>
+                  )}
+
+                  {/* Tags and Templates Section */}
+                  <div className="space-y-4 mb-4">
+                    {/* Code Templates */}
+                    {post.codeTemplates && post.codeTemplates.length > 0 && (
+                      <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
+                        <Typography variant="subtitle2" className="text-slate-400 mb-3">
+                          Related Code Templates
+                        </Typography>
+                        <div className="space-y-2">
+                          {post.codeTemplates.map((template, index) => (
+                            <TemplateCard key={index} template={template}/>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tags */}
+                    {post.tags && post.tags.length > 0 && (
+                      <div className={`p-4 ${
+                        isDarkMode
+                          ? 'bg-slate-800/50 border-slate-700'
+                          : 'bg-slate-100/50 border-slate-200'
+                      } border rounded-lg`}>
+                        <Typography variant="subtitle2" className="text-slate-400 mb-3">
+                          Tags
+                        </Typography>
+                        <div className="flex flex-wrap gap-2">
+                          {post.tags.map((tag, index) => (
+                            <Link
+                              key={index}
+                              href={`/blog-posts/search?tags=${tag.name}`}
+                              className={`px-2 py-1 ${
+                                isDarkMode 
+                                  ? 'bg-slate-700/50 hover:bg-slate-700 border-slate-600 text-blue-300' 
+                                  : 'bg-slate-200/50 hover:bg-slate-200 border-slate-300 text-blue-600'
+                              } border rounded-full text-xs transition-colors`}
+                            >
+                              {tag.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ) : (
-                <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4">
-                  <Typography className="text-slate-400">
-                    Comments are disabled for this post.
-                  </Typography>
-                </div>
-              )}
+                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                      {/* Post Voting */}
+                      <Voting
+                        item={post}
+                        handleVote={handlePostVote}
+                      />
 
-              {/* Sorting Section */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
-                <Typography variant="h6" className="text-blue-400">
-                  Comments
-                </Typography>
-                <Button
-                  onClick={handleSortClick}
-                  className="!text-slate-300 hover:text-blue-400"
-                >
-                  Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
-                </Button>
-                <SortMenu
-                  sortBy={sortBy}
-                  anchorEl={anchorEl}
-                  onClose={handleSortClose}
-                  sortOptions={sortOptions}
-                />
-              </div>
+                      {/* Post Actions */}
+                      <button
+                        onClick={scrollToComment}
+                        className={`flex items-center gap-1 ${
+                          isDarkMode ? 'text-slate-400 hover:text-blue-400' : 'text-slate-600 hover:text-blue-600'
+                        } ${post?.allowAction ? '' : 'opacity-50'}`}
+                        disabled={!post?.allowAction}
+                      >
+                        <MessageCircle size={18}/>
+                        <span className="text-sm"> Comment </span>
+                      </button>
 
-              {/* Comment section */}
-              <InfiniteScroll
-                dataLength={comments.length}
-                next={fetchComments}
-                hasMore={hasMore}
-                loader={<Typography className="text-blue-400">Loading comments...</Typography>}
-                endMessage={<Typography className="text-slate-400">End of comments</Typography>}
-              >
-                <div className="space-y-4">
-                  {comments.map((comment) => (
-                    <CommentItem 
-                      key={comment.id} 
-                      comment={comment} 
-                      post={post}
-                      handleVote={handleCommentVote} 
-                      handleReportClick={handleReportClick}
-                      fetchComments={fetchComments}
+                      {user?.id !== post.authorId && (
+                        <button
+                          onClick={() => {
+                            if (post.allowAction) handleReportClick(post.id)
+                          }}
+                          className={`flex items-center gap-1 text-slate-400 ${post.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
+                          disabled={!post.allowAction}
+                        >
+                          <TriangleAlert size={18}/>
+                          <span className="text-xs">Report</span>
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleShare(post.id)}
+                        className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
+                      >
+                        <Share2 size={18}/>
+                        <span className="text-sm">Share</span>
+                      </button>
+                    </div>
+
+                    {/* Author buttons */}
+                    {user?.id === post.authorId && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => toggleIsEditing()}
+                          className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
+                          disabled={!post?.allowAction}
+                        >
+                          <Edit size={18}/>
+                          <span className="text-sm"> Edit </span>
+                        </button>
+                        <button
+                          onClick={() => setDeleteModalOpen(true)}
+                          className={'flex items-center gap-1 text-slate-400 hover:text-red-400'}
+                        >
+                          <Trash2 size={18}/>
+                          <span className="text-sm"> Delete </span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* New Comment Input Section */}
+                  {post?.allowAction ? (
+                    <div ref={newCommentRef}
+                         className={`${
+                            isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+                         } rounded-lg border p-4 mb-4 min-h-[200px]`}>
+                      <Typography variant="h6" className="text-blue-400 mb-3">
+                        Add a Comment
+                      </Typography>
+
+                      {newCommentError && (
+                        <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
+                          <Typography className="text-red-500">{newCommentError}</Typography>
+                        </div>
+                      )}
+
+                      <form
+                        onSubmit={handleCommentSubmit}
+                        className="space-y-4"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            handleCommentSubmit(e);
+                          } else if (e.key === 'Escape') {
+                            commentInputRef.current?.blur();
+                          }
+                        }}
+                      >
+                        <TextField
+                          fullWidth
+                          multiline
+                          rows={4}
+                          value={newComment}
+                          onChange={(e) => setNewComment(e.target.value)}
+                          placeholder="What are your thoughts?"
+                          className="bg-slate-900"
+                          inputRef={commentInputRef}
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              bgcolor: theme.palette.background.default,
+                              color: theme.palette.text.primary,
+                              '& fieldset': {
+                                borderColor: theme.palette.divider,
+                              },
+                              '&:hover fieldset': {
+                                borderColor: theme.palette.text.secondary,
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: theme.palette.primary.main,
+                              },
+                            },
+                          }}
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            type="submit"
+                            variant="contained"
+                            className="bg-blue-600 hover:bg-blue-700 px-6"
+                          >
+                            Submit
+                          </Button>
+                          <Button
+                            onClick={() => setNewComment("")}
+                            variant="outlined"
+                            className="text-slate-300 border-slate-700 hover:border-blue-400"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </form>
+                    </div>
+                  ) : (
+                    <div ref={newCommentRef} className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4">
+                      <Typography className="text-slate-400">
+                        Comments are disabled for this post.
+                      </Typography>
+                    </div>
+                  )}
+
+                  {/* Sorting Section */}
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+                    <Typography variant="h6" className="text-blue-400">
+                      Comments
+                    </Typography>
+                    <Button
+                      onClick={handleSortClick}
+                      className="!text-slate-300 hover:text-blue-400"
+                    >
+                      Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
+                    </Button>
+                    <SortMenu
+                      sortBy={sortBy}
+                      anchorEl={anchorEl}
+                      onClose={handleSortClose}
+                      sortOptions={sortOptions}
                     />
-                  ))}
+                  </div>
+
+                  {/* Comment section */}
+                  <InfiniteScroll
+                    dataLength={comments.length}
+                    next={fetchComments}
+                    hasMore={hasMore}
+                    loader={<Typography className="text-blue-400">Loading comments...</Typography>}
+                    endMessage={<Typography className="text-slate-400">End of comments</Typography>}
+                  >
+                    <div className="space-y-4">
+                      {comments.map((comment) => (
+                        <CommentItem
+                          key={comment.id}
+                          comment={comment}
+                          post={post}
+                          handleVote={handleCommentVote}
+                          handleReportClick={handleReportClick}
+                          fetchComments={fetchComments}
+                        />
+                      ))}
+                    </div>
+                  </InfiniteScroll>
                 </div>
-              </InfiniteScroll>
-            </div>
-          </>
-        ) : (
-          <div className="flex justify-center items-center">
-            <Typography className="text-blue-400">Loading post...</Typography>
-          </div>
-        )}
-      </main>
-    </div>
+              </>
+            ) : (
+              <div className="flex justify-center items-center">
+                <Typography className="text-blue-400">Loading post...</Typography>
+              </div>
+            )}
+          </main>
+        </div>
+      </BaseLayout>
+    </ThemeProvider>
   );
 }

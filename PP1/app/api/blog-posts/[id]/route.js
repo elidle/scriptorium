@@ -285,7 +285,7 @@ export async function GET(req, { params }) {
         ? `[Hidden post] ${canViewHidden ? post.title : ''}`
         : postWithMetrics.title,
       content: post.isHidden
-        ? `This post has been hidden by a moderator.${canViewHidden ? '\n\n' + postWithMetrics.content : ''}`
+        ? `[This post has been hidden by a moderator.]${canViewHidden ? '\n\n' + postWithMetrics.content : ''}`
         : postWithMetrics.content,
       authorId: postWithMetrics.author?.id ?? null,
       authorUsername: postWithMetrics.author?.username ?? "[deleted]",
