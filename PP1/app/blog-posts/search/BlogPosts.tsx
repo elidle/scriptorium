@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import React, {useCallback, useEffect, useState} from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
-import {Star, Clock, TrendingUp, Zap, Plus, ChevronRight, ChevronLeft} from "lucide-react";
+import {Star, Clock, TrendingUp, Zap, Plus, ChevronRight, ChevronLeft, Menu} from "lucide-react";
 import Link from 'next/link';
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
@@ -26,9 +26,12 @@ import PostPreview from "./PostPreview";
 
 import { Post } from "../../types/post";
 import debounce from "lodash.debounce";
-import {Tag} from "@/app/types";
+import {CodeTemplate, Tag} from "@/app/types";
 import TagsContainer from "@/app/components/TagsContainer";
 import SearchBar from "@/app/components/SearchBar";
+import SearchTemplate from "@/app/components/SearchTemplate";
+import BaseLayout from "@/app/components/BaseLayout";
+import RightDrawer from "@/app/components/RightDrawer";
 const domain = "http://localhost:3000";
 
 const theme = createTheme({
@@ -77,6 +80,9 @@ export default function BlogPosts() {
   const [blogPosts, setBlogPosts] = useState<Post[]>([]);
   const [error, setError] = useState("");
 
+  // Code templates related state
+  const [selectedTemplates, setSelectedTemplates] = useState<CodeTemplate[]>([]);
+
   // Pagination states
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -98,7 +104,7 @@ export default function BlogPosts() {
   const [reportReason, setReportReason] = useState("");
   const [reportingPostId, setReportingPostId] = useState<number | null>(null);
 
-  const { user, accessToken, setAccessToken } = useAuth();
+  const { user, accessToken, setAccessToken, loading } = useAuth();
   const { showToast } = useToast();
 
 
@@ -120,8 +126,8 @@ export default function BlogPosts() {
   useEffect(() => {
     setBlogPosts([]);
     setPage(1);
-    fetchBlogPosts(true);
-  }, [debouncedQuery, sortBy, selectedTags, user]);
+    if (!loading) fetchBlogPosts(true);
+  }, [debouncedQuery, sortBy, selectedTags, selectedTemplates, user, loading]);
 
   useEffect(() => {
     refreshTags();
@@ -133,15 +139,20 @@ export default function BlogPosts() {
       page: currentPage.toString(),
       sortBy: sortBy,
       ...(debouncedQuery && { q: debouncedQuery }),
-      ...(user?.id && { userId: user.id })
+      ...(user?.id && { userId: user.id }),
     });
 
     selectedTags.forEach(tag => {
       queryParams.append('tags', tag);
     });
 
+    selectedTemplates.forEach(template => {
+      queryParams.append('codeTemplateIds', template.id.toString());
+    });
+
     try {
       const url = `${domain}/api/blog-posts/search?${queryParams.toString()}`;
+      console.log("BP Url: ", url);
       const options: RequestInit = {
         headers: user && accessToken ? {
           'access-token': `Bearer ${accessToken}`
@@ -180,38 +191,6 @@ export default function BlogPosts() {
     }
   };
 
-  const searchTags = useCallback(
-    debounce(async (query: string) => {
-      setIsSearchingTags(true);
-      setTagsError("");
-
-      try {
-        const response = await fetch(
-          `${domain}/api/tags/search/?q=${encodeURIComponent(query)}`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        const data = await response.json();
-
-        if (data.status === "error") {
-          throw new Error(data.message);
-        }
-
-        setTags(data.tags || []);
-      } catch (err) {
-        setTagsError(err instanceof Error ? err.message : "Failed to search tags");
-        setTags([]);
-      } finally {
-        setIsSearchingTags(false);
-      }
-    }, 300),
-    []
-  );
-
   const refreshTags = async () => {
     setIsSearchingTags(true);
     setTagsError("");
@@ -237,12 +216,8 @@ export default function BlogPosts() {
     }
   };
 
-  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.target.value);
-  };
-
-  const handleTagsChange = (newTags: string[]) => {
-    setSelectedTags(newTags);
+  const handleSearch = (searchTerm: string) => {
+    setSearchQuery(searchTerm);
   };
 
   const handleVote = async (postId: number, isUpvote: boolean) => {
@@ -399,12 +374,14 @@ export default function BlogPosts() {
     setSideBarState(!sideBarState);
   };
 
-  let rightDrawerWidth = 300;
+  const rightDrawerWidth = 400;
   return (
-    <ThemeProvider theme={theme}>
+    <BaseLayout
+      user={user}
+      onSearch={handleSearch}
+      type="post"
+    >
       <div className="min-h-screen flex bg-slate-900">
-        <SideNav router={router}/>
-
         {/* Modal for reporting */}
         <Modal open={reportModalOpen} onClose={() => setReportModalOpen(false)}>
           <Box
@@ -471,77 +448,7 @@ export default function BlogPosts() {
           </Box>
         </Modal>
 
-        <div className="flex-1 ml-64">
-          {/* App Bar */}
-          <AppBar
-            position="fixed"
-            className="!bg-slate-800 border-b border-slate-700"
-            sx= {{ boxShadow: 'none' }}
-          >
-            <div className="p-3 flex flex-col sm:flex-row items-center gap-3">
-              <Link href="/">
-                <Typography
-                  className="text-xl sm:text-2xl text-blue-400 flex-shrink-0"
-                  variant="h5"
-                >
-                  Scriptorium
-                </Typography>
-              </Link>
-
-              <TextField
-                className="flex-grow"
-                color="info"
-                variant="outlined"
-                label="Search Posts..."
-                size="small"
-                value={searchQuery}
-                onChange={handleSearch}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: 'rgb(30, 41, 59)',
-                    '&:hover': {
-                      backgroundColor: 'rgb(30, 41, 59, 0.8)',
-                    },
-                    '& fieldset': {
-                      borderColor: 'rgb(100, 116, 139)',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: 'rgb(148, 163, 184)',
-                    },
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: 'rgb(148, 163, 184)',
-                  },
-                  '& input': {
-                    color: 'rgb(226, 232, 240)',
-                  },
-                }}
-              />
-
-              {user ? (
-                <div className="flex items-center gap-2">
-                  <UserAvatar username={user.username} userId={user.id} />
-
-                  <Link href={`/users/${user.username}`}>
-                    <Typography className="text-slate-200 hover:text-blue-400">
-                      {user.username}
-                    </Typography>
-                  </Link>
-                </div>
-              ) : (
-                <Link href="/auth/login">
-                  <Button
-                    className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
-                    variant="contained"
-                    size="small"
-                  >
-                    Log In
-                  </Button>
-                </Link>
-              )}
-            </div>
-          </AppBar>
-
+        <div className="flex-1 transition-all duration-300">
           {/* Content container */}
           <div className="pt-16">
             <div className="flex flex-row-reverse relative">
@@ -554,60 +461,25 @@ export default function BlogPosts() {
               />
 
               {/* Right Sidebar */}
-              <Drawer
-                variant="persistent"
-                anchor="right"
-                open={sideBarState}
-                sx={{
-                  width: rightDrawerWidth,
-                  flexShrink: 0,
-                  '& .MuiDrawer-paper': {
-                    width: rightDrawerWidth,
-                    boxSizing: 'border-box',
-                    // Add overlay effect instead of pushing content
-                    borderLeft: '1px solid',
-                    borderColor: 'divider',
-                    // Optional: add subtle shadow
-                    boxShadow: '-4px 0 15px rgba(0, 0, 0, 0.1)',
-                  },
-                  // Optional: add backdrop for better visibility
-                  '& .MuiBackdrop-root': {
-                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                  },
-                }}
+               <RightDrawer
+                isOpen={sideBarState}
+                onToggle={toggleSidebar}
+                width={rightDrawerWidth}
               >
-                <Box sx={{ p: 2 }}>
-                  <Box sx={{ mt: 2 }}>
-                    <TagsContainer
-                      selectedTags={selectedTags}
-                      onTagsChange={setSelectedTags}
-                      tags={tags}
-                      mode="search"
-                    />
-                  </Box>
+                <Box sx={{ mt: 2 }}>
+                  <SearchTemplate
+                    selectedTemplates={selectedTemplates}
+                    onTemplateSelect={setSelectedTemplates}
+                    mode="search"
+                  />
+                  <TagsContainer
+                    selectedTags={selectedTags}
+                    onTagsChange={setSelectedTags}
+                    tags={tags}
+                    mode="search"
+                  />
                 </Box>
-              </Drawer>
-
-              {/* Right Sidebar Toggle Button */}
-              <IconButton
-                onClick={toggleSidebar}
-                sx={{
-                  position: 'fixed',
-                  right: sideBarState ? rightDrawerWidth : 0,
-                  top: '80px',
-                  zIndex: (theme: Theme) => theme.zIndex.drawer + 2,
-                  bgcolor: 'background.paper',
-                  '&:hover': {
-                    bgcolor: 'background.default',
-                  },
-                  transition: (theme: Theme) => theme.transitions.create(['right'], {
-                    easing: theme.transitions.easing.sharp,
-                    duration: theme.transitions.duration.standard,
-                  }),
-                }}
-              >
-                {sideBarState ? <ChevronRight /> : <ChevronLeft />}
-              </IconButton>
+              </RightDrawer>
 
               {/* Main content */}
               <main className="flex-1 p-4 max-w-3xl mx-auto">
@@ -682,6 +554,6 @@ export default function BlogPosts() {
           </div>
         </div>
       </div>
-    </ThemeProvider>
+    </BaseLayout>
   );
 }
