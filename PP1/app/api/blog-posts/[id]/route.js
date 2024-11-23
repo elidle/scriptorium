@@ -78,7 +78,13 @@ export async function PUT(req, { params }) {
         codeTemplates: {
           select: {
             id: true,
-            title: true
+            title: true,
+            author: {
+              select: {
+                id: true,
+                username: true
+              }
+            }
           }
         },
         createdAt: true,
@@ -212,7 +218,37 @@ export async function GET(req, { params }) {
         codeTemplates: {
           select: {
             id: true,
-            title: true
+            title: true,
+            explanation: true,
+            code: true,
+            language: true,
+            tags: true,
+            createdAt: true,
+            updatedAt: true,
+            author: {
+              select: {
+                id: true,
+                username: true,
+                avatar: true,
+              },
+            },
+            parentFork: {
+              select: {
+                id: true,
+                title: true,
+                author: {
+                  select: {
+                    username: true,
+                  }
+                }
+              }
+            },
+            childForks: {
+              select: {
+                id: true,
+                title: true,
+              }
+            }
           }
         }
       }
@@ -258,6 +294,7 @@ export async function GET(req, { params }) {
       score: postWithMetrics.metrics.totalScore,
       userVote: postWithMetrics.userVote,
       allowAction: !post.isDeleted && !post.isHidden,
+      codeTemplates: postWithMetrics.codeTemplates
     }
 
     return Response.json(responsePost, {status: 200} );
