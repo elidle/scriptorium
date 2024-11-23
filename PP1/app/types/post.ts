@@ -1,4 +1,5 @@
 import { Tag } from './tag';
+import {CodeTemplate} from "@/app/types/code-template";
 
 export interface Post {
   id: number;
@@ -11,6 +12,7 @@ export interface Post {
   score: number;
   userVote: number;
   allowAction: boolean;
+  codeTemplates: CodeTemplate[];
 }
 
 export interface ReportedPost extends Post {
