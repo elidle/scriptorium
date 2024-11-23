@@ -15,9 +15,9 @@ import {
   TrendingUp,
   Zap,
   Edit,
-  Trash2
+  Trash2, Share2, FileCode
 } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import CommentItem from "./CommentItem";
 
@@ -40,6 +40,7 @@ const domain = "http://localhost:3000";
 
 import { Post } from "@/app/types/post";
 import { Comment } from "@/app/types/comment";
+import TemplateCard from "@/app/components/TemplateCard";
 
 interface PostQueryParams {
   params: {
@@ -85,7 +86,7 @@ export default function BlogPost({ params }: PostQueryParams) {
   };
   const [editedContent, setEditedContent] = useState("");
 
-  const { user, accessToken, setAccessToken } = useAuth();
+  const { user, accessToken, setAccessToken, loading } = useAuth();
 
   useEffect(() => {
     const appBar = document.querySelector('.MuiAppBar-root');
@@ -186,19 +187,19 @@ export default function BlogPost({ params }: PostQueryParams) {
   ];
 
   useEffect(() => {
-    fetchBlogPost();
-  }, []);
+    if (!loading) fetchBlogPost();
+  }, [loading]);
 
   useEffect(() => {
     setComments([]);
     setPage(1);
-    fetchComments(true);
-  }, [sortBy]);
+    if (!loading) fetchComments(true);
+  }, [sortBy, loading]);
 
   const fetchBlogPost = async () => {
     try {
       const url = `${domain}/api/blog-posts/${postId}?${user?.id ? `userId=${user.id}` : ''}`;
-      let options: RequestInit = {
+      const options: RequestInit = {
         headers: user && accessToken ? {
           'access-token': `Bearer ${accessToken}`
         } : {}
@@ -571,6 +572,23 @@ export default function BlogPost({ params }: PostQueryParams) {
     }
   };
 
+  const handleShare = async (id: number) => {
+    try {
+      const url = `${window.location.origin}/blog-posts/comments/${id}`;
+      await navigator.clipboard.writeText(url);
+      showToast({
+        message: `Post link copied to clipboard!`,
+        type: 'success'
+      });
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      showToast({
+        message: 'Failed to copy link to clipboard',
+        type: 'error'
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen flex bg-slate-900 text-slate-200">
       <SideNav router={router} />
@@ -780,11 +798,49 @@ export default function BlogPost({ params }: PostQueryParams) {
                   </div>
                 </form>
               ) : (
-                <Typography variant="body1" className="text-slate-300 mb-2 mt-2" sx={{ whiteSpace: "pre-wrap" }}>
-                  {post.content === null ? "[This post has been deleted by its author.]" : post.content}
-                </Typography>
+                <div className="my-5">
+                  <Typography variant="body1" className="text-slate-300" sx={{whiteSpace: "pre-wrap"}}>
+                    {post.content === null ? "[This post has been deleted by its author.]" : post.content}
+                  </Typography>
+                </div>
               )}
 
+              {/* Tags and Templates Section */}
+              <div className="space-y-4 mb-4">
+                {/* Code Templates */}
+                {post.codeTemplates && post.codeTemplates.length > 0 && (
+                  <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
+                    <Typography variant="subtitle2" className="text-slate-400 mb-3">
+                      Related Code Templates
+                    </Typography>
+                    <div className="space-y-2">
+                      {post.codeTemplates.map((template, index) => (
+                        <TemplateCard key={index} template={template} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tags */}
+                {post.tags && post.tags.length > 0 && (
+                  <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
+                    <Typography variant="subtitle2" className="text-slate-400 mb-3">
+                      Tags
+                    </Typography>
+                    <div className="flex flex-wrap gap-2">
+                      {post.tags.map((tag, index) => (
+                        <Link
+                          key={index}
+                          href={`/blog-posts/search?tags=${tag.name}`}
+                          className="px-2 py-1 bg-slate-700/50 hover:bg-slate-700 border border-slate-600 rounded-full text-xs text-blue-300 transition-colors"
+                        >
+                          {tag.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   {/* Post Voting */}
@@ -792,33 +848,42 @@ export default function BlogPost({ params }: PostQueryParams) {
                     item={post}
                     handleVote={handlePostVote}
                   />
-                  
+
                   {/* Post Actions */}
-                  <button 
-                    onClick={scrollToComment} 
+                  <button
+                    onClick={scrollToComment}
                     className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
                     disabled={!post?.allowAction}
                   >
-                    <MessageCircle size={18} />
+                    <MessageCircle size={18}/>
                     <span className="text-sm"> Comment </span>
                   </button>
-                  
+
                   {user?.id !== post.authorId && (
                     <button
-                      onClick={() => { if (post.allowAction) handleReportClick(post.id)}}
+                      onClick={() => {
+                        if (post.allowAction) handleReportClick(post.id)
+                      }}
                       className={`flex items-center gap-1 text-slate-400 ${post.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
                       disabled={!post.allowAction}
                     >
-                      <TriangleAlert size={18} />
+                      <TriangleAlert size={18}/>
                       <span className="text-xs">Report</span>
                     </button>
                   )}
+                  <button
+                    onClick={() => handleShare(post.id)}
+                    className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
+                  >
+                    <Share2 size={18}/>
+                    <span className="text-sm">Share</span>
+                  </button>
                 </div>
 
                 {/* Author buttons */}
                 {user?.id === post.authorId && (
                   <div className="flex items-center gap-2">
-                    <button 
+                    <button
                       onClick={() => toggleIsEditing()}
                       className={`flex items-center gap-1 text-slate-400 ${post?.allowAction ? 'hover:text-blue-400' : 'opacity-50'}`}
                       disabled={!post?.allowAction}
