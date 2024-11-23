@@ -11,10 +11,11 @@ import {
   MenuItem,
   useMediaQuery,
   useTheme,
-  TextField,
+  TextField, Dialog, DialogTitle, DialogContent, Alert, AlertTitle, DialogActions, CircularProgress,
 } from "@mui/material";
 import { ArrowLeft, Edit, GitFork, Share2, Trash2, MoreVertical } from 'lucide-react';
 import Link from 'next/link';
+import ThemeToggle from "@/app/components/ThemeToggle";
 
 interface AppBarProps {
   mode: 'view' | 'create';
@@ -31,6 +32,13 @@ interface AppBarProps {
   handleShare: () => void;
   user: any;
   ForkLabel?: React.ComponentType<any>;
+  showLoginDialog: boolean;
+  setShowLoginDialog: (show: boolean) => void;
+  actionAfterLogin: 'save' | 'fork' | null;
+  showDeleteDialog: boolean;
+  setShowDeleteDialog: (show: boolean) => void;
+  handleDeleteConfirmed: () => void;
+  router: any;
 }
 
 const CodeEditorAppBar: React.FC<AppBarProps> = ({
@@ -41,13 +49,20 @@ const CodeEditorAppBar: React.FC<AppBarProps> = ({
   handleTitleChange,
   isEditing,
   isSaving,
-  isDeleting,
   handleEdit,
   handleDelete,
   handleFork,
   handleShare,
   user,
-  ForkLabel
+  ForkLabel,
+  showLoginDialog,
+  setShowLoginDialog,
+  actionAfterLogin,
+  showDeleteDialog,
+  setShowDeleteDialog,
+  isDeleting,
+  handleDeleteConfirmed,
+  router,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -170,101 +185,202 @@ const CodeEditorAppBar: React.FC<AppBarProps> = ({
     );
   };
 
-  return (
-    <AppBar position="sticky" sx={{ bgcolor: 'background.paper' }}>
-      <Toolbar
-        sx={{
-          flexWrap: 'wrap',
-          minHeight: { xs: '56px', sm: '64px' },
-          px: { xs: 1, sm: 2 },
-          gap: 1
-        }}
-      >
-        {/* Back Button */}
-        <Tooltip title="Back to templates">
-          <IconButton
-            onClick={handleBack}
-            size={isMobile ? "small" : "medium"}
-            sx={{
-              mr: 1,
-              '&:hover': {
-                bgcolor: 'rgba(255, 255, 255, 0.05)'
-              }
-            }}
-          >
-            <ArrowLeft className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'}`} />
-          </IconButton>
-        </Tooltip>
-
-        {/* Title Section */}
-        <Box
+  const LoginPromptDialog = () => (
+    <Dialog
+      open={showLoginDialog}
+      onClose={() => setShowLoginDialog(false)}
+      aria-labelledby="login-dialog-title"
+    >
+      <DialogTitle id="login-dialog-title">
+        Login Required
+      </DialogTitle>
+      <DialogContent>
+        <Alert
+          severity="info"
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 1,
-            flex: 1,
-            minWidth: 0,
+            mt: 1,
+            '& .MuiAlert-message': {
+              width: '100%'
+            }
           }}
         >
-          {mode === 'view' && isEditing ? (
-            <TextField
-              value={title}
-              onChange={handleTitleChange}
-              variant="outlined"
-              size="small"
-              sx={{
-                minWidth: { xs: '200px', sm: '300px' },
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: 'rgb(30, 41, 59)',
-                }
-              }}
-            />
-          ) : (
-            <Typography
-              variant="h6"
-              component="h1"
-              sx={{
-                fontSize: { xs: '1rem', sm: '1.25rem' },
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                maxWidth: { xs: '200px', sm: '300px', md: 'none' }
-              }}
-            >
-              {mode === 'view' ? title : 'Create new Template'}
+          <AlertTitle>Please log in to continue</AlertTitle>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            You need to be logged in to {actionAfterLogin === 'save' ? 'save templates' : 'fork templates'}.
+          </Typography>
+        </Alert>
+      </DialogContent>
+      <DialogActions>
+        <Button
+          onClick={() => setShowLoginDialog(false)}
+          color="inherit"
+          sx={{ color: 'text.secondary' }}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => {
+            setShowLoginDialog(false);
+            router.push('/auth/login');
+          }}
+        >
+          Log In
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+
+  const DeleteConfirmationDialog = () => (
+    <Dialog
+      open={showDeleteDialog}
+      onClose={() => !isDeleting && setShowDeleteDialog(false)}
+      aria-labelledby="delete-dialog-title"
+    >
+      <DialogTitle id="delete-dialog-title">
+        Delete Template
+      </DialogTitle>
+      <DialogContent>
+        <Alert
+          severity="warning"
+          sx={{
+            mt: 1,
+            '& .MuiAlert-message': {
+              width: '100%'
+            }
+          }}
+        >
+          <AlertTitle>Are you sure you want to delete this template?</AlertTitle>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            You are about to delete <strong>{initialTemplate?.title}</strong>. This action cannot be undone.
+          </Typography>
+          {initialTemplate?.isForked && (
+            <Typography variant="body2" color="text.secondary">
+              Note: This will only delete your fork, not the original template.
             </Typography>
           )}
-          {mode === 'view' && initialTemplate?.isForked && ForkLabel && (
-            <Box sx={{
-              display: { xs: 'none', md: 'block' }
-            }}>
-              <ForkLabel parentTemplate={initialTemplate.parentFork} />
+        </Alert>
+      </DialogContent>
+      <DialogActions>
+        <Button
+          onClick={() => setShowDeleteDialog(false)}
+          color="inherit"
+          disabled={isDeleting}
+          sx={{ color: 'text.secondary' }}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleDeleteConfirmed}
+          variant="contained"
+          color="error"
+          disabled={isDeleting}
+          startIcon={isDeleting ? <CircularProgress size={16} /> : <Trash2 className="w-4 h-4" />}
+        >
+          {isDeleting ? 'Deleting...' : 'Delete Template'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+
+  return (
+    <>
+      <AppBar position="sticky" sx={{ bgcolor: 'background.paper' }}>
+        <Toolbar
+          sx={{
+            flexWrap: 'wrap',
+            minHeight: { xs: '56px', sm: '64px' },
+            px: { xs: 1, sm: 2 },
+            gap: 1
+          }}
+        >
+          {/* Back Button */}
+          <Tooltip title="Back to templates">
+            <IconButton
+              onClick={handleBack}
+              size={isMobile ? "small" : "medium"}
+              sx={{
+                mr: 1,
+                '&:hover': {
+                  bgcolor: 'rgba(255, 255, 255, 0.05)'
+                }
+              }}
+            >
+              <ArrowLeft className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'}`} />
+            </IconButton>
+          </Tooltip>
+
+          {/* Title Section */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 1,
+              flex: 1,
+              minWidth: 0,
+            }}
+          >
+            {mode === 'view' && isEditing ? (
+              <TextField
+                value={title}
+                onChange={handleTitleChange}
+                variant="outlined"
+                size="small"
+                sx={{
+                  minWidth: { xs: '200px', sm: '300px' }
+                }}
+              />
+            ) : (
+              <Typography
+                variant="h6"
+                component="h1"
+                sx={{
+                  fontSize: { xs: '1rem', sm: '1.25rem' },
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: { xs: '200px', sm: '300px', md: 'none' }
+                }}
+              >
+                {mode === 'view' ? title : 'Create new Template'}
+              </Typography>
+            )}
+            {mode === 'view' && initialTemplate?.isForked && ForkLabel && (
+              <Box sx={{
+                display: { xs: 'none', md: 'block' }
+              }}>
+                <ForkLabel parentTemplate={initialTemplate.parentFork} />
+              </Box>
+            )}
+            <ThemeToggle />
+          </Box>
+
+          {/* Action Buttons */}
+          {mode === 'view' && (
+            <Box sx={{ ml: 'auto' }}>
+              <ViewModeButtons />
             </Box>
           )}
-        </Box>
+        </Toolbar>
 
-        {/* Action Buttons */}
-        {mode === 'view' && (
-          <Box sx={{ ml: 'auto' }}>
-            <ViewModeButtons />
+        {/* Mobile Fork Label - Show below toolbar */}
+        {mode === 'view' && initialTemplate?.isForked && ForkLabel && isMobile && (
+          <Box sx={{
+            px: 2,
+            py: 1,
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            display: { xs: 'block', md: 'none' }
+          }}>
+            <ForkLabel parentTemplate={initialTemplate.parentFork} />
           </Box>
         )}
-      </Toolbar>
-
-      {/* Mobile Fork Label - Show below toolbar */}
-      {mode === 'view' && initialTemplate?.isForked && ForkLabel && isMobile && (
-        <Box sx={{
-          px: 2,
-          py: 1,
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          display: { xs: 'block', md: 'none' }
-        }}>
-          <ForkLabel parentTemplate={initialTemplate.parentFork} />
-        </Box>
-      )}
-    </AppBar>
+      </AppBar>
+      <LoginPromptDialog />
+      <DeleteConfirmationDialog />
+  </>
   );
 };
 

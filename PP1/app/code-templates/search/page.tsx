@@ -40,7 +40,7 @@ import {fetchAuth} from "@/app/utils/auth";
 import {useAuth} from "@/app/contexts/AuthContext";
 import BaseLayout from "@/app/components/BaseLayout";
 import SortMenu from "@/app/components/SortMenu";
-import RightDrawer from "@/app/components/RightDrawer";
+import FilterDrawer from "@/app/components/FilterDrawer";
 
 const API_SERVICE = {
   domain: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
@@ -350,7 +350,7 @@ export default function CodeTemplates() {
         </Box>
 
         {/* Right Sidebar Drawer */}
-        <RightDrawer
+        <FilterDrawer
           isOpen={sideBarState}
           onToggle={toggleSidebar}
         >
@@ -377,7 +377,7 @@ export default function CodeTemplates() {
               mode="search"
             />
           </Box>
-        </RightDrawer>
+        </FilterDrawer>
       </Box>
     </BaseLayout>
   );

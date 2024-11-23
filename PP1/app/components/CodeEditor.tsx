@@ -23,7 +23,7 @@ import {
   DialogContent,
   DialogActions, IconButton, Tooltip, AlertTitle, Chip,
   CircularProgress,
-  Snackbar, useTheme, useMediaQuery, SpeedDial, SpeedDialIcon, SpeedDialAction
+  Snackbar, useMediaQuery, SpeedDial, SpeedDialIcon, SpeedDialAction, alpha
 } from '@mui/material';
 import { useAuth } from "@/app/contexts/AuthContext";
 import {ArrowLeft, Edit, GitFork, Heart, Play, Plus, Save, Share2, Trash2, X, XCircle} from 'lucide-react';
@@ -38,6 +38,7 @@ import {CodeEditorWithCodeMirror} from "@/app/components/CodeEditorWithCodeMirro
 import InputOutputSection from "@/app/components/InputOutputSection";
 import {useToast} from "@/app/contexts/ToastContext";
 import CodeEditorAppBar from "@/app/components/CodeEditorAppBar";
+import {useTheme} from "@/app/contexts/ThemeContext";
 
 // Mobile-friendly control panel
 const ControlPanel = ({
@@ -81,7 +82,7 @@ const ControlPanel = ({
     ];
   }, [mode, isEditing, RunButton, SaveButton, handleSaveEdit, handleCancelEdit]);
 
-  const theme = useTheme();
+  const { theme, isDarkMode} = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   if (isMobile) {
@@ -180,7 +181,6 @@ const ControlPanel = ({
   );
 };
 
-// Update the main container layout
 const ResponsiveContainer = ({ children }) => (
   <Container
     maxWidth="xl"
@@ -194,7 +194,6 @@ const ResponsiveContainer = ({ children }) => (
   </Container>
 );
 
-// Update the main grid layout
 const ResponsiveGrid = ({ leftContent, rightContent }) => (
   <Box
     sx={{
@@ -225,42 +224,6 @@ const ResponsiveGrid = ({ leftContent, rightContent }) => (
   </Box>
 );
 
-// Update the code editor container
-const CodeEditorContainer = ({ children }) => (
-  <Paper
-    sx={{
-      p: { xs: 1, sm: 2 },
-      bgcolor: 'background.paper',
-      width: '100%',
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column',
-      '& .cm-editor': {
-        height: { xs: '300px', sm: '400px', md: '500px' },
-        maxHeight: { xs: '300px', sm: '400px', md: '500px' },
-        overflow: 'hidden',
-        '&::-webkit-scrollbar': {
-          width: '8px',
-          height: '8px',
-        },
-        '&::-webkit-scrollbar-track': {
-          background: 'rgba(0,0,0,0.1)',
-        },
-        '&::-webkit-scrollbar-thumb': {
-          background: 'rgba(255,255,255,0.2)',
-          borderRadius: '4px',
-        },
-        '&::-webkit-scrollbar-thumb:hover': {
-          background: 'rgba(255,255,255,0.3)',
-        },
-      }
-    }}
-  >
-    {children}
-  </Paper>
-);
-
-// Update the explanation section
 const ExplanationSection = ({ explanation, setExplanation, mode, isEditing }) => (
   <Paper
     sx={{
@@ -320,6 +283,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   const router = useRouter();
   const { user, accessToken, setAccessToken } = useAuth();
   const { showToast } = useToast();
+  const { theme, isDarkMode } = useTheme();
 
   const searchParams = useSearchParams();
   const isFork = searchParams?.get('fork') === 'true';
@@ -514,12 +478,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   }, []);
 
   // Event handlers
-  const handleSearch = (query) => {
-    // Handle search here
-    console.log("Searching:", query);
-  };
-
-
   const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
   }, []);
@@ -762,103 +720,38 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     </Button>
   );
 
-  const LoginPromptDialog = () => (
-
-    <Dialog
-      open={showLoginDialog}
-      onClose={() => setShowLoginDialog(false)}
-      aria-labelledby="login-dialog-title"
+  const CodeEditorContainer = ({ children }) => (
+    <Paper
+      sx={{
+        p: { xs: 1, sm: 2 },
+        bgcolor: 'background.paper',
+        width: '100%',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        '& .cm-editor': {
+          height: { xs: '300px', sm: '400px', md: '500px' },
+          maxHeight: { xs: '300px', sm: '400px', md: '500px' },
+          overflow: 'hidden',
+          '&::-webkit-scrollbar': {
+            width: '8px',
+            height: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: theme.palette.action.hover,
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: theme.palette.grey[600],
+            borderRadius: '4px',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            background: theme.palette.grey[500],
+          },
+        }
+      }}
     >
-      <DialogTitle id="login-dialog-title">
-        Login Required
-      </DialogTitle>
-      <DialogContent>
-        <Alert
-          severity="info"
-          sx={{
-            mt: 1,
-            '& .MuiAlert-message': {
-              width: '100%'
-            }
-          }}
-        >
-          <AlertTitle>Please log in to continue</AlertTitle>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            You need to be logged in to {actionAfterLogin === 'save' ? 'save templates' : 'fork templates'}.
-          </Typography>
-        </Alert>
-      </DialogContent>
-      <DialogActions>
-        <Button
-          onClick={() => setShowLoginDialog(false)}
-          color="inherit"
-          sx={{ color: 'text.secondary' }}
-        >
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => {
-            setShowLoginDialog(false);
-            router.push('/auth/login');
-          }}
-        >
-          Log In
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-
-  const DeleteConfirmationDialog = () => (
-    <Dialog
-      open={showDeleteDialog}
-      onClose={() => !isDeleting && setShowDeleteDialog(false)}
-      aria-labelledby="delete-dialog-title"
-    >
-      <DialogTitle id="delete-dialog-title">
-        Delete Template
-      </DialogTitle>
-      <DialogContent>
-        <Alert
-          severity="warning"
-          sx={{
-            mt: 1,
-            '& .MuiAlert-message': {
-              width: '100%'
-            }
-          }}
-        >
-          <AlertTitle>Are you sure you want to delete this template?</AlertTitle>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            You are about to delete <strong>{initialTemplate?.title}</strong>. This action cannot be undone.
-          </Typography>
-          {initialTemplate?.isForked && (
-            <Typography variant="body2" color="text.secondary">
-              Note: This will only delete your fork, not the original template.
-            </Typography>
-          )}
-        </Alert>
-      </DialogContent>
-      <DialogActions>
-        <Button
-          onClick={() => setShowDeleteDialog(false)}
-          color="inherit"
-          disabled={isDeleting}
-        >
-          Cancel
-        </Button>
-        <Button
-          onClick={handleDeleteConfirmed}
-          variant="contained"
-          color="error"
-          disabled={isDeleting}
-          startIcon={isDeleting ? <CircularProgress size={16} /> : <Trash2 className="w-4 h-4" />}
-        >
-          {isDeleting ? 'Deleting...' : 'Delete Template'}
-        </Button>
-      </DialogActions>
-    </Dialog>
+      {children}
+    </Paper>
   );
 
   const ForkLabel = ({ parentTemplate }) => {
@@ -888,18 +781,18 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
           }
           sx={{
             backgroundColor: isParentDeleted
-              ? 'rgba(239, 68, 68, 0.1)' // red background for deleted parent
-              : 'rgba(37, 99, 235, 0.1)', // original blue background
+              ? alpha(theme.palette.error.main, 0.1) // red background for deleted parent
+              : alpha(theme.palette.primary.main, 0.1), // original blue background
             borderColor: isParentDeleted
-              ? 'rgb(239, 68, 68)' // red border for deleted parent
-              : 'rgb(37, 99, 235)', // original blue border
+              ? theme.palette.error.main // red border for deleted parent
+              : theme.palette.primary.main, // original blue border
             color: isParentDeleted
-              ? 'rgb(252, 165, 165)' // lighter red text for deleted parent
-              : 'rgb(147, 197, 253)', // original blue text
+              ? theme.palette.error.light // lighter red text for deleted parent
+              : theme.palette.primary.light, // original blue text
             '& .MuiChip-icon': {
               color: isParentDeleted
-                ? 'rgb(252, 165, 165)' // lighter red icon for deleted parent
-                : 'rgb(147, 197, 253)', // original blue icon
+                ? theme.palette.error.light // lighter red icon for deleted parent
+                : theme.palette.primary.light, // original blue icon
             },
             height: 'auto',
             '& .MuiChip-label': {
@@ -939,6 +832,13 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         handleShare={handleShare}
         user={user}
         ForkLabel={ForkLabel}
+        showLoginDialog={showLoginDialog}
+        setShowLoginDialog={setShowLoginDialog}
+        actionAfterLogin={actionAfterLogin}
+        showDeleteDialog={showDeleteDialog}
+        setShowDeleteDialog={setShowDeleteDialog}
+        handleDeleteConfirmed={handleDeleteConfirmed}
+        router={router}
       />
 
       <ResponsiveContainer>
@@ -957,22 +857,23 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
               helperText={!title.trim() && emptyFields.includes('Title') ? 'Title is required' : ''}
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  backgroundColor: 'rgb(30, 41, 59)',
+                  backgroundColor: theme.palette.background.paper,
                   '&:hover': {
-                    backgroundColor: 'rgb(30, 41, 59, 0.8)',
+                    backgroundColor: alpha(theme.palette.background.paper, 0.8),
                   },
                   '& fieldset': {
-                    borderColor: 'rgb(100, 116, 139)',
+                    borderColor: theme.palette.grey[500]
+,
                   },
                   '&:hover fieldset': {
-                    borderColor: 'rgb(148, 163, 184)',
+                    borderColor: theme.palette.grey[400],
                   },
                 },
                 '& .MuiInputLabel-root': {
-                  color: 'rgb(148, 163, 184)',
+                  color: theme.palette.text.secondary,
                 },
                 '& input': {
-                  color: 'rgb(226, 232, 240)',
+                  color: theme.palette.text.primary,
                 },
               }}
             />

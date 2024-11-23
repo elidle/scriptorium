@@ -4,17 +4,16 @@ import {
   Button,
   Box,
   IconButton,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
   useMediaQuery,
+  ThemeProvider,
 } from "@mui/material";
 import { Menu, Search, X } from "lucide-react";
 import Link from 'next/link';
 import { useState } from 'react';
 import UserAvatar from './UserAvatar';
 import SearchBar from './SearchBar';
+import { useTheme } from "@/app/contexts/ThemeContext";
+import ThemeToggle from "@/app/components/ThemeToggle";
 
 interface AppBarProps {
   type: 'post' | 'code-template';
@@ -24,6 +23,7 @@ interface AppBarProps {
 }
 
 export default function AppBar({ type, user, onSearch, onMenuClick }: AppBarProps) {
+  const { theme, isDarkMode } = useTheme();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const isMobile = useMediaQuery('(max-width: 640px)');
 
@@ -44,7 +44,11 @@ export default function AppBar({ type, user, onSearch, onMenuClick }: AppBarProp
       <div className="flex items-center gap-2">
         <UserAvatar username={user.username} userId={user.id} />
         <Link href={`/users/${user.username}`}>
-          <Typography className="text-slate-200 hover:text-blue-400 hidden sm:block">
+          <Typography
+            className={`hidden sm:block hover:text-blue-400 ${
+              isDarkMode ? 'text-slate-200' : 'text-slate-700'
+            }`}
+          >
             {user.username}
           </Typography>
         </Link>
@@ -52,7 +56,12 @@ export default function AppBar({ type, user, onSearch, onMenuClick }: AppBarProp
     ) : (
       <Link href="/auth/login">
         <Button
-          className="bg-blue-600 hover:bg-blue-700 px-4 sm:px-6 min-w-[90px] sm:min-w-[100px] whitespace-nowrap h-8 sm:h-9 text-sm sm:text-base"
+          className={`
+            px-4 sm:px-6 min-w-[90px] sm:min-w-[100px] 
+            whitespace-nowrap h-8 sm:h-9 text-sm sm:text-base
+            bg-blue-600 hover:bg-blue-700
+            text-white
+          `}
           variant="contained"
           size="small"
         >
@@ -63,26 +72,36 @@ export default function AppBar({ type, user, onSearch, onMenuClick }: AppBarProp
   );
 
   return (
-    <>
+    <ThemeProvider theme={theme}>
       <MuiAppBar
         position="fixed"
-        className="!bg-slate-800 border-b border-slate-700"
-        sx={{ boxShadow: 'none' }}
+        sx={{
+          bgcolor: theme.palette.background.paper,
+          borderBottom: 1,
+          borderColor: isDarkMode ? 'rgb(51 65 85)' : 'rgb(226 232 240)',
+          boxShadow: 'none',
+        }}
       >
         <div className="p-2 sm:p-3 flex items-center gap-2 sm:gap-3">
           {/* Left section */}
           <div className="flex-none flex items-center gap-2 sm:gap-3">
             <IconButton
               onClick={onMenuClick}
-              className="p-1 text-slate-300 hover:bg-slate-700"
               size={isMobile ? "small" : "medium"}
+              sx={{
+                p: 1,
+                color: isDarkMode ? 'rgb(203 213 225)' : 'rgb(51 65 85)',
+                '&:hover': {
+                  bgcolor: isDarkMode ? 'rgb(51 65 85)' : 'rgb(226 232 240)',
+                },
+              }}
             >
               <Menu size={isMobile ? 20 : 24} />
             </IconButton>
             <Link href="/">
               <Typography
-                className="text-lg sm:text-xl md:text-2xl text-blue-400 flex-shrink-0"
                 variant="h5"
+                className="text-lg sm:text-xl md:text-2xl text-blue-600 flex-shrink-0"
               >
                 Scriptorium
               </Typography>
@@ -98,11 +117,18 @@ export default function AppBar({ type, user, onSearch, onMenuClick }: AppBarProp
 
           {/* Right section */}
           <div className="flex-none flex items-center gap-2">
+            <ThemeToggle />
             {isMobile && (
               <IconButton
                 onClick={toggleMobileSearch}
-                className="p-1 text-slate-300 hover:bg-slate-700"
                 size="small"
+                sx={{
+                  p: 1,
+                  color: isDarkMode ? 'rgb(203 213 225)' : 'rgb(51 65 85)',
+                  '&:hover': {
+                    bgcolor: isDarkMode ? 'rgb(51 65 85)' : 'rgb(226 232 240)',
+                  },
+                }}
               >
                 {mobileSearchOpen ? <X size={20} /> : <Search size={20} />}
               </IconButton>
@@ -113,7 +139,13 @@ export default function AppBar({ type, user, onSearch, onMenuClick }: AppBarProp
 
         {/* Mobile search bar */}
         {isMobile && mobileSearchOpen && (
-          <div className="p-2 bg-slate-800 border-t border-slate-700">
+          <div
+            className="p-2 border-t"
+            style={{
+              backgroundColor: theme.palette.background.paper,
+              borderColor: isDarkMode ? 'rgb(51 65 85)' : 'rgb(226 232 240)',
+            }}
+          >
             {renderSearch()}
           </div>
         )}
@@ -121,6 +153,6 @@ export default function AppBar({ type, user, onSearch, onMenuClick }: AppBarProp
 
       {/* Add a spacer to prevent content from hiding under the AppBar */}
       <div className={`h-14 sm:h-16 ${isMobile && mobileSearchOpen ? 'h-24' : ''}`} />
-    </>
+    </ThemeProvider>
   );
 }

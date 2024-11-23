@@ -16,7 +16,7 @@ interface RightDrawerProps {
   children: React.ReactNode;
 }
 
-const RightDrawer: React.FC<RightDrawerProps> = ({
+const FilterDrawer: React.FC<RightDrawerProps> = ({
   isOpen,
   onToggle,
   children
@@ -151,4 +151,4 @@ const RightDrawer: React.FC<RightDrawerProps> = ({
   );
 };
 
-export default RightDrawer;
+export default FilterDrawer;

@@ -3,6 +3,7 @@ import AppBar from './AppBar';
 import SideNav from './SideNav';
 import {useState} from "react";
 import {useRouter} from "next/navigation";
+import {useTheme} from "@/app/contexts/ThemeContext";
 
 interface BaseLayoutProps {
   children: React.ReactNode;
@@ -13,10 +14,11 @@ interface BaseLayoutProps {
 
 export default function BaseLayout({ children, user, onSearch, type }: BaseLayoutProps) {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
   const [isSideNavOpen, setIsSideNavOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex bg-slate-900">
+    <div className={`min-h-screen flex ${isDarkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
       {/* Overlay for sidenav */}
       <div
         className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${
@@ -37,7 +39,7 @@ export default function BaseLayout({ children, user, onSearch, type }: BaseLayou
         <AppBar
           user={user}
           onSearch={onSearch}
-          onMenuClick={() =>   setIsSideNavOpen(!isSideNavOpen)}
+          onMenuClick={() => setIsSideNavOpen(!isSideNavOpen)}
           type={type}
         />
 
