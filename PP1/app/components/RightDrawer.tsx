@@ -6,8 +6,9 @@ import {
   Theme,
   useTheme,
   useMediaQuery,
+  Button,
 } from "@mui/material";
-import { ChevronRight, ChevronLeft } from 'lucide-react';
+import {ChevronRight, ChevronLeft, SlidersHorizontal, X} from 'lucide-react';
 
 interface RightDrawerProps {
   isOpen: boolean;
@@ -25,6 +26,31 @@ const RightDrawer: React.FC<RightDrawerProps> = ({
 
   return (
     <>
+      {/* Mobile Filter Button */}
+      <Button
+        onClick={onToggle}
+        startIcon={<SlidersHorizontal size={18} />}
+        variant="outlined"
+        size="small"
+        sx={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          zIndex: theme.zIndex.drawer - 1,
+          display: { xs: 'flex', sm: 'none' },
+          backgroundColor: 'background.paper',
+          borderColor: 'divider',
+          color: 'text.primary',
+          '&:hover': {
+            backgroundColor: 'background.default',
+            borderColor: 'primary.main',
+          },
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+        }}
+      >
+        Filters
+      </Button>
+
       {/* Mobile Overlay */}
       <Box
         onClick={onToggle}
@@ -73,6 +99,20 @@ const RightDrawer: React.FC<RightDrawerProps> = ({
           keepMounted: true
         }}
       >
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          p: 2,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          display: { sm: 'none' } // Only show on mobile
+        }}>
+          <h2 className="text-lg font-semibold">Filters</h2>
+          <IconButton onClick={onToggle} size="small">
+            <X size={20} />
+          </IconButton>
+        </Box>
         <Box
           sx={{
             p: 2,
@@ -85,7 +125,7 @@ const RightDrawer: React.FC<RightDrawerProps> = ({
         </Box>
       </Drawer>
 
-      {/* Toggle Button - Hidden on mobile */}
+      {/* Desktop Toggle Button - Hidden on mobile */}
       <IconButton
         onClick={onToggle}
         sx={{

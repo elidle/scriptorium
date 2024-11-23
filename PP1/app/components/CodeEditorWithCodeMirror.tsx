@@ -36,32 +36,39 @@ export const CodeEditorWithCodeMirror: React.FC<CodeEditorProps> = ({
   placeholder = '// Start typing your code here...'
 }) => {
   return (
-    <Box sx={{ width: '100%' }}>
+    <Box
+      sx={{
+        width: '100%',
+        overflow: 'hidden', // Prevent outer container from scrolling
+      }}
+    >
       <Box
         sx={{
           position: 'relative',
           width: '100%',
           minHeight: minHeight,
           height: 'auto',
-          overflow: 'hidden',
           borderRadius: 1,
           border: '1px solid rgb(100, 116, 139)',
           '& .cm-editor': {
             height: '100%',
             minHeight: minHeight,
+            maxWidth: '100%', // Ensure editor doesn't exceed container
             fontSize: '14px',
             fontFamily: 'JetBrains Mono, Menlo, Monaco, Consolas, monospace',
 
-            // Make sure editor fills the container
+            // Ensure the editor content is scrollable
             '& .cm-scroller': {
               minHeight: minHeight,
               overflow: 'auto',
               lineHeight: '1.6',
               scrollbarWidth: 'thin',
               scrollbarColor: '#4b5563 transparent',
+
+              // Define consistent scrollbar styling
               '&::-webkit-scrollbar': {
                 width: '8px',
-                height: '8px',
+                height: '8px', // Ensure horizontal scrollbar has same size
               },
               '&::-webkit-scrollbar-track': {
                 background: 'transparent',
@@ -73,18 +80,37 @@ export const CodeEditorWithCodeMirror: React.FC<CodeEditorProps> = ({
                   backgroundColor: '#6b7280',
                 },
               },
+
+              // Ensure horizontal scroll works properly
+              overflowX: 'auto',
+              whiteSpace: 'pre',
             },
 
+            // Adjust content container to handle long lines
+            '& .cm-content': {
+              minHeight: minHeight,
+              padding: '8px 0',
+              whiteSpace: 'pre',
+              overflow: 'auto',
+              width: 'max-content', // Allow content to determine width
+              maxWidth: 'none', // Remove max-width constraint
+            },
+
+            // Keep gutters fixed position
             '& .cm-gutters': {
               backgroundColor: 'rgb(30, 41, 59)',
               borderRight: '1px solid rgb(51, 65, 85)',
               color: 'rgb(148, 163, 184)',
               minHeight: minHeight,
+              position: 'sticky',
+              left: 0,
+              zIndex: 1,
             },
 
-            '& .cm-content': {
-              minHeight: minHeight,
-              padding: '8px 0',
+            '& .cm-lineNumbers': {
+              position: 'sticky',
+              left: 0,
+              backgroundColor: 'rgb(30, 41, 59)',
             },
 
             '& .cm-activeLine': {
@@ -114,6 +140,7 @@ export const CodeEditorWithCodeMirror: React.FC<CodeEditorProps> = ({
           theme={vscodeDark}
           height="100%"
           minHeight={minHeight}
+          width='100%'
           extensions={[getLanguageExtension(language)]}
           editable={!disabled}
           placeholder={placeholder}
@@ -139,5 +166,3 @@ export const CodeEditorWithCodeMirror: React.FC<CodeEditorProps> = ({
     </Box>
   );
 };
-
-export default CodeEditorWithCodeMirror;

@@ -29,7 +29,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({ template }) => {
   const router = useRouter();
 
 
-  const needsTruncation = template.explanation.length > MAX_DESCRIPTION_LENGTH;
+  const needsTruncation = template.explanation?.length > MAX_DESCRIPTION_LENGTH;
 
   const truncatedText = needsTruncation
     ? template.explanation.slice(0, MAX_DESCRIPTION_LENGTH) + "..."
@@ -88,6 +88,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({ template }) => {
         },
         transition: 'all 0.2s ease-in-out',
       }}
+      className={"w-full block"}
     >
       <CardContent>
         {/* Header Section */}

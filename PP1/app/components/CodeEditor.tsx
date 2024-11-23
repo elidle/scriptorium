@@ -23,10 +23,10 @@ import {
   DialogContent,
   DialogActions, IconButton, Tooltip, AlertTitle, Chip,
   CircularProgress,
-  Snackbar
+  Snackbar, useTheme, useMediaQuery, SpeedDial, SpeedDialIcon, SpeedDialAction
 } from '@mui/material';
 import { useAuth } from "@/app/contexts/AuthContext";
-import {ArrowLeft, Edit, GitFork, Heart, Play, Plus, Save, Share2, Trash2, X} from 'lucide-react';
+import {ArrowLeft, Edit, GitFork, Heart, Play, Plus, Save, Share2, Trash2, X, XCircle} from 'lucide-react';
 import SearchBar from '@/app/components/SearchBar';
 import {CodeTemplate, SearchParams, Tag} from '@/app/types'
 import TagsContainer from "@/app/components/TagsContainer";
@@ -36,61 +36,263 @@ import {useRouter, useSearchParams} from "next/navigation";
 import {fetchAuth} from "@/app/utils/auth";
 import {CodeEditorWithCodeMirror} from "@/app/components/CodeEditorWithCodeMirror";
 import InputOutputSection from "@/app/components/InputOutputSection";
+import {useToast} from "@/app/contexts/ToastContext";
+import CodeEditorAppBar from "@/app/components/CodeEditorAppBar";
 
-// Create custom theme to match the slate colors
-const theme = createTheme({
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#2563eb', // blue-600
-    },
-    secondary: {
-      main: '#7c3aed', // violet-600
-    },
-    background: {
-      default: '#0f172a', // slate-900
-      paper: '#1e293b', // slate-800
-    },
-    text: {
-      primary: '#f8fafc', // slate-50
-      secondary: '#cbd5e1', // slate-300
-    },
-  },
-  components: {
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
-            backgroundColor: '#334155', // slate-700
-          },
-        },
+// Mobile-friendly control panel
+const ControlPanel = ({
+  language,
+  setLanguage,
+  mode,
+  SaveButton,
+  RunButton,
+  handleSaveEdit,
+  handleCancelEdit,
+  isEditing,
+  isSaving
+}) => {
+  const getSpeedDialActions = React.useMemo(() => {
+    return [
+      // Run action is always present
+      {
+        icon: <Play className="w-5 h-5" />,
+        tooltipTitle: "Run Code",
+        onClick: (e) => RunButton().props.onClick(e)
       },
-    },
-    MuiSelect: {
-      styleOverrides: {
-        select: {
-          backgroundColor: '#334155', // slate-700
+      // Conditionally add save action for create mode
+      ...(mode === 'create' ? [{
+        icon: <Save className="w-5 h-5" />,
+        tooltipTitle: "Save",
+        onClick: () => SaveButton().props.onClick()
+      }] : []),
+      // Conditionally add save and cancel actions for edit mode
+      ...(mode === 'view' && isEditing ? [
+        {
+          icon: <Save className="w-5 h-5" />,
+          tooltipTitle: "Save Changes",
+          onClick: handleSaveEdit
         },
+        {
+          icon: <XCircle className="w-5 h-5" />,
+          tooltipTitle: "Cancel",
+          onClick: handleCancelEdit
+        }
+      ] : [])
+    ];
+  }, [mode, isEditing, RunButton, SaveButton, handleSaveEdit, handleCancelEdit]);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  if (isMobile) {
+    return (
+      <Box sx={{ position: 'fixed', bottom: 16, right: 16, zIndex: 1000 }}>
+        <SpeedDial
+          ariaLabel="Code controls"
+          icon={<SpeedDialIcon />}
+          direction="up"
+          sx={{
+            '& .MuiSpeedDial-fab': {
+              bgcolor: 'primary.main',
+              '&:hover': {
+                bgcolor: 'primary.dark',
+              }
+            }
+          }}
+        >
+          {getSpeedDialActions.map((action, index) => (
+            <SpeedDialAction
+              key={`${action.tooltipTitle}-${index}`} // Better key for reconciliation
+              icon={action.icon}
+              tooltipTitle={action.tooltipTitle}
+              onClick={action.onClick}
+              sx={{
+                // Optional: Add visual feedback for disabled state
+                ...(isSaving && {
+                  opacity: 0.5,
+                  pointerEvents: 'none'
+                })
+              }}
+            />
+          ))}
+        </SpeedDial>
+      </Box>
+    );
+  }
+
+  return (
+    <Paper sx={{ p: 2, bgcolor: 'background.paper' }}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        gap={2}
+        flexWrap="wrap"
+      >
+        <FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
+          <InputLabel id="language-select-label">Language</InputLabel>
+          <Select
+            labelId="language-select-label"
+            value={language}
+            label="Language"
+            onChange={(e) => setLanguage(e.target.value)}
+          >
+            <MenuItem value="python">Python</MenuItem>
+            <MenuItem value="javascript">JavaScript</MenuItem>
+            <MenuItem value="java">Java</MenuItem>
+          </Select>
+        </FormControl>
+
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 2,
+            alignItems: 'center',
+            width: { xs: '100%', sm: 'auto' },
+            justifyContent: { xs: 'space-between', sm: 'flex-end' },
+          }}
+        >
+          {mode === 'create' && <SaveButton />}
+          {mode === 'view' && isEditing && (
+            <>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleSaveEdit}
+                disabled={isSaving}
+                startIcon={<Save className="w-4 h-4" />}
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={handleCancelEdit}
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+            </>
+          )}
+          <RunButton />
+        </Box>
+      </Box>
+    </Paper>
+  );
+};
+
+// Update the main container layout
+const ResponsiveContainer = ({ children }) => (
+  <Container
+    maxWidth="xl"
+    sx={{
+      py: { xs: 2, sm: 4 },
+      px: { xs: 1, sm: 2, md: 4 },
+      mb: { xs: '80px', sm: 0 }, // Add bottom margin on mobile for SpeedDial
+    }}
+  >
+    {children}
+  </Container>
+);
+
+// Update the main grid layout
+const ResponsiveGrid = ({ leftContent, rightContent }) => (
+  <Box
+    sx={{
+      display: "grid",
+      gap: { xs: 2, sm: 3 },
+      gridTemplateColumns: {
+        xs: '1fr',
+        md: '3fr 1fr'
       },
-    },
-    MuiButton: {
-      styleOverrides: {
-        containedPrimary: {
-          backgroundColor: '#2563eb', // blue-600
-          '&:hover': {
-            backgroundColor: '#1d4ed8', // blue-700
-          },
-        },
-        containedSecondary: {
-          backgroundColor: '#7c3aed', // violet-600
-          '&:hover': {
-            backgroundColor: '#6d28d9', // violet-700
-          },
-        },
+      gridTemplateAreas: {
+        xs: `
+          "right"
+          "left"
+        `,
+        md: `"left right"`
       },
-    },
-  },
-});
+      '& > *': {
+        minWidth: 0
+      }
+    }}
+  >
+    <Box sx={{ gridArea: { xs: 'left', md: 'left' } }}>
+      {leftContent}
+    </Box>
+    <Box sx={{ gridArea: { xs: 'right', md: 'right' } }}>
+      {rightContent}
+    </Box>
+  </Box>
+);
+
+// Update the code editor container
+const CodeEditorContainer = ({ children }) => (
+  <Paper
+    sx={{
+      p: { xs: 1, sm: 2 },
+      bgcolor: 'background.paper',
+      width: '100%',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+      '& .cm-editor': {
+        height: { xs: '300px', sm: '400px', md: '500px' },
+        maxHeight: { xs: '300px', sm: '400px', md: '500px' },
+        overflow: 'hidden',
+        '&::-webkit-scrollbar': {
+          width: '8px',
+          height: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          background: 'rgba(0,0,0,0.1)',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          background: 'rgba(255,255,255,0.2)',
+          borderRadius: '4px',
+        },
+        '&::-webkit-scrollbar-thumb:hover': {
+          background: 'rgba(255,255,255,0.3)',
+        },
+      }
+    }}
+  >
+    {children}
+  </Paper>
+);
+
+// Update the explanation section
+const ExplanationSection = ({ explanation, setExplanation, mode, isEditing }) => (
+  <Paper
+    sx={{
+      p: { xs: 1, sm: 2 },
+      bgcolor: 'background.paper',
+      mt: { xs: 2, sm: 3 }
+    }}
+  >
+    <Typography
+      variant="h6"
+      gutterBottom
+      sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+    >
+      Explanation
+    </Typography>
+    <TextField
+      fullWidth
+      multiline
+      label={mode === 'view' && !isEditing ? "" : "Add your code explanation"}
+      value={explanation}
+      onChange={(e) => setExplanation(e.target.value)}
+      minRows={6}
+      maxRows={12}
+      disabled={mode === 'view' && !isEditing}
+      sx={{
+        '& .MuiInputBase-root': {
+          fontSize: { xs: '0.875rem', sm: '1rem' }
+        }
+      }}
+    />
+  </Paper>
+);
 
 const API_SERVICE = {
   domain: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
@@ -117,6 +319,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 }) => {
   const router = useRouter();
   const { user, accessToken, setAccessToken } = useAuth();
+  const { showToast } = useToast();
 
   const searchParams = useSearchParams();
   const isFork = searchParams?.get('fork') === 'true';
@@ -143,7 +346,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showShareNotification, setShowShareNotification] = useState(false);
 
   useEffect(() => {
     // Check if we're in create mode and have a fork
@@ -203,10 +405,16 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   const handleShare = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      setShowShareNotification(true);
+      showToast({
+        message: 'Link copied to clipboard!',
+        type: 'success'
+      });
     } catch (err) {
       console.error('Failed to copy:', err);
-      setError('Failed to copy link to clipboard');
+      showToast({
+        message: 'Failed to copy link to clipboard',
+        type: 'error'
+      });
     }
   };
 
@@ -245,12 +453,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
           onClick={handleFork}
         >
           {user ? 'Fork' : 'Sign in to Fork'}
-        </Button>
-        <Button
-          variant="outlined"
-          startIcon={<Heart className="w-4 h-4" />}
-        >
-          Like
         </Button>
         <Button
           variant="outlined"
@@ -559,40 +761,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
           : 'Save'}
     </Button>
   );
-  const ShareNotification = ({ open, onClose }) => (
-    <Snackbar
-      open={open}
-      autoHideDuration={3000}
-      onClose={onClose}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-    >
-      <Alert
-        onClose={onClose}
-        severity="success"
-        sx={{
-          width: '100%',
-          alignItems: 'center',
-          bgcolor: 'rgb(22 163 74)', // green-600
-          color: 'white',
-          '& .MuiAlert-icon': {
-            color: 'white'
-          }
-        }}
-        action={
-          <IconButton
-            size="small"
-            aria-label="close"
-            color="inherit"
-            onClick={onClose}
-          >
-            <X className="w-4 h-4" />
-          </IconButton>
-        }
-      >
-        Link copied to clipboard!
-      </Alert>
-    </Snackbar>
-  );
 
   const LoginPromptDialog = () => (
 
@@ -754,326 +922,123 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-        {/* Navbar */}
-        <AppBar position="sticky" sx={{ bgcolor: 'background.paper' }}>
-          <Toolbar sx={{ flexWrap: 'wrap' }}>
-            <Tooltip title="Back to templates">
-              <IconButton
-                onClick={handleBack}
-                size="large"
-                sx={{
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      {/* Navbar */}
+      <CodeEditorAppBar
+        mode={mode}
+        title={title}
+        initialTemplate={initialTemplate}
+        handleBack={handleBack}
+        handleTitleChange={handleTitleChange}
+        isEditing={isEditing}
+        isSaving={isSaving}
+        isDeleting={isDeleting}
+        handleEdit={handleEdit}
+        handleDelete={handleDelete}
+        handleFork={handleFork}
+        handleShare={handleShare}
+        user={user}
+        ForkLabel={ForkLabel}
+      />
+
+      <ResponsiveContainer>
+        {error && <ErrorBox errorMessage={error} />}
+
+        {mode === 'create' && (
+          <Paper sx={{ p: 2, mb: 3, bgcolor: 'background.paper' }}>
+            <TextField
+              fullWidth
+              label="Template Title"
+              value={title}
+              onChange={handleTitleChange}
+              disabled={isSaving}
+              required
+              error={!title.trim() && emptyFields.includes('Title')}
+              helperText={!title.trim() && emptyFields.includes('Title') ? 'Title is required' : ''}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: 'rgb(30, 41, 59)',
                   '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 0.05)'
-                  }
-                }}
-              >
-                <ArrowLeft className="w-6 h-6" />
-              </IconButton>
-            </Tooltip>
-            <Box sx={{
-              display: 'flex',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: 1,
-              flex: 1,
-              mr: 2
-            }}>
-              {mode === 'view' && isEditing ? (
-                <TextField
-                  value={title}
-                  onChange={handleTitleChange}
-                  variant="outlined"
-                  size="small"
-                  sx={{
-                    minWidth: '300px',
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: 'rgb(30, 41, 59)',
-                    }
-                  }}
-                />
-              ) : (
-                <Typography variant="h5" component="h1">
-                  {mode === 'view' ? title : 'Create new Template'}
-                </Typography>
-              )}
-              {mode === 'view' && initialTemplate?.isForked && (
-                <ForkLabel parentTemplate={initialTemplate.parentFork} />
-              )}
-            </Box>
-            {mode === 'view' && (
-              <Box sx={{ ml: 'auto' }}>
-                <ViewModeButtons />
-              </Box>
-            )}
-          </Toolbar>
-        </AppBar>
-
-        <Container maxWidth="xl" sx={{ py: 4 }}>
-          {error && <ErrorBox errorMessage={error} />}
-
-          {mode === 'create' && (
-            <Paper sx={{ p: 2, mb: 3, bgcolor: 'background.paper' }}>
-              <TextField
-                fullWidth
-                label="Template Title"
-                value={title}
-                onChange={handleTitleChange}
-                disabled={isSaving}
-                required
-                error={!title.trim() && emptyFields.includes('Title')}
-                helperText={!title.trim() && emptyFields.includes('Title') ? 'Title is required' : ''}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: 'rgb(30, 41, 59)',
-                    '&:hover': {
-                      backgroundColor: 'rgb(30, 41, 59, 0.8)',
-                    },
-                    '& fieldset': {
-                      borderColor: 'rgb(100, 116, 139)',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: 'rgb(148, 163, 184)',
-                    },
+                    backgroundColor: 'rgb(30, 41, 59, 0.8)',
                   },
-                  '& .MuiInputLabel-root': {
-                    color: 'rgb(148, 163, 184)',
+                  '& fieldset': {
+                    borderColor: 'rgb(100, 116, 139)',
                   },
-                  '& input': {
-                    color: 'rgb(226, 232, 240)',
+                  '&:hover fieldset': {
+                    borderColor: 'rgb(148, 163, 184)',
                   },
-                }}
+                },
+                '& .MuiInputLabel-root': {
+                  color: 'rgb(148, 163, 184)',
+                },
+                '& input': {
+                  color: 'rgb(226, 232, 240)',
+                },
+              }}
+            />
+          </Paper>
+        )}
+        {/* Show fork notice if we're creating from a fork */}
+        {mode === 'create' && isFork && (
+          <Alert
+            severity="info"
+            sx={{ mb: 3 }}
+            onClose={clearForkParam}
+          >
+            <AlertTitle>Forked Template</AlertTitle>
+            You are creating a new template based on a fork. Feel free to modify it as needed.
+          </Alert>
+        )}
+        <ResponsiveGrid
+          leftContent={
+            <Box display="flex" flexDirection="column" gap={{ xs: 2, sm: 3 }}>
+              <ControlPanel
+                language={language}
+                setLanguage={setLanguage}
+                mode={mode}
+                SaveButton={SaveButton}
+                RunButton={RunButton}
+                handleSaveEdit={handleSaveEdit}
+                handleCancelEdit={handleCancelEdit}
+                isEditing={isEditing}
+                isSaving={isSaving}
               />
-            </Paper>
-          )}
-          {/* Show fork notice if we're creating from a fork */}
-          {mode === 'create' && isFork && (
-            <Alert
-              severity="info"
-              sx={{ mb: 3 }}
-              onClose={clearForkParam}
-            >
-              <AlertTitle>Forked Template</AlertTitle>
-              You are creating a new template based on a fork. Feel free to modify it as needed.
-            </Alert>
-          )}
-          <Box display="grid" gridTemplateColumns="3fr 1fr" gap={3}>
-            {/* Left side - Code Editor and Controls */}
-            <Box display="flex" flexDirection="column" gap={3}>
-              {/* Top Controls */}
-              <Paper sx={{ p: 2, bgcolor: 'background.paper' }}>
-                <Box
-                  display="flex"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  gap={2}
-                >
-                  {/* Left side - Language Selector */}
-                  <FormControl sx={{ minWidth: 200 }}>
-                    <InputLabel id="language-select-label">Language</InputLabel>
-                    <Select
-                      labelId="language-select-label"
-                      value={language}
-                      label="Language"
-                      onChange={(e) => setLanguage(e.target.value)}
-                    >
-                      <MenuItem value="python">Python</MenuItem>
-                      <MenuItem value="javascript">JavaScript</MenuItem>
-                      <MenuItem value="java">Java</MenuItem>
-                    </Select>
-                  </FormControl>
 
-                  {/* Right side - Control Buttons */}
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                    {mode === 'create' && (
-                      <SaveButton />
-                    )}
-                    {mode === 'view' && isEditing && (
-                      <>
-                        <Button
-                          variant="contained"
-                          color="primary"
-                          onClick={handleSaveEdit}
-                          disabled={isSaving}
-                          startIcon={<Save className="w-4 h-4" />}
-                        >
-                          {isSaving ? 'Saving...' : 'Save Changes'}
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          onClick={handleCancelEdit}
-                          disabled={isSaving}
-                        >
-                          Cancel
-                        </Button>
-                      </>
-                    )}
-                    <RunButton />
-                  </Box>
-                </Box>
-              </Paper>
-
-              {/* Code Editor */}
-              <Paper
-                sx={{
-                  p: 2,
-                  bgcolor: 'background.paper',
-                  maxWidth: '100%',
-                  '& .cm-editor': {
-                    // Set a fixed height for the CodeMirror editor
-                    maxHeight: '500px',
-                    overflow: 'auto',
-                    // Optional: Add custom scrollbar styling
-                    '&::-webkit-scrollbar': {
-                      width: '8px',
-                      height: '8px',
-                    },
-                    '&::-webkit-scrollbar-track': {
-                      background: 'rgba(0,0,0,0.1)',
-                    },
-                    '&::-webkit-scrollbar-thumb': {
-                      background: 'rgba(255,255,255,0.2)',
-                      borderRadius: '4px',
-                    },
-                    '&::-webkit-scrollbar-thumb:hover': {
-                      background: 'rgba(255,255,255,0.3)',
-                    },
-                  }
-                }}
-              >
+              <CodeEditorContainer>
                 <CodeEditorWithCodeMirror
                   code={code}
                   language={language}
                   onChange={setCode}
                 />
-              </Paper>
+              </CodeEditorContainer>
 
-              {/* Input/Output Section */}
-              <InputOutputSection input={input} setInput={setInput} output={output} />
-
+              <InputOutputSection
+                input={input}
+                setInput={setInput}
+                output={output}
+              />
             </Box>
+          }
+          rightContent={
+            <Paper sx={{ p: { xs: 1, sm: 2 } }}>
+              <TagsContainer
+                selectedTags={selectedTags}
+                onTagsChange={setSelectedTags}
+                tags={tags}
+                mode={isEditing ? 'create' : mode}
+              />
+            </Paper>
+          }
+        />
 
-            <Box display="flex" flexDirection="column" gap={3}>
-              <Paper sx={{ p: 2, bgcolor: 'background.paper' }}>
-                <TagsContainer
-                  selectedTags={selectedTags}
-                  onTagsChange={setSelectedTags}
-                  tags={tags}
-                  mode={isEditing ? 'create' : mode}
-                />
-              </Paper>
-            </Box>
-          </Box>
-          <Box sx={{ mt: 3 }}>
-          <Paper sx={{ p: 2, bgcolor: 'background.paper' }}>
-                <Typography variant="h6" gutterBottom>
-                  Explanation
-                </Typography>
-                <TextField
-                  fullWidth
-                  multiline
-                  label={mode === 'view' && !isEditing ? "" : "Add your code explanation"}
-                  value={explanation}
-                  onChange={(e) => setExplanation(e.target.value)}
-                  minRows={12}
-                  disabled={mode === 'view' && !isEditing}
-                />
-              </Paper>
-          </Box>
-        </Container>
-
-        {/* Dialogs */}
-        {/* Confirmation Modal */}
-          <Dialog
-            open={openConfirmModal}
-            onClose={() => setOpenConfirmModal(false)}
-            aria-labelledby="confirm-dialog-title"
-          >
-            <DialogTitle id="confirm-dialog-title">
-              Missing Information
-            </DialogTitle>
-            <DialogContent>
-              <Alert severity="warning" sx={{ mb: 2 }}>
-                The following fields are empty:
-                <ul>
-                  {emptyFields.map((field) => (
-                    <li key={field}>{field}</li>
-                  ))}
-                </ul>
-                Do you want to continue anyway?
-              </Alert>
-            </DialogContent>
-            <DialogActions>
-              <Button
-                onClick={() => setOpenConfirmModal(false)}
-                color="primary"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSaveConfirmed}
-                variant="contained"
-                color="primary"
-              >
-                Save Anyway
-              </Button>
-            </DialogActions>
-          </Dialog>
-        {/* Fork Confirmation Dialog */}
-          <Dialog
-            open={showForkDialog}
-            onClose={() => setShowForkDialog(false)}
-            aria-labelledby="fork-dialog-title"
-          >
-            <DialogTitle id="fork-dialog-title">
-              Fork Template
-            </DialogTitle>
-            <DialogContent>
-              <Alert
-                severity="info"
-                sx={{
-                  mt: 1,
-                  '& .MuiAlert-message': {
-                    width: '100%'
-                  }
-                }}
-              >
-                <AlertTitle>You are about to fork this template</AlertTitle>
-                <Typography variant="body2" sx={{ mb: 2 }}>
-                  This will create a copy of <strong>{initialTemplate?.title}</strong> that you can modify.
-                </Typography>
-                <Typography variant="body2">
-                  Original template by: <strong>{initialTemplate?.author.username}</strong>
-                </Typography>
-              </Alert>
-            </DialogContent>
-            <DialogActions>
-              <Button
-                onClick={() => setShowForkDialog(false)}
-                color="inherit"
-                sx={{ color: 'text.secondary' }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleForkConfirmed}
-                variant="contained"
-                color="primary"
-                startIcon={<GitFork className="w-4 h-4" />}
-              >
-                Create Fork
-              </Button>
-            </DialogActions>
-          </Dialog>
-          <LoginPromptDialog />
-          <DeleteConfirmationDialog />
-      </Box>
-      <ShareNotification
-        open={showShareNotification}
-        onClose={() => setShowShareNotification(false)}
-      />
-    </ThemeProvider>
+        <ExplanationSection
+          explanation={explanation}
+          setExplanation={setExplanation}
+          mode={mode}
+          isEditing={isEditing}
+        />
+      </ResponsiveContainer>
+    </Box>
   );
 };
 
