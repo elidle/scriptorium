@@ -41,6 +41,7 @@ import {useAuth} from "@/app/contexts/AuthContext";
 import BaseLayout from "@/app/components/BaseLayout";
 import SortMenu from "@/app/components/SortMenu";
 import FilterDrawer from "@/app/components/FilterDrawer";
+import {useTheme} from "@/app/contexts/ThemeContext";
 
 const API_SERVICE = {
   domain: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
@@ -89,6 +90,7 @@ const API_SERVICE = {
 export default function CodeTemplates() {
   const router = useRouter();
   const { user, setUser, accessToken, setAccessToken } = useAuth();
+  const {theme, isDarkMode} = useTheme();
 
   // Handle routing
   const handleCreateTemplate = () => {
@@ -284,15 +286,13 @@ export default function CodeTemplates() {
       onSearch={handleCodeTemplateSearch}
       type="code-template"
     >
-      <Box sx={{display: 'flex', minHeight: '100vh', bgcolor: 'background.default'}}>
+      <Box sx={{display: 'flex', maxWidth: '75rem', margin: '0 auto'}}>
         {/* Main Content */}
         <Box
           component="main"
           sx={{
             flexGrow: 1,
-            p: 3,
-            pt: 10,
-            maxWidth: '3xl',
+            p: 2,
             margin: '0 auto',
             transition: (theme: Theme) => theme.transitions.create(['margin'], {
               easing: theme.transitions.easing.sharp,
@@ -301,13 +301,18 @@ export default function CodeTemplates() {
           }}
         >
           {/* Sorting Section */}
-          <Box className="flex max-w-3xl mx-auto justify-between items-center mb-4">
-            <Typography variant="h6" className="text-blue-400">
+          <Box className="flex justify-between items-center mb-4">
+            <Typography variant="h4" sx={{ color: theme.palette.primary.main }}>
               Templates
             </Typography>
             <Button
               onClick={handleSortClick}
-              className="!text-slate-300 hover:text-blue-400"
+              sx={{
+                color: theme.palette.text.secondary,
+                '&:hover': {
+                  color: theme.palette.primary.main,
+                },
+              }}
             >
               Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
             </Button>
@@ -325,7 +330,7 @@ export default function CodeTemplates() {
             <NoTemplatesFound />
           ) : (
             <InfiniteScroll
-              className="flex-1 p-4 max-w-3xl mx-auto"
+              className="flex-1 mx-auto"
               dataLength={codeTemplates.length}
               next={() => fetchCodeTemplates()}
               hasMore={hasMore}

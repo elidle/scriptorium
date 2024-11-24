@@ -1,10 +1,12 @@
 "use client";
 import {
   Typography,
-  TextField,
   Button,
-  Modal,
-  Box, Drawer, IconButton, Theme, CircularProgress
+  Box,
+  Drawer,
+  IconButton,
+  Theme,
+  CircularProgress
 } from "@mui/material";
 import React, {useCallback, useEffect, useState} from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
@@ -13,11 +15,12 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { refreshToken, fetchAuth } from "../../utils/auth";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
 import PostPreview from "./PostPreview";
 import BaseLayout from "@/app/components/BaseLayout";
-import SortMenu from "../../components/SortMenu";
+import SortMenu from "@/app/components/SortMenu";
+import InputModal from "@/app/components/InputModal";
 
 import { Post } from "../../types/post";
 import debounce from "lodash.debounce";
@@ -45,6 +48,10 @@ export default function BlogPosts() {
   const [isSearchingTags, setIsSearchingTags] = useState(false);
   const [tagsError, setTagsError] = useState("");
 
+  // Query persistence
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
   // Sorting states
   const [sortBy, setSortBy] = useState<string>("new");
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -58,40 +65,60 @@ export default function BlogPosts() {
   const { showToast } = useToast();
   
   const sortOptions = [
-    { value: "new", label: "New", icon: Star },
-    { value: "old", label: "Old", icon: Clock },
-    { value: "top", label: "Top", icon: TrendingUp },
-    { value: "controversial", label: "Controversial", icon: Zap }
+    { value: "new", label: "Newest first", icon: Star },
+    { value: "old", label: "Oldest first", icon: Clock },
+    { value: "top", label: "Top first", icon: TrendingUp },
+    { value: "controversial", label: "Most Controversial", icon: Zap }
   ];
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  useEffect(() => {
-    setBlogPosts([]);
-    setPage(1);
-    if (!loading) fetchBlogPosts(true);
-  }, [debouncedQuery, sortBy, selectedTags, user, loading]);
 
   useEffect(() => {
     refreshTags();
   }, []);
 
+  useEffect(() => {
+    const query = searchParams.get('q') || '';
+    const sort = searchParams.get('sortBy') || 'new';
+    const urlTags = searchParams.getAll('tags');
+    
+    setSearchQuery(query);
+    setSortBy(sort);
+    setSelectedTags(urlTags);
+  }, [searchParams]);
+
+  useEffect(() => {
+    setBlogPosts([]);
+    setPage(1);
+    if (!loading) fetchBlogPosts(true);
+  }, [searchParams, loading]);
+
+  const updateQueryParams = (params: Record<string, string | string[]>) => {
+    const newSearchParams = new URLSearchParams();
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        value.forEach(v => newSearchParams.append(key, v));
+      } else if (value) {
+        newSearchParams.set(key, value);
+      }
+    });
+    
+    router.push(`${pathname}?${newSearchParams.toString()}`);
+  };
+
   const fetchBlogPosts = async (reset = false) => {
     const currentPage = reset ? 1 : page;
+    const query = searchParams.get('q') || '';
+    const currentSort = searchParams.get('sortBy') || 'new';
+    const urlTags = searchParams.getAll('tags');
+    
     const queryParams = new URLSearchParams({
       page: currentPage.toString(),
-      sortBy: sortBy,
-      ...(debouncedQuery && { q: debouncedQuery }),
+      sortBy: currentSort,
+      ...(query && { q: query }),
       ...(user?.id && { userId: user.id })
     });
 
-    selectedTags.forEach(tag => {
+    urlTags.forEach(tag => {
       queryParams.append('tags', tag);
     });
 
@@ -197,11 +224,19 @@ export default function BlogPosts() {
   };
 
   const handleSearch = (query: string) => {
-    setSearchQuery(query);
+    updateQueryParams({ 
+      q: query, 
+      sortBy: sortBy, 
+      tags: selectedTags 
+    });
   };
 
   const handleTagsChange = (newTags: string[]) => {
-    setSelectedTags(newTags);
+    updateQueryParams({ 
+      q: searchQuery, 
+      sortBy: sortBy, 
+      tags: newTags 
+    });
   };
 
   const handleVote = async (postId: number, isUpvote: boolean) => {
@@ -290,7 +325,13 @@ export default function BlogPosts() {
 
   const handleSortClose = (value?: string) => {
     setAnchorEl(null);
-    if (value && value !== sortBy) setSortBy(value);
+    if (value && value !== sortBy) {
+      updateQueryParams({ 
+        q: searchQuery, 
+        sortBy: value, 
+        tags: selectedTags 
+      });
+    }
   };
 
   const handleReportClick = (postId: number) => {
@@ -365,84 +406,16 @@ export default function BlogPosts() {
       onSearch={handleSearch}
       type="post"
     >
-      {/* Modal for reporting */}
-      <Modal open={reportModalOpen} onClose={() => setReportModalOpen(false)}>
-        <Box
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 400,
-            bgcolor: theme.palette.background.paper,
-            border: `1px solid ${theme.palette.divider}`,
-            borderRadius: "8px",
-            p: 4,
-            boxShadow: 24,
-            color: theme.palette.text.primary,
-          }}
-        >
-          <Typography variant="h4" gutterBottom sx={{ color: theme.palette.primary.main }}>
-            Report Post
-          </Typography>
-
-          <TextField
-            fullWidth
-            label="Reason"
-            variant="outlined"
-            multiline
-            rows={4}
-            value={reportReason}
-            onChange={(e) => setReportReason(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                handleReportSubmit(e);
-              }
-              if (e.key === 'Escape') {
-                setReportModalOpen(false);
-              }
-            }}
-            InputProps={{
-              style: {
-                backgroundColor: theme.palette.background.default,
-                color: theme.palette.text.primary,
-              },
-            }}
-            InputLabelProps={{
-              style: { color: theme.palette.text.secondary },
-            }}
-          />
-          <div className="flex justify-end gap-2 mt-4">
-            <Button
-              variant="contained"
-              onClick={handleReportSubmit}
-              sx={{
-                bgcolor: theme.palette.primary.main,
-                '&:hover': {
-                  bgcolor: theme.palette.primary.dark,
-                },
-                color: theme.palette.primary.contrastText
-              }}
-            >
-              Submit
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={() => setReportModalOpen(false)}
-              sx={{
-                borderColor: theme.palette.primary.main,
-                color: theme.palette.primary.main,
-                '&:hover': {
-                  borderColor: theme.palette.primary.dark,
-                  color: theme.palette.primary.dark
-                }
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        </Box>
-      </Modal>
+      {/* Report Modal */}
+      <InputModal
+        open={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+        onSubmit={handleReportSubmit}
+        title="Report Post"
+        value={reportReason}
+        onChange={setReportReason}
+        inputLabel="Reason"
+      />
   
       {/* Content container */}
       <main className="flex-1">
@@ -476,7 +449,7 @@ export default function BlogPosts() {
             <Box sx={{ mt: 2 }}>
               <TagsContainer
                 selectedTags={selectedTags}
-                onTagsChange={setSelectedTags}
+                onTagsChange={handleTagsChange}
                 tags={tags}
                 mode="search"
               />
@@ -545,9 +518,9 @@ export default function BlogPosts() {
           </div>
 
           {/* Search status */}
-          {debouncedQuery && (
+          {searchParams.get('q') && (
             <Typography className="mb-4 text-slate-400">
-              Showing results for "{debouncedQuery}"
+              Showing results for "{searchParams.get('q')}"
             </Typography>
           )}
 

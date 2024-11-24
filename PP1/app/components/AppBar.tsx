@@ -6,6 +6,7 @@ import {
   IconButton,
   useMediaQuery,
   ThemeProvider,
+  Avatar
 } from "@mui/material";
 import { Menu, Search, X } from "lucide-react";
 import Link from 'next/link';
@@ -86,7 +87,7 @@ export default function AppBar({ type, user, onSearch, onMenuClick }: AppBarProp
       >
         <div className="p-2 sm:p-3 flex items-center">
           {/* Left section */}
-          <div className="w-[200px] flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <IconButton
               onClick={onMenuClick}
               size={isMobile ? "small" : "medium"}
@@ -100,10 +101,21 @@ export default function AppBar({ type, user, onSearch, onMenuClick }: AppBarProp
             >
               <Menu size={isMobile ? 20 : 24} />
             </IconButton>
-            <Link href="/">
+            <Link href="/" className={"flex gap-1 align-middle"}>
+              <Avatar
+                src="/favicon.ico"
+                alt="Scriptorium"
+              />
+              {/* <Typography
+                variant="h5"
+                className="text-lg sm:text-xl md:text-2xl content-center text-blue-600 flex-shrink-0"
+                sx={{
+                  display: { xs: 'none', md: 'block' }
+                }}
+              > */}
               <Typography
                 variant="h5"
-                className="text-lg sm:text-xl md:text-2xl text-blue-600 flex-shrink-0"
+                className="hidden md:block text-lg sm:text-xl md:text-2xl content-center text-blue-600 flex-shrink-0"
               >
                 Scriptorium
               </Typography>
@@ -122,7 +134,7 @@ export default function AppBar({ type, user, onSearch, onMenuClick }: AppBarProp
           )}
 
           {/* Right section */}
-          <div className="w-[200px] ml-auto flex items-center justify-end gap-2">
+          <div className="ml-auto flex items-center justify-end gap-2">
             {isMobile && (
               <IconButton
                 onClick={toggleMobileSearch}

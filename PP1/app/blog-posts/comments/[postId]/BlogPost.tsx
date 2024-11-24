@@ -2,43 +2,29 @@
 import {
   Typography,
   Button,
-  AppBar,
-  TextField,
-  Modal,
-  Box, Theme, ThemeProvider,
-  IconButton,
+  Box,
   CircularProgress
 } from "@mui/material";
 import {
-  MessageCircle,
-  TriangleAlert,
   Star,
   Clock,
   TrendingUp,
-  Zap,
-  Edit,
-  Trash2,
-  Menu
+  Zap
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
-import InfiniteScroll from "react-infinite-scroll-component";
-import CommentItem from "./CommentItem";
+
+import PostSection from "./PostSection";
+import CommentSection from "./CommentSection";
+import InputModal from "@/app/components/InputModal";
+import BaseLayout from "@/app/components/BaseLayout";
 
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useToast } from "@/app/contexts/ToastContext";
-import { useTheme } from "@/app/contexts/ThemeContext";
 
 import { refreshToken, fetchAuth } from "@/app/utils/auth";
 import { useRouter } from "next/navigation";
 
-import SideNav from "@/app/components/SideNav";
-import UserAvatar from "@/app/components/UserAvatar";
-import SortMenu from "@/app/components/SortMenu";
 import ConfirmationModal from "@/app/components/ConfirmationModal";
-import ThemeToggle from "@/app/components/ThemeToggle";
-
-import Link from "next/link";
-import Voting from "@/app/blog-posts/Voting";
 
 const domain = "http://localhost:3000";
 
@@ -53,7 +39,6 @@ interface PostQueryParams {
 
 export default function BlogPost({ params }: PostQueryParams) {
   const { showToast } = useToast();
-  const { theme, isDarkMode } = useTheme();
 
   const router = useRouter();
   const postId = Number(params.postId);
@@ -82,9 +67,6 @@ export default function BlogPost({ params }: PostQueryParams) {
   // Delete logic
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
-  // SideNav logic
-  const [isSideNavOpen, setIsSideNavOpen] = useState(false);
-
   // Edit logic
   const [isEditing, setIsEditing] = useState(false);
   const toggleIsEditing = () => {
@@ -106,10 +88,6 @@ export default function BlogPost({ params }: PostQueryParams) {
     setPost(null);
     if(!loading) fetchBlogPost();
   }, [user, loading]);
-
-  // useEffect(() => {
-  //   if(!loading) fetchBlogPost();
-  // }, [loading]);
 
   useEffect(() => {
     setComments([]);
@@ -202,10 +180,10 @@ export default function BlogPost({ params }: PostQueryParams) {
   };
 
   const sortOptions = [
-    { value: "new", label: "New", icon: Star },
-    { value: "old", label: "Old", icon: Clock },
-    { value: "top", label: "Top", icon: TrendingUp },
-    { value: "controversial", label: "Controversial", icon: Zap }
+    { value: "new", label: "Newest first", icon: Star },
+    { value: "old", label: "Oldest first", icon: Clock },
+    { value: "top", label: "Top first", icon: TrendingUp },
+    { value: "controversial", label: "Most controversial", icon: Zap }
   ];
 
   const fetchBlogPost = async () => {
@@ -583,594 +561,92 @@ export default function BlogPost({ params }: PostQueryParams) {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <Box sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        bgcolor: 'background.default'
+    <BaseLayout
+      user={user}
+      onSearch={() => router.push('/blog-posts/search')}
+      type="post"
+    >
+      <Box component="main" sx={{ 
+        flexGrow: 1,
+        p: 2,
+        maxWidth: '75rem',
+        mx: 'auto'
       }}>
-        {/* SideNav backdrop */}
-        <Box
-          sx={{
-            position: 'fixed',
-            inset: 0,
-            bgcolor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 40,
-            transition: 'opacity 0.3s',
-            opacity: isSideNavOpen ? 1 : 0,
-            pointerEvents: isSideNavOpen ? 'auto' : 'none',
-          }}
-          onClick={() => setIsSideNavOpen(false)}
-        />
-        
-        {/* SideNav */}
-        <Box sx={{
-          position: 'fixed',
-          left: 0,
-          top: 0,
-          height: '100vh',
-          width: '256px',
-          bgcolor: 'background.paper',
-          borderRight: 1,
-          borderColor: 'divider',
-          zIndex: 50,
-          transition: 'transform 0.3s',
-          transform: isSideNavOpen ? 'translateX(0)' : 'translateX(-100%)',
-        }}>
-          <SideNav router={router} />
-        </Box>
-
-        {/* Report Modal */}
-        <Modal open={reportModalOpen} onClose={() => setReportModalOpen(false)}>
+        {error ? (
           <Box sx={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 400,
             bgcolor: 'background.paper',
+            borderRadius: 1,
             border: 1,
             borderColor: 'divider',
-            borderRadius: 1,
-            boxShadow: 24,
             p: 4,
+            textAlign: 'center'
           }}>
-            <Typography variant="h4" sx={{ color: 'primary.main', mb: 2 }}>
-              Report {reportingCommentId === null ? "Post" : "Comment"}
+            <Typography variant="h5" sx={{ color: 'error.main', mb: 2 }}>
+              {error}
             </Typography>
-
-            <TextField
-              fullWidth
-              label="Reason"
-              variant="outlined"
-              multiline
-              rows={4}
-              value={reportReason}
-              onChange={(e) => setReportReason(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  handleReportSubmit(e);
-                }
-                if (e.key === 'Escape') {
-                  setReportModalOpen(false);
-                }
-              }}
+            <Button 
+              href="/blog-posts/search"
+              variant="contained"
               sx={{
-                mb: 2,
-                '& .MuiOutlinedInput-root': {
-                  bgcolor: 'background.default',
-                  '& fieldset': {
-                    borderColor: 'divider',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: 'text.secondary',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: 'primary.main',
-                  },
-                },
-              }}
-            />
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-              <Button
-                variant="contained"
-                onClick={handleReportSubmit}
-                sx={{
-                  bgcolor: 'primary.main',
-                  '&:hover': {
-                    bgcolor: 'primary.dark',
-                  },
-                }}
-              >
-                Submit
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => setReportModalOpen(false)}
-                sx={{
-                  borderColor: 'primary.main',
-                  color: 'primary.main',
-                  '&:hover': {
-                    borderColor: 'primary.dark',
-                    color: 'primary.dark',
-                  },
-                }}
-              >
-                Cancel
-              </Button>
-            </Box>
-          </Box>
-        </Modal>
-
-        {/* AppBar */}
-        <AppBar 
-          position="fixed"
-          sx={{
-            width: '100%',
-            zIndex: (theme: Theme) => theme.zIndex.drawer + 1,
-            bgcolor: 'background.paper',
-            borderBottom: 1,
-            borderColor: 'divider',
-          }}
-        >
-          <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <IconButton
-              onClick={() => setIsSideNavOpen(!isSideNavOpen)}
-              sx={{
-                p: 1,
-                color: 'text.secondary',
-                '&:hover': {
-                  bgcolor: isDarkMode ? 'rgba(51, 65, 85, 0.8)' : 'rgba(241, 245, 249, 0.8)',
-                },
+                bgcolor: 'primary.main',
+                '&:hover': { bgcolor: 'primary.dark' }
               }}
             >
-              <Menu size={24} />
-            </IconButton>
-            
-            <Link href="/">
-              <Typography 
-                variant="h5" 
-                sx={{ 
-                  color: 'primary.main',
-                  fontSize: { xs: '1.25rem', sm: '1.5rem' },
-                  flexShrink: 0,
-                }}
-              >
-                Scriptorium
-              </Typography>
-            </Link>
-
-            <Box sx={{ flexGrow: 1 }} />
-
-            <ThemeToggle />
-            
-            {user ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <UserAvatar username={user.username} userId={user.id} />
-                <Link href={`/users/${user.username}`} className="hidden md:block">
-                  <Typography sx={{ 
-                    color: 'text.primary',
-                    '&:hover': { color: 'primary.main' },
-                    fontSize: { xs: '0.875rem', sm: '1rem' },
-                  }}>
-                    {user.username}
-                  </Typography>
-                </Link>
-              </Box>
-            ) : (
-              <Link href="/auth/login">
-                <Button
-                  variant="contained"
-                  size="small"
-                  sx={{
-                    px: 3,
-                    minWidth: '100px',
-                    height: '36px',
-                    whiteSpace: 'nowrap',
-                    bgcolor: 'primary.main',
-                    '&:hover': {
-                      bgcolor: 'primary.dark',
-                    },
-                  }}
-                >
-                  Log In
-                </Button>
-              </Link>
-            )}
+              Back to Posts
+            </Button>
           </Box>
-        </AppBar>
-
-        {/* Main Content */}
-        <Box component="main" sx={{ 
-          flexGrow: 1,
-          p: 2,
-          maxWidth: '75rem',
-          mx: 'auto',
-          mt: '80px'
-        }}>
-          {error ? (
-            <Box sx={{
-              bgcolor: 'background.paper',
-              borderRadius: 1,
-              border: 1,
-              borderColor: 'divider',
-              p: 4,
-              textAlign: 'center'
-            }}>
-              <Typography 
-                variant="h5" 
-                sx={{ color: 'error.main', mb: 2 }}
-              >
-                {error}
-              </Typography>
-              <Button 
-                href="/blog-posts/search"
-                variant="contained"
-                sx={{
-                  bgcolor: 'primary.main',
-                  '&:hover': { bgcolor: 'primary.dark' }
-                }}
-              >
-                Back to Posts
-              </Button>
-            </Box>
-          ) : post ? (
-            <>
-              {/* Post Section */}
-              <Box sx={{
-                bgcolor: 'background.paper',
-                borderRadius: 1,
-                border: 1,
-                borderColor: 'divider',
-                p: { xs: 1, sm: 2 },
-                mb: 2,
-                minHeight: '200px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between'
-              }}>
-                {/* Author Info */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, mt: 1 }}>
-                  <UserAvatar username={post.authorUsername} userId={post.authorId} />
-                  {post.authorUsername[0] === '[' ? (
-                    <Typography sx={{ 
-                      color: user?.id === post.authorId ? 'success.main' : 'text.secondary' 
-                    }}>
-                      {post.authorUsername}
-                    </Typography>
-                  ) : (
-                    <Link href={`/users/${post.authorUsername}`}>
-                      <Typography sx={{
-                        color: user?.id === post.authorId ? 'success.main' : 'text.secondary',
-                        '&:hover': { color: 'primary.main' }
-                      }}>
-                        {post.authorUsername}
-                      </Typography>
-                    </Link>
-                  )}
-                  <Typography sx={{ color: 'text.secondary' }}>
-                    • {new Date(post.createdAt).toLocaleString()}
-                  </Typography>
-                </Box>
-
-                {/* Post Title */}
-                <Typography 
-                  variant="h4" 
-                  sx={{ 
-                    color: 'text.primary',
-                    fontSize: { xs: '1.25rem', sm: '1.5rem' },
-                    wordBreak: 'break-word'
-                  }}
-                >
-                  {post.title === null ? "[Deleted post]" : post.title}
-                </Typography>
-
-                {/* Post Content */}
-                {isEditing ? (
-                  <Box 
-                    component="form" 
-                    onSubmit={handleEditSubmit}
-                    sx={{ display: 'flex', flexDirection: 'column', gap: 2, my: 1 }}
-                  >
-                    <TextField
-                      fullWidth
-                      multiline
-                      minRows={4}
-                      value={editedContent}
-                      onChange={(e) => setEditedContent(e.target.value)}
-                      sx={{
-                        bgcolor: 'background.default',
-                        '& .MuiOutlinedInput-root': {
-                          height: '100%',
-                          color: 'text.primary',
-                          '& fieldset': { borderColor: 'divider' },
-                          '&:hover fieldset': { borderColor: 'text.secondary' },
-                          '&.Mui-focused fieldset': { borderColor: 'primary.main' },
-                        }
-                      }}
-                    />
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                      <Button 
-                        type="submit"
-                        variant="contained"
-                        sx={{
-                          bgcolor: 'primary.main',
-                          '&:hover': { bgcolor: 'primary.dark' }
-                        }}
-                      >
-                        Save
-                      </Button>
-                      <Button 
-                        onClick={() => {
-                          setEditedContent("");
-                          setIsEditing(false);
-                        }}
-                        variant="outlined"
-                        sx={{
-                          borderColor: 'divider',
-                          color: 'text.primary',
-                          '&:hover': { borderColor: 'primary.main' }
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    </Box>
-                  </Box>
-                ) : (
-                  <Typography 
-                    sx={{ 
-                      color: 'text.primary',
-                      my: 1,
-                      whiteSpace: 'pre-wrap'
-                    }}
-                  >
-                    {post.content === null ? "[This post has been deleted by its author.]" : post.content}
-                  </Typography>
-                )}
-
-                {/* Post Actions */}
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  justifyContent: 'space-between',
-                  alignItems: { xs: 'start', sm: 'center' },
-                  gap: 1,
-                  mb: 2,
-                }}>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
-                    {/* Voting */}
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Voting item={post} handleVote={handlePostVote} />
-                    </Box>
-                    
-                    {/* Comment Button */}
-                    <Button
-                      onClick={scrollToComment}
-                      disabled={!post?.allowAction}
-                      startIcon={<MessageCircle size={18} />}
-                      sx={{
-                        color: 'text.secondary',
-                        opacity: !post?.allowAction ? 0.5 : 1,
-                        '&:hover': { color: 'primary.main' },
-                      }}
-                    >
-                      Comment
-                    </Button>
-                    
-                    {/* Report Button */}
-                    {user?.id !== post.authorId && (
-                      <Button
-                        onClick={() => { if (post.allowAction) handleReportClick()}}
-                        disabled={!post.allowAction}
-                        startIcon={<TriangleAlert size={18} />}
-                        sx={{
-                          color: 'text.secondary',
-                          opacity: !post.allowAction ? 0.5 : 1,
-                          '&:hover': { color: 'primary.main' },
-                        }}
-                      >
-                        Report
-                      </Button>
-                    )}
-                  </Box>
-
-                  {/* Author Actions */}
-                  {user?.id === post.authorId && (
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Button
-                        onClick={() => toggleIsEditing()}
-                        disabled={!post?.allowAction}
-                        startIcon={<Edit size={18} />}
-                        sx={{
-                          color: 'text.secondary',
-                          opacity: !post?.allowAction ? 0.5 : 1,
-                          '&:hover': { color: 'primary.main' },
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        onClick={() => setDeleteModalOpen(true)}
-                        startIcon={<Trash2 size={18} />}
-                        sx={{
-                          color: 'text.secondary',
-                          '&:hover': { color: 'error.main' },
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </Box>
-                  )}
-                </Box>
-
-                {/* New Comment Section */}
-                <Box
-                  ref={newCommentRef}
-                  sx={{
-                    bgcolor: 'background.paper',
-                    borderRadius: 1,
-                    border: 1,
-                    borderColor: 'divider',
-                    p: 2,
-                    mb: 2,
-                    minHeight: 'auto'
-                  }}
-                >
-                  {post?.allowAction ? (
-                    <>
-                      <Typography 
-                        variant="h6" 
-                        sx={{ color: 'primary.main', mb: 1.5 }}
-                      >
-                        Add a Comment
-                      </Typography>
-
-                      {newCommentError && (
-                        <Box sx={{
-                          bgcolor: 'error.main',
-                          opacity: 0.1,
-                          border: 1,
-                          borderColor: 'error.main',
-                          borderRadius: 1,
-                          p: 2,
-                          mb: 3
-                        }}>
-                          <Typography sx={{ color: 'error.main' }}>
-                            {newCommentError}
-                          </Typography>
-                        </Box>
-                      )}
-
-                      <Box 
-                        component="form" 
-                        onSubmit={handleCommentSubmit}
-                        sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            handleCommentSubmit(e);
-                          } else if (e.key === 'Escape') {
-                            commentInputRef.current?.blur();
-                          }
-                        }}
-                      >
-                        <TextField
-                          fullWidth
-                          multiline
-                          rows={4}
-                          value={newComment}
-                          onChange={(e) => setNewComment(e.target.value)}
-                          placeholder="What are your thoughts?"
-                          inputRef={commentInputRef}
-                          sx={{
-                            bgcolor: 'background.default',
-                            '& .MuiOutlinedInput-root': {
-                              color: 'text.primary',
-                              '& fieldset': { borderColor: 'divider' },
-                              '&:hover fieldset': { borderColor: 'text.secondary' },
-                              '&.Mui-focused fieldset': { borderColor: 'primary.main' },
-                            }
-                          }}
-                        />
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Button 
-                            type="submit"
-                            variant="contained"
-                            sx={{
-                              bgcolor: 'primary.main',
-                              '&:hover': { bgcolor: 'primary.dark' }
-                            }}
-                          >
-                            Submit
-                          </Button>
-                          <Button 
-                            onClick={() => setNewComment("")}
-                            variant="outlined"
-                            sx={{
-                              borderColor: 'divider',
-                              color: 'text.primary',
-                              '&:hover': { borderColor: 'primary.main' }
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                        </Box>
-                      </Box>
-                    </>
-                  ) : (
-                    <Typography sx={{ color: 'text.secondary' }}>
-                      Comments are disabled for this post.
-                    </Typography>
-                  )}
-                </Box>
-
-                {/* Comments Section */}
-                <Box sx={{ mb: 2 }}>
-                  {/* Sorting Header */}
-                  <Box sx={{ 
-                    display: 'flex',
-                    flexDirection: { xs: 'column', sm: 'row' },
-                    justifyContent: 'space-between',
-                    alignItems: { xs: 'start', sm: 'center' },
-                    gap: 1,
-                    mb: 2
-                  }}>
-                    <Typography variant="h6" sx={{ color: 'primary.main' }}>
-                      Comments
-                    </Typography>
-                    <Button
-                      onClick={handleSortClick}
-                      sx={{
-                        color: 'text.primary',
-                        '&:hover': { color: 'primary.main' }
-                      }}
-                    >
-                      Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
-                    </Button>
-                    <SortMenu
-                      sortBy={sortBy}
-                      anchorEl={anchorEl}
-                      onClose={handleSortClose}
-                      sortOptions={sortOptions}
-                    />
-                  </Box>
-
-                  {/* Comments List */}
-                  <InfiniteScroll
-                    dataLength={comments.length}
-                    next={fetchComments}
-                    hasMore={hasMore}
-                    loader={
-                      <CircularProgress />
-                    }
-                    endMessage={
-                      <Typography sx={{ color: 'text.secondary' }}>
-                        End of comments
-                      </Typography>
-                    }
-                  >
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      {comments.map((comment) => (
-                        <CommentItem 
-                          key={comment.id} 
-                          comment={comment} 
-                          post={post}
-                          handleVote={handleCommentVote} 
-                          handleReportClick={handleReportClick}
-                          fetchComments={fetchComments}
-                        />
-                      ))}
-                    </Box>
-                  </InfiniteScroll>
-                </Box>
-              </Box>
-            </>
-          ) : (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <CircularProgress />
-            </Box>
-          )}
-        </Box>
+        ) : post ? (
+          <>
+            <PostSection 
+              post={post}
+              user={user}
+              isEditing={isEditing}
+              editedContent={editedContent}
+              handlePostVote={handlePostVote}
+              handleReportClick={handleReportClick}
+              handleEditSubmit={handleEditSubmit}
+              toggleIsEditing={toggleIsEditing}
+              setEditedContent={setEditedContent}
+              setDeleteModalOpen={setDeleteModalOpen}
+              scrollToComment={scrollToComment}
+            />
+            
+            <CommentSection
+              post={post}
+              comments={comments}
+              newComment={newComment}
+              setNewComment={setNewComment}
+              handleCommentSubmit={handleCommentSubmit}
+              handleCommentVote={handleCommentVote}
+              handleReportClick={handleReportClick}
+              fetchComments={fetchComments}
+              sortBy={sortBy}
+              anchorEl={anchorEl}
+              handleSortClick={handleSortClick}
+              handleSortClose={handleSortClose}
+              hasMore={hasMore}
+              commentInputRef={commentInputRef}
+              newCommentRef={newCommentRef}
+              sortOptions={sortOptions}
+            />
+          </>
+        ) : (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <CircularProgress />
+          </Box>
+        )}
       </Box>
+
+      {/* Report Modal */}
+      <InputModal
+        open={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+        onSubmit={handleReportSubmit}
+        title={`Report ${reportingCommentId === null ? "Post" : "Comment"}`}
+        value={reportReason}
+        onChange={setReportReason}
+        inputLabel="Reason"
+      />
 
       {/* Delete Confirmation Modal */}
       <ConfirmationModal
@@ -1180,6 +656,6 @@ export default function BlogPost({ params }: PostQueryParams) {
         title="Delete Post"
         message="Are you sure you want to delete this post? This action cannot be undone."
       />
-    </ThemeProvider>
+    </BaseLayout>
   );
 }

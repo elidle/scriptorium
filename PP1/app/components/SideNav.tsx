@@ -97,7 +97,7 @@ const SideNav = ({ router }: { router: ReturnType<typeof useRouter> }) => {
         }}
       >
         <NavSection title="Code">
-          <NavLink href="/code-templates/editor">
+          <NavLink href="/code-templates/new">
             <Code size={18} /> Run Code
           </NavLink>
           <NavLink href="/code-templates/search">

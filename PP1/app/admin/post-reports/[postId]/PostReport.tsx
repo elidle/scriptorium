@@ -173,8 +173,12 @@ export default function PostReport({ params }: PostReportParams) {
     }
   };
 
-  const handleSearch = () => {
-    router.push('/blog-posts/search');
+  const handleSearch = (query: string) => {
+    if (query.trim()) {
+      router.push(`/blog-posts/search?q=${encodeURIComponent(query.trim())}`);
+    } else {
+      router.push('/blog-posts/search');
+    }
   };
 
   if (!user || user.role !== 'admin') {

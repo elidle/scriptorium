@@ -8,7 +8,7 @@ interface ConfirmationProps {
   message: string;
   confirmText?: string;
   cancelText?: string;
-  confirmColor?: string;
+  confirmColor?: "error" | "primary" | "warning";
 }
 
 export default function ConfirmationModal({
@@ -19,7 +19,7 @@ export default function ConfirmationModal({
   message,
   confirmText = "Delete",
   cancelText = "Cancel",
-  confirmColor = "!bg-red-600 hover:!bg-red-700"
+  confirmColor = "error"
 }: ConfirmationProps) {
   return (
     <Modal open={open} onClose={onClose}>
@@ -30,37 +30,57 @@ export default function ConfirmationModal({
           left: "50%",
           transform: "translate(-50%, -50%)",
           width: 400,
-          bgcolor: "rgb(15, 23, 42)",
-          border: "1px solid rgb(51, 65, 85)",
-          borderRadius: "8px",
+          bgcolor: "background.paper",
+          border: 1,
+          borderColor: "divider",
+          borderRadius: 1,
           p: 4,
           boxShadow: 24,
-          color: "rgb(203, 213, 225)",
+          color: "text.primary",
         }}
       >
-        <Typography variant="h6" gutterBottom sx={{ color: "rgb(239, 68, 68)" }}>
+        <Typography 
+          variant="h6" 
+          gutterBottom 
+          sx={{ 
+            color: `${confirmColor}.main`,
+            fontWeight: 600
+          }}
+        >
           {title}
         </Typography>
-        <Typography className="text-slate-300 mb-4">
+        <Typography sx={{ color: 'text.secondary', mb: 2 }}>
           {message}
         </Typography>
 
-        <div className="flex justify-end gap-2 mt-4">
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'flex-end', 
+          gap: 1, 
+          mt: 4 
+        }}>
           <Button
             variant="contained"
-            className={`${confirmColor} text-white`}
+            color={confirmColor}
             onClick={onConfirm}
           >
             {confirmText}
           </Button>
           <Button
             variant="outlined"
-            className="border-slate-600 text-slate-300 hover:border-slate-500"
             onClick={onClose}
+            sx={{
+              borderColor: 'divider',
+              color: 'text.primary',
+              '&:hover': {
+                borderColor: 'text.secondary',
+                bgcolor: 'action.hover'
+              }
+            }}
           >
             {cancelText}
           </Button>
-        </div>
+        </Box>
       </Box>
     </Modal>
   );

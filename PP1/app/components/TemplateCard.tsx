@@ -7,7 +7,8 @@ import {
   Chip,
   Avatar,
   Tooltip,
-  IconButton
+  IconButton,
+  Link
 } from "@mui/material";
 import {
   GitBranch,
@@ -17,6 +18,7 @@ import {
   ChevronUp,
   ChevronDown
 } from 'lucide-react';
+import UserAvatar from "@/app/components/UserAvatar";
 import { useRouter } from "next/navigation";
 import { CodeTemplate } from "@/app/types";
 
@@ -27,7 +29,6 @@ interface TemplateCardProps {
 const MAX_DESCRIPTION_LENGTH = 200;
 const TemplateCard: React.FC<TemplateCardProps> = ({ template }) => {
   const router = useRouter();
-
 
   const needsTruncation = template.explanation?.length > MAX_DESCRIPTION_LENGTH;
 
@@ -82,8 +83,12 @@ const TemplateCard: React.FC<TemplateCardProps> = ({ template }) => {
       onClick={handleClick}
       sx={{
         cursor: 'pointer',
+        bgcolor: 'background.paper',
+        borderRadius: 1,
+        border: '2px solid',
+        borderColor: 'divider',
         '&:hover': {
-          transform: 'translateY(-2px)',
+          borderColor: 'text.secondary',
           boxShadow: 4,
         },
         transition: 'all 0.2s ease-in-out',
@@ -101,14 +106,19 @@ const TemplateCard: React.FC<TemplateCardProps> = ({ template }) => {
             {/* Author Info & Language */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Avatar
-                  src={template.author.avatar || '/default-avatar.png'}
-                  alt={template.author.username}
-                  sx={{ width: 24, height: 24 }}
-                />
-                <Typography variant="body2" color="text.secondary">
-                  {template.author.username}
-                </Typography>
+                <UserAvatar username={template.author.username} userId={template.author.id} />
+                <Link href={`/users/${template.author.username}`}>
+                  <Typography
+                    sx={{ 
+                      color: 'text.secondary',
+                      '&:hover': {
+                        color: 'primary.main',
+                      }
+                    }}
+                  >
+                    {template.author.username}
+                  </Typography>
+                </Link>
               </Box>
 
               <Chip
@@ -178,6 +188,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({ template }) => {
             {truncatedText}
           </Typography>
         </Box>
+        
         {/* Code Preview */}
         <Box
           sx={{
