@@ -320,6 +320,10 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   const languages = ['python', 'javascript', 'java', 'c', 'cpp', 'csharp', 'typescript', 'r'];
 
   useEffect(() => {
+    localStorage.setItem(`${language}Code`, code);
+  }, [initialTemplate]);
+
+  useEffect(() => {
     // Check if we're in create mode and have a fork
     if (mode === 'create') {
       const forkedData = localStorage.getItem('forkedTemplate');
@@ -634,6 +638,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     // Reset all fields to initial values
     setTitle(initialTemplate?.title || '');
     setCode(initialTemplate?.code || '');
+    localStorage.setItem(`${language}Code`, initialTemplate?.code || '');
     setLanguage(initialTemplate?.language || 'python');
     setExplanation(initialTemplate?.explanation || '');
     setSelectedTags(initialTemplate?.tags.map(tag => tag.name) || []);
