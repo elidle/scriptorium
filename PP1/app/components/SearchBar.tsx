@@ -37,9 +37,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    onSearch(searchTerm.trim());
     if (searchTerm.trim()) {
-      onSearch(searchTerm.trim());
-      // Save to recent searches
       const updatedSearches = [
         searchTerm.trim(),
         ...recentSearches.filter(s => s !== searchTerm.trim())

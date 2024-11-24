@@ -6,7 +6,8 @@ import {
   TextField,
   Modal,
   Box, Theme, ThemeProvider,
-  IconButton
+  IconButton,
+  CircularProgress
 } from "@mui/material";
 import {
   MessageCircle,
@@ -104,7 +105,17 @@ export default function BlogPost({ params }: PostQueryParams) {
   useEffect(() => {
     setPost(null);
     if(!loading) fetchBlogPost();
-  }, [user]);
+  }, [user, loading]);
+
+  // useEffect(() => {
+  //   if(!loading) fetchBlogPost();
+  // }, [loading]);
+
+  useEffect(() => {
+    setComments([]);
+    setPage(1);
+    if(!loading) fetchComments(true);
+  }, [sortBy, user]);
 
   const scrollToComment = () => {
     if (newCommentRef.current) {
@@ -196,16 +207,6 @@ export default function BlogPost({ params }: PostQueryParams) {
     { value: "top", label: "Top", icon: TrendingUp },
     { value: "controversial", label: "Controversial", icon: Zap }
   ];
-
-  useEffect(() => {
-    if(!loading) fetchBlogPost();
-  }, [user]);
-
-  useEffect(() => {
-    setComments([]);
-    setPage(1);
-    if(!loading) fetchComments(true);
-  }, [sortBy, user]);
 
   const fetchBlogPost = async () => {
     try {
@@ -634,7 +635,7 @@ export default function BlogPost({ params }: PostQueryParams) {
             boxShadow: 24,
             p: 4,
           }}>
-            <Typography variant="h6" sx={{ color: 'primary.main', mb: 2 }}>
+            <Typography variant="h4" sx={{ color: 'primary.main', mb: 2 }}>
               Report {reportingCommentId === null ? "Post" : "Comment"}
             </Typography>
 
@@ -783,7 +784,7 @@ export default function BlogPost({ params }: PostQueryParams) {
         <Box component="main" sx={{ 
           flexGrow: 1,
           p: 2,
-          maxWidth: '1200px',
+          maxWidth: '75rem',
           mx: 'auto',
           mt: '80px'
         }}>
@@ -934,7 +935,7 @@ export default function BlogPost({ params }: PostQueryParams) {
                   justifyContent: 'space-between',
                   alignItems: { xs: 'start', sm: 'center' },
                   gap: 1,
-                  mb: 2
+                  mb: 2,
                 }}>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
                     {/* Voting */}
@@ -959,7 +960,7 @@ export default function BlogPost({ params }: PostQueryParams) {
                     {/* Report Button */}
                     {user?.id !== post.authorId && (
                       <Button
-                        onClick={() => { if (post.allowAction) handleReportClick(post.id)}}
+                        onClick={() => { if (post.allowAction) handleReportClick()}}
                         disabled={!post.allowAction}
                         startIcon={<TriangleAlert size={18} />}
                         sx={{
@@ -1012,7 +1013,7 @@ export default function BlogPost({ params }: PostQueryParams) {
                     borderColor: 'divider',
                     p: 2,
                     mb: 2,
-                    minHeight: '200px'
+                    minHeight: 'auto'
                   }}
                 >
                   {post?.allowAction ? (
@@ -1139,9 +1140,7 @@ export default function BlogPost({ params }: PostQueryParams) {
                     next={fetchComments}
                     hasMore={hasMore}
                     loader={
-                      <Typography sx={{ color: 'primary.main' }}>
-                        Loading comments...
-                      </Typography>
+                      <CircularProgress />
                     }
                     endMessage={
                       <Typography sx={{ color: 'text.secondary' }}>
@@ -1167,9 +1166,7 @@ export default function BlogPost({ params }: PostQueryParams) {
             </>
           ) : (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <Typography sx={{ color: 'primary.main' }}>
-                Loading post...
-              </Typography>
+              <CircularProgress />
             </Box>
           )}
         </Box>

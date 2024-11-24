@@ -46,7 +46,7 @@ export default function AppBar({ type, user, onSearch, onMenuClick }: AppBarProp
         <Link href={`/users/${user.username}`}>
           <Typography
             sx={{ 
-              display: { xs: 'none', sm: 'block' },
+              display: { xs: 'none', md: 'block' },
               color: theme.palette.text.primary,
               '&:hover': { color: theme.palette.primary.light }
             }}
@@ -84,9 +84,9 @@ export default function AppBar({ type, user, onSearch, onMenuClick }: AppBarProp
           boxShadow: 'none',
         }}
       >
-        <div className="p-2 sm:p-3 flex items-center gap-2 sm:gap-3">
+        <div className="p-2 sm:p-3 flex items-center">
           {/* Left section */}
-          <div className="flex-none flex items-center gap-2 sm:gap-3">
+          <div className="w-[200px] flex items-center gap-2 sm:gap-3">
             <IconButton
               onClick={onMenuClick}
               size={isMobile ? "small" : "medium"}
@@ -112,14 +112,17 @@ export default function AppBar({ type, user, onSearch, onMenuClick }: AppBarProp
 
           {/* Center section - Search */}
           {!isMobile && (
-            <Box sx={{ flex: '1 1 auto', display: 'flex', justifyContent: 'center' }}>
+            <Box sx={{ 
+              flex: '1 1 auto', 
+              display: 'flex', 
+              justifyContent: 'center'
+            }}>
               {renderSearch()}
             </Box>
           )}
 
           {/* Right section */}
-          <div className="flex-none flex items-center gap-2">
-            <ThemeToggle />
+          <div className="w-[200px] ml-auto flex items-center justify-end gap-2">
             {isMobile && (
               <IconButton
                 onClick={toggleMobileSearch}
@@ -135,6 +138,7 @@ export default function AppBar({ type, user, onSearch, onMenuClick }: AppBarProp
                 {mobileSearchOpen ? <X size={20} /> : <Search size={20} />}
               </IconButton>
             )}
+            <ThemeToggle />
             {renderUserSection()}
           </div>
         </div>

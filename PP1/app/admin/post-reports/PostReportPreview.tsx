@@ -1,84 +1,165 @@
 import {
   Typography,
+  Box,
+  ThemeProvider,
+  useTheme as useMuiTheme
 } from "@mui/material";
 import { FileText, ExternalLink, EyeOff } from "lucide-react";
 import Link from 'next/link';
 
 import UserAvatar from '@/app/components/UserAvatar';
-
 import { ReportedPost } from "@/app/types/post";
-
 import { useAuth } from "@/app/contexts/AuthContext";
+import { useTheme } from "@/app/contexts/ThemeContext";
 
 interface PostReportPreviewProps {
   post: ReportedPost;
   handleHide: (postId: number) => void;
 }
 
-export default function PostReportPreview( { post, handleHide }: PostReportPreviewProps ) {
+export default function PostReportPreview({ post, handleHide }: PostReportPreviewProps) {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const muiTheme = useMuiTheme();
 
   return (
-    <article 
-      key={post.id} 
-      className="bg-slate-800 rounded-lg border border-slate-700 p-4"
-    >
-      <div className="flex items-center gap-2 mb-4">
-        <UserAvatar username={post.authorUsername} userId={post.authorId} />
+    <ThemeProvider theme={theme}>
+      <Box
+        component="article"
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          borderRadius: 1,
+          border: '2px solid',
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+          p: 2,
+          '&:hover': {
+            borderColor: 'text.secondary',
+          },
+          transition: 'all 0.2s ease-in-out',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <UserAvatar username={post.authorUsername} userId={post.authorId} />
 
-        {
-          post.authorUsername[0] === '[' ? (
-            <Typography className="text-slate-400">
+          {post.authorUsername[0] === '[' ? (
+            <Typography sx={{ color: 'text.secondary' }}>
               {post.authorUsername}
             </Typography>
           ) : (
             <Link href={`/users/${post.authorUsername}`}>
-              <Typography className={`hover:text-blue-400 ${user?.id === post.authorId ? 'text-green-400' : 'text-slate-400'}`}>
+              <Typography 
+                sx={{
+                  color: user?.id === post.authorId ? 'success.main' : 'text.secondary',
+                  '&:hover': {
+                    color: 'primary.main',
+                  },
+                }}
+              >
                 {post.authorUsername}
               </Typography>
             </Link>
-          )
-        }
+          )}
 
-        <Typography className="text-slate-400">
-          • {new Date(post.createdAt).toLocaleString()}
+          <Typography sx={{ color: 'text.secondary' }}>
+            • {new Date(post.createdAt).toLocaleString()}
+          </Typography>
+
+          <Typography 
+            sx={{ 
+              color: 'error.main',
+              marginLeft: 'auto'
+            }}
+          >
+            {post.reportCount} reports
+          </Typography>
+        </Box>
+
+        <Typography 
+          variant="h6" 
+          sx={{
+            mb: 1,
+            color: 'text.primary',
+          }}
+        >
+          {post.title}
         </Typography>
 
-        <Typography className="text-red-400 ml-auto">
-          {post.reportCount} reports
+        <Typography 
+          sx={{
+            mb: 2,
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            color: 'text.secondary',
+          }}
+        >
+          {post.content}
         </Typography>
-      </div>
 
-      <Typography variant="h6" className="text-slate-200 mb-2">
-        {post.title}
-      </Typography>
-      <Typography className="text-slate-300 mb-4 line-clamp-3">
-        {post.content}
-      </Typography>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Link href={`/admin/post-reports/${post.id}`}>
+            <Typography
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                color: 'text.secondary',
+                '&:hover': {
+                  color: 'primary.main',
+                },
+              }}
+            >
+              <FileText size={18} />
+              <span style={{ fontSize: '0.875rem' }}>See reports</span>
+            </Typography>
+          </Link>
 
-      <div className="flex mt-2 gap-4">
-        <Link 
-          href={`/admin/post-reports/${post.id}`}
-          className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
-        >
-          <FileText size={18} />
-          <span className="text-sm">See reports</span>
-        </Link>
-        <Link 
-          href={`/blog-posts/comments/${post.id}`}
-          className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
-        >
-          <ExternalLink size={18} />
-          <span className="text-sm">Go to post</span>
-        </Link>
-        <button 
-          onClick={() => handleHide(post.id)}
-          className="flex items-center gap-1 text-slate-400 hover:text-red-400"
-        >
-          <EyeOff size={18} />
-          <span className="text-sm">Hide</span>
-        </button>
-      </div>
-    </article>
+          <Link href={`/blog-posts/comments/${post.id}`}>
+            <Typography
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                color: 'text.secondary',
+                '&:hover': {
+                  color: 'primary.main',
+                },
+              }}
+            >
+              <ExternalLink size={18} />
+              <span style={{ fontSize: '0.875rem' }}>Go to post</span>
+            </Typography>
+          </Link>
+
+          <button
+            onClick={() => handleHide(post.id)}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+            }}
+          >
+            <Typography
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                color: 'text.secondary',
+                '&:hover': {
+                  color: 'error.main',
+                },
+              }}
+            >
+              <EyeOff size={18} />
+              <span style={{ fontSize: '0.875rem' }}>Hide</span>
+            </Typography>
+          </button>
+        </Box>
+      </Box>
+    </ThemeProvider>
   );
 }

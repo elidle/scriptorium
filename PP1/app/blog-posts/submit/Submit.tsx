@@ -129,7 +129,7 @@ export default function Submit() {
       onSearch={handleSearch}
       type="post"
     >
-      <main className="container mx-auto max-w-3xl px-4 pt-12 pb-8">
+      <main className="flex-1 px-4 pt-12 pb-8" style={{ maxWidth: '75rem', margin: '0 auto' }}>
         <div style={{
           backgroundColor: theme.palette.background.paper,
           borderColor: theme.palette.divider,
@@ -157,6 +157,7 @@ export default function Submit() {
               variant="outlined"
               fullWidth
               value={title}
+              onChange={(e) => setTitle(e.target.value)}
               disabled={isLoading}
               sx={{
                 '& .MuiOutlinedInput-root': {

@@ -187,10 +187,9 @@ const TagsContainer = ({
           bgcolor: 'background.paper',
           borderRadius: 2,
           overflow: 'hidden',
-          p: 3
+          width: '100%'
         }}
       >
-
         {/* Search Bar */}
         <Box sx={{
           display: 'flex',
@@ -308,6 +307,7 @@ const TagsContainer = ({
         <Paper
           elevation={0}
           sx={{
+            width: '100%',
             maxHeight: 200,
             overflow: 'auto',
             borderRadius: 2,
@@ -397,7 +397,8 @@ const TagsContainer = ({
       sx={{
         bgcolor: 'background.paper',
         borderRadius: 2,
-        overflow: 'hidden'
+        overflow: 'hidden',
+        width: '100%'
       }}
     >
       {/* Add New Tag Section */}
@@ -590,6 +591,7 @@ const TagsContainer = ({
           <Paper
             elevation={0}
             sx={{
+              width: '100%',
               maxHeight: 300,
               overflow: 'auto',
               borderRadius: 2,

@@ -1,31 +1,31 @@
 "use client";
 import {
-  AppBar,
   Typography,
+  CircularProgress,
+  Box
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
-import Link from 'next/link';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useToast } from "@/app//contexts/ToastContext";
-import { refreshToken } from "@/app/utils/auth";
+import { useTheme } from "@/app/contexts/ThemeContext";
 import { useRouter } from "next/navigation";
 
-import SideNav from "@/app/components/SideNav";
-import UserAvatar from '@/app/components/UserAvatar';
+import BaseLayout from "@/app/components/BaseLayout";
 import CommentReportPreview from "./CommentReportPreview";
 
 import { ReportedComment } from "@/app/types/comment";
-import { fetchAuth } from "@/app/utils/auth";
+import { fetchAuth, refreshToken } from "@/app/utils/auth";
 
 export default function CommentReports() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [reportedComments, setReportedComments] = useState<ReportedComment[]>([]);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  const { user, accessToken, setAccessToken } = useAuth();
+  const { user, accessToken, setAccessToken, loading } = useAuth();
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -33,7 +33,7 @@ export default function CommentReports() {
       router.push('/');
       return;
     }
-    fetchReportedComments(true);
+    if (!loading) fetchReportedComments(true);
   }, [user]);
 
   const fetchReportedComments = async (reset = false) => {
@@ -106,82 +106,76 @@ export default function CommentReports() {
     }
   };
 
+  const handleSearch = () => {
+    router.push('/blog-posts/search');
+  };
+
   if (!user || user.role !== 'admin') {
     return null;
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-900">
-      <SideNav router={router}/>
+    <BaseLayout
+      user={user}
+      onSearch={handleSearch}
+      type="post"
+    >
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: 2,
+          maxWidth: '75rem',
+          mx: 'auto'
+        }}
+      >
+        <Typography variant="h4" sx={{ color: theme.palette.primary.main, mb: '1rem' }}>
+          Reported Comments
+        </Typography>
 
-      <div className="flex-1 ml-64">
-        <AppBar 
-          position="fixed" 
-          className="!bg-slate-800 border-b border-slate-700"
-          sx={{ boxShadow: 'none' }}
-        >
-          <div className="p-3 flex items-center justify-between">
-            <Link href="/">
-              <Typography className="text-2xl text-blue-400" variant="h5">
-                Scriptorium Admin
-              </Typography>
-            </Link>
-            
-            <div className="flex items-center gap-2">
-              <UserAvatar username={user.username} userId={user.id} />
-              <Typography className="text-slate-400">
-                {user.username}
-              </Typography>
-            </div>
+        {error && (
+          <div style={{
+            backgroundColor: theme.palette.error.main + '1A',
+            borderColor: theme.palette.error.main,
+            borderWidth: 1,
+            borderRadius: '0.5rem',
+          }} className="p-4 mb-4">
+            <Typography sx={{ color: theme.palette.error.main }}>{error}</Typography>
           </div>
-        </AppBar>
-
-        <div className="pt-16">
-          <main className="flex-1 p-4 max-w-3xl mx-auto">
-            <Typography variant="h6" className="text-blue-400 mb-4">
-              Reported Comments
-            </Typography>
-
-            {error && (
-              <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-4">
-                <Typography className="text-red-500">{error}</Typography>
-              </div>
-            )}
-            
-            <InfiniteScroll
-              dataLength={reportedComments.length}
-              next={fetchReportedComments}
-              hasMore={hasMore}
-              loader={
-                <div className="text-center p-4">
-                  <Typography className="text-blue-400">Loading...</Typography>
-                </div>
-              }
-              endMessage={
-                reportedComments.length > 0 ? (
-                  <Typography className="text-center p-4 text-slate-400">
-                    No more reported comments
-                  </Typography>
-                ) : (
-                  <Typography className="text-center p-4 text-slate-400">
-                    No reported comments found
-                  </Typography>
-                )
-              }
-            >
-              <div className="space-y-4">
-                {reportedComments.map(comment => (
-                  <CommentReportPreview
-                    key={comment.id}
-                    comment={comment}
-                    handleHide={handleHide}
-                  />
-                ))}
-              </div>
-            </InfiniteScroll>
-          </main>
-        </div>
-      </div>
-    </div>
+        )}
+        
+        <InfiniteScroll
+          dataLength={reportedComments.length}
+          next={fetchReportedComments}
+          hasMore={hasMore}
+          loader={
+            <div className="text-center p-4">
+              <CircularProgress />
+            </div>
+          }
+          endMessage={
+            reportedComments.length > 0 ? (
+              <Typography sx={{ color: theme.palette.text.secondary }} className="text-center p-4">
+                No more reported comments
+              </Typography>
+            ) : (
+              <Typography sx={{ color: theme.palette.primary.main }} className="text-center p-4">
+                No reported comments found
+              </Typography>
+            )
+          }
+        >
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {reportedComments.map(comment => (
+              <CommentReportPreview
+                key={comment.id}
+                comment={comment}
+                handleHide={handleHide}
+              />
+            ))}
+          </Box>
+        </InfiniteScroll>
+      </Box>
+    </BaseLayout>
   );
 }

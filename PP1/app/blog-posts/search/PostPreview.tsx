@@ -52,6 +52,7 @@ export default function PostPreview({ post, handleVote, handleReportClick }: Pos
           <Voting item={post} handleVote={handleVote} />
         </Box>
 
+        <Link href={`/blog-posts/comments/${post.id}`}>
         <Box sx={{ p: 1.5 }}>
           <Box 
             sx={{ 
@@ -203,6 +204,7 @@ export default function PostPreview({ post, handleVote, handleReportClick }: Pos
             )}
           </Box>
         </Box>
+        </Link>
       </Box>
     </ThemeProvider>
   );

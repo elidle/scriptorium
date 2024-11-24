@@ -1,8 +1,9 @@
 "use client";
 import {
   Typography,
-  AppBar,
-  Button
+  Box,
+  Button,
+  CircularProgress
 } from "@mui/material";
 import { ExternalLink, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -11,10 +12,11 @@ import Link from "next/link";
 
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useToast } from "@/app/contexts/ToastContext";
+import { useTheme } from "@/app/contexts/ThemeContext";
 import { refreshToken, fetchAuth } from "@/app/utils/auth";
 import { useRouter } from "next/navigation";
 
-import SideNav from "@/app/components/SideNav";
+import BaseLayout from "@/app/components/BaseLayout";
 import UserAvatar from "@/app/components/UserAvatar";
 
 import { Report } from "@/app/types/report";
@@ -29,6 +31,7 @@ interface CommentReportParams {
 export default function CommentReport({ params }: CommentReportParams) {
   const router = useRouter();
   const commentId = Number(params.commentId);
+  const { theme } = useTheme();
 
   const [comment, setComment] = useState<Comment | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
@@ -163,115 +166,142 @@ export default function CommentReport({ params }: CommentReportParams) {
     }
   };
 
+  const handleSearch = () => {
+    router.push('/blog-posts/search');
+  };
+
   if (!user || user.role !== 'admin') {
     return null;
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-900 text-slate-200">
-      <SideNav router={router} />
-
-      <AppBar 
-        position="fixed" 
-        className="!bg-slate-800 border-b border-slate-700"
-        sx={{ boxShadow: 'none' }}
+    <BaseLayout
+      user={user}
+      onSearch={handleSearch}
+      type="post"
+    >
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: 2,
+          maxWidth: '75rem',
+          mx: 'auto'
+        }}
       >
-        <div className="p-3 flex flex-col sm:flex-row items-center gap-3">
-          <Link href="/">
-            <Typography 
-              className="text-xl sm:text-2xl text-blue-400 flex-shrink-0" 
-              variant="h5"
-            >
-              Scriptorium Admin
-            </Typography>
-          </Link>
-
-          <div className="flex-grow"></div>
-
-          <div className="flex items-center gap-2">
-            <UserAvatar username={user.username} userId={user.id} />
-
-            {
-              comment?.authorUsername[0] === '[' ? (
-                <Typography className="text-slate-400">
-                  {comment.authorUsername}
-                </Typography>
-              ) : (
-                <Link href={`/users/${comment?.authorUsername}`}>
-                  <Typography className={`hover:text-blue-400 ${user?.id === comment?.authorId ? 'text-green-400' : 'text-slate-400'}`}>
-                    {comment?.authorUsername}
-                  </Typography>
-                </Link>
-              )
-            }
-          </div>
-        </div>
-      </AppBar>
-
-      <main className="flex-1 p-4 max-w-3xl w-full mx-auto mt-12 mb-10">
         {error ? (
-          <div className="bg-slate-800 rounded-lg border border-slate-700 p-8 text-center">
-            <Typography variant="h5" className="text-red-400 mb-4">
+          <Box
+            sx={{
+              bgcolor: 'background.paper',
+              borderRadius: 1,
+              border: '1px solid',
+              borderColor: 'divider',
+              p: 4,
+              textAlign: 'center'
+            }}
+          >
+            <Typography variant="h5" sx={{ color: 'error.main', mb: 2 }}>
               {error}
             </Typography>
-            <Button 
+            <Button
               href="/admin/comment-reports"
               variant="contained"
-              className="bg-blue-600 hover:bg-blue-700"
+              color="primary"
             >
               Back to Reports
             </Button>
-          </div>
+          </Box>
         ) : comment ? (
           <>
-            {/* Reported comment section */}
-            <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-4">
-              <div className="flex items-center gap-2 mb-2">
+            {/* Comment Section */}
+            <Box
+              sx={{
+                bgcolor: 'background.paper',
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'divider',
+                p: 2,
+                mb: 2
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <UserAvatar username={comment.authorUsername} userId={comment.authorId} />
 
-                {
-                  comment.authorUsername[0] === '[' ? (
-                    <Typography className="text-slate-400">
+                {comment.authorUsername[0] === '[' ? (
+                  <Typography sx={{ color: 'text.secondary' }}>
+                    {comment.authorUsername}
+                  </Typography>
+                ) : (
+                  <Link href={`/users/${comment.authorUsername}`}>
+                    <Typography 
+                      sx={{
+                        color: user?.id === comment.authorId ? 'success.main' : 'text.secondary',
+                        '&:hover': {
+                          color: 'primary.main',
+                        },
+                      }}
+                    >
                       {comment.authorUsername}
                     </Typography>
-                  ) : (
-                    <Link href={`/users/${comment.authorUsername}`}>
-                      <Typography className={`hover:text-blue-400 ${comment?.id === comment.authorId ? 'text-green-400' : 'text-slate-400'}`}>
-                        {comment.authorUsername}
-                      </Typography>
-                    </Link>
-                  )
-                }
+                  </Link>
+                )}
 
-                <Typography className="text-slate-400">
+                <Typography sx={{ color: 'text.secondary' }}>
                   • {new Date(comment.createdAt).toLocaleString()}
                 </Typography>
-              </div>
+              </Box>
 
-              <Typography variant="body1" className="text-slate-300 mb-4" sx={{ whiteSpace: "pre-wrap" }}>
+              <Typography sx={{ color: 'text.primary', mb: 2, whiteSpace: 'pre-wrap' }}>
                 {comment.content}
               </Typography>
 
-              <div className="flex gap-4 mt-2">
-                <Link 
-                  href={`/blog-posts/comments/${comment.postId}`}
-                  className="flex items-center gap-1 text-slate-400 hover:text-blue-400"
-                >
-                  <ExternalLink size={18} />
-                  <span className="text-sm">Go to post</span>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Link href={`/blog-posts/comments/${comment.postId}`}>
+                  <Typography
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      color: 'text.secondary',
+                      '&:hover': {
+                        color: 'primary.main',
+                      },
+                    }}
+                  >
+                    <ExternalLink size={18} />
+                    <span style={{ fontSize: '0.875rem' }}>Go to post</span>
+                  </Typography>
                 </Link>
-                <button 
+
+                <button
                   onClick={handleHide}
-                  className="flex items-center gap-1 text-slate-400 hover:text-red-400"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                  }}
                 >
-                  <EyeOff size={18} />
-                  <span className="text-sm">Hide</span>
+                  <Typography
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      color: 'text.secondary',
+                      '&:hover': {
+                        color: 'error.main',
+                      },
+                    }}
+                  >
+                    <EyeOff size={18} />
+                    <span style={{ fontSize: '0.875rem' }}>Hide</span>
+                  </Typography>
                 </button>
-              </div>
-            </div>
+              </Box>
+            </Box>
 
             {/* Reports Section */}
-            <Typography variant="h6" className="text-blue-400 mb-4">
+            <Typography variant="h4" sx={{ color: 'primary.main', mb: 4 }}>
               Reports
             </Typography>
 
@@ -279,56 +309,68 @@ export default function CommentReport({ params }: CommentReportParams) {
               dataLength={reports.length}
               next={fetchReports}
               hasMore={hasMore}
-              loader={<Typography className="text-blue-400">Loading reports...</Typography>}
+              loader={
+                <Box sx={{ textAlign: 'center', p: 2 }}>
+                  <CircularProgress />
+                </Box>
+              }
               endMessage={
                 reports.length > 0 ? (
-                  <Typography className="text-slate-400">End of reports</Typography>
+                  <Typography sx={{ color: 'text.secondary', textAlign: 'center', p: 2 }}>
+                    End of reports
+                  </Typography>
                 ) : (
-                  <Typography className="text-slate-400">No reports found</Typography>
+                  <Typography sx={{ color: 'text.secondary', textAlign: 'center', p: 2 }}>
+                    No reports found
+                  </Typography>
                 )
               }
             >
-              <div className="space-y-4">
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {reports.map((report) => (
-                  <div 
+                  <Box
                     key={report.id}
-                    className="bg-slate-800 rounded-lg border border-slate-700 p-4"
+                    sx={{
+                      bgcolor: 'background.paper',
+                      borderRadius: 1,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      p: 2
+                    }}
                   >
-                    <div className="flex items-center gap-2 mb-2">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                       <UserAvatar username={report.reporterUsername} userId={report.reporterId} />
+                      
+                      <Link href={`/users/${report.reporterUsername}`}>
+                        <Typography sx={{ 
+                          color: 'text.secondary',
+                          '&:hover': {
+                            color: 'primary.main',
+                          },
+                        }}>
+                          {report.reporterUsername}
+                        </Typography>
+                      </Link>
 
-                      {
-                        comment.authorUsername[0] === '[' ? (
-                          <Typography className="text-slate-400">
-                            {comment.authorUsername}
-                          </Typography>
-                        ) : (
-                          <Link href={`/users/${comment.authorUsername}`}>
-                            <Typography className={`hover:text-blue-400 ${comment?.id === comment.authorId ? 'text-green-400' : 'text-slate-400'}`}>
-                              {comment.authorUsername}
-                            </Typography>
-                          </Link>
-                        )
-                      }
-
-                      <Typography className="text-slate-400">
+                      <Typography sx={{ color: 'text.secondary' }}>
                         • {new Date(report.createdAt).toLocaleString()}
                       </Typography>
-                    </div>
-                    <Typography className="text-slate-300 whitespace-pre-wrap">
+                    </Box>
+
+                    <Typography sx={{ color: 'text.primary', whiteSpace: 'pre-wrap' }}>
                       {report.reason}
                     </Typography>
-                  </div>
+                  </Box>
                 ))}
-              </div>
+              </Box>
             </InfiniteScroll>
           </>
         ) : (
-          <div className="flex justify-center items-center">
-            <Typography className="text-blue-400">Loading comment...</Typography>
-          </div>
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+            <CircularProgress />
+          </Box>
         )}
-      </main>
-    </div>
+      </Box>
+    </BaseLayout>
   );
 }

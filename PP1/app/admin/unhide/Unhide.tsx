@@ -1,6 +1,5 @@
 "use client";
 import {
-  AppBar,
   Typography,
   TextField,
   Button,
@@ -8,23 +7,24 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Box
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useToast } from "@/app/contexts/ToastContext";
+import { useTheme } from "@/app/contexts/ThemeContext";
 import { fetchAuth } from "@/app/utils/auth";
 
-import SideNav from "@/app/components/SideNav";
-import UserAvatar from "@/app/components/UserAvatar";
+import BaseLayout from "@/app/components/BaseLayout";
 import ConfirmationModal from "@/app/components/ConfirmationModal";
 
 type ItemType = "post" | "comment";
 
 export default function Unhide() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [itemType, setItemType] = useState<ItemType>("post");
   const [itemId, setItemId] = useState<string>("");
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -101,14 +101,20 @@ export default function Unhide() {
     }
   };
 
+  const handleSearch = () => {
+    router.push('/blog-posts/search');
+  };
+
   if (!user || user.role !== 'admin') {
     return null;
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-900 text-slate-200">
-      <SideNav router={router} />
-
+    <BaseLayout
+      user={user}
+      onSearch={handleSearch}
+      type="post"
+    >
       <ConfirmationModal
         open={confirmModalOpen}
         onClose={() => setConfirmModalOpen(false)}
@@ -117,44 +123,42 @@ export default function Unhide() {
         message={`Are you sure you want to unhide ${itemType} ${itemId}?`}
         confirmText="Unhide"
         cancelText="Cancel"
-        confirmColor="!bg-blue-600 hover:!bg-blue-700"
+        confirmColor="primary"
       />
 
-      <AppBar 
-        position="fixed" 
-        className="!bg-slate-800 border-b border-slate-700"
-        sx={{ boxShadow: 'none' }}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: 2,
+          maxWidth: '75rem',
+          mx: 'auto'
+        }}
       >
-        <div className="p-3 flex flex-col sm:flex-row items-center gap-3">
-          <Link href="/">
-            <Typography 
-              className="text-xl sm:text-2xl text-blue-400 flex-shrink-0" 
-              variant="h5"
-            >
-              Scriptorium Admin
-            </Typography>
-          </Link>
-
-          <div className="flex-grow"></div>
-
-          <div className="flex items-center gap-2">
-            <UserAvatar username={user.username} userId={user.id} />
-            <Typography className="text-slate-200">
-              {user.username}
-            </Typography>
-          </div>
-        </div>
-      </AppBar>
-
-      <main className="flex-1 p-4 max-w-3xl w-full mx-auto mt-12 mb-10">
-        <Typography variant="h6" className="text-blue-400 mb-6">
+        <Typography variant="h4" sx={{ color: 'primary.main', mb: 4 }}>
           Unhide Content
         </Typography>
 
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <Box
+          sx={{
+            bgcolor: 'background.paper',
+            borderRadius: 1,
+            border: '1px solid',
+            borderColor: 'divider',
+            p: 3
+          }}
+        >
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 3
+            }}
+          >
             <FormControl fullWidth>
-              <InputLabel id="item-type-label" className="text-slate-400">
+              <InputLabel id="item-type-label">
                 Type
               </InputLabel>
               <Select
@@ -162,18 +166,8 @@ export default function Unhide() {
                 value={itemType}
                 label="Type"
                 onChange={(e) => setItemType(e.target.value as ItemType)}
-                className="bg-slate-900"
                 sx={{
-                  color: 'rgb(226, 232, 240)',
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgb(51, 65, 85)',
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgb(59, 130, 246)',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgb(59, 130, 246)',
-                  },
+                  bgcolor: 'background.default',
                 }}
               >
                 <MenuItem value="post">Post</MenuItem>
@@ -186,23 +180,8 @@ export default function Unhide() {
               label="ID"
               value={itemId}
               onChange={(e) => setItemId(e.target.value)}
-              className="bg-slate-900"
               sx={{
-                '& .MuiOutlinedInput-root': {
-                  color: 'rgb(226, 232, 240)',
-                  '& fieldset': {
-                    borderColor: 'rgb(51, 65, 85)',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: 'rgb(59, 130, 246)',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: 'rgb(59, 130, 246)',
-                  },
-                },
-                '& .MuiInputLabel-root': {
-                  color: 'rgb(148, 163, 184)',
-                },
+                bgcolor: 'background.default',
               }}
             />
 
@@ -210,13 +189,13 @@ export default function Unhide() {
               type="submit"
               variant="contained"
               fullWidth
-              className="bg-blue-600 hover:bg-blue-700"
+              color="primary"
             >
               Unhide
             </Button>
-          </form>
-        </div>
-      </main>
-    </div>
+          </Box>
+        </Box>
+      </Box>
+    </BaseLayout>
   );
 }

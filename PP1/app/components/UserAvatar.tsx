@@ -22,11 +22,9 @@ export default function UserAvatar({ username, userId, size = 40 }: UserAvatarPr
     ) : (
       <Link href={`/users/${username}`} className={`relative h-${size/4} w-${size/4}`}>
         {!avatarError ? (
-          <Image
+          <Avatar
             src={`/api/avatar/${userId}`}
             alt={username}
-            width={size}
-            height={size}
             className="rounded-full object-cover"
             onError={() => setAvatarError(true)}
           />
