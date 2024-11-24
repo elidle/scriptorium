@@ -115,6 +115,7 @@ export async function GET(req) {
     const transformedTemplates = templates.map(template => ({
       ...template,
       author: {
+        id: template.author.id,
         username: template.author.username,
         avatar: template.author.avatar,
       },
