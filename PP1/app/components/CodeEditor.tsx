@@ -133,6 +133,7 @@ const ControlPanel = ({
         <FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
           <InputLabel id="language-select-label">Language</InputLabel>
           <Select
+            variant='outlined'
             labelId="language-select-label"
             value={language}
             label="Language"
@@ -141,6 +142,11 @@ const ControlPanel = ({
             <MenuItem value="python">Python</MenuItem>
             <MenuItem value="javascript">JavaScript</MenuItem>
             <MenuItem value="java">Java</MenuItem>
+            <MenuItem value="c">C</MenuItem>
+            <MenuItem value="cpp">C++</MenuItem>
+            <MenuItem value="csharp">C#</MenuItem>
+            <MenuItem value="typescript">TypeScript</MenuItem>
+            <MenuItem value="r">R</MenuItem>
           </Select>
         </FormControl>
 
@@ -482,7 +488,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   }, []);
 
   const handleCodeChange = useCallback((newCode: string) => {
-    console.log('CodeEditor handleChange:', newCode); // TODO: Remove this debug log
     setCode(newCode);
   }, []);
 
@@ -880,15 +885,14 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
               <CodeEditorWithCodeMirror
                 code={code}
-                language={language}
                 onChange={handleCodeChange}
+                language={language}
               />
 
               <InputOutputSection
                 input={input}
                 setInput={setInput}
                 output={output}
-                language={"plaintext"}
               />
             </Box>
           }
