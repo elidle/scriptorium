@@ -87,7 +87,6 @@ const TemplateCard: React.FC<TemplateCardProps> = ({ template }) => {
           border: 1,
           borderColor: 'divider',
           '&:hover': {
-            transform: 'translateY(-2px)',
             boxShadow: isDarkMode
               ? `0 8px 24px ${alpha(theme.palette.common.black, 0.3)}`
               : `0 8px 24px ${alpha(theme.palette.common.black, 0.1)}`,
