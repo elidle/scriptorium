@@ -317,6 +317,8 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const languages = ['python', 'javascript', 'java', 'c', 'cpp', 'csharp', 'typescript', 'r'];
+
   useEffect(() => {
     // Check if we're in create mode and have a fork
     if (mode === 'create') {
@@ -340,6 +342,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
   // Handle routing
   const handleBack = () => {
+    languages.forEach(lang => localStorage.removeItem(`${lang}Code`));
     router.push('/code-templates/search');
   };
 
