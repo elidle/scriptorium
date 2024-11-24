@@ -16,8 +16,8 @@ const lightTheme = createTheme({
       dark: '#6d28d9', // violet-700
     },
     background: {
-      default: '#f8fafc', // slate-50 - Lighter background for better contrast
-      paper: '#ffffff', // white - Crisp surface for content
+      default: 'rgb(203 213 225)', // slate-300 - Lighter background for better contrast
+      paper: 'rgb(226 232 240)', // slate-200 - Crisp surface for content
     },
     text: {
       primary: '#1e293b', // slate-800 - Slightly softer than black for better readability
@@ -55,7 +55,7 @@ const lightTheme = createTheme({
       light: '#22c55e', // green-500
       dark: '#15803d', // green-700
     },
-    divider: '#e2e8f0', // slate-200 - Subtle borders
+    divider: 'rgb(148 163 184)', // slate-400
   },
   shadows: [
     'none',
@@ -182,30 +182,45 @@ const darkTheme = createTheme({
     divider: '#334155', // slate-700
   },
   typography: {
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     h1: {
+      fontSize: '2.5rem',
+      fontWeight: 600,
       color: '#f8fafc', // slate-50
     },
     h2: {
+      fontSize: '2rem',
+      fontWeight: 600,
       color: '#f8fafc',
     },
     h3: {
+      fontSize: '1.75rem',
+      fontWeight: 600,
       color: '#f8fafc',
     },
     h4: {
+      fontSize: '1.5rem',
+      fontWeight: 600,
       color: '#f8fafc',
     },
     h5: {
+      fontSize: '1.25rem',
+      fontWeight: 600,
       color: '#f8fafc',
     },
     h6: {
+      fontSize: '1rem',
+      fontWeight: 600,
       color: '#f8fafc',
     },
     body1: {
+      fontSize: '1rem',
       color: '#f8fafc',
     },
     body2: {
+      fontSize: '0.875rem',
       color: '#cbd5e1', // slate-300
-    },
+    }
   },
   components: {
     MuiButton: {

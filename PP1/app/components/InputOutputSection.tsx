@@ -1,19 +1,11 @@
 import React from 'react';
 import { Paper, Typography, Box } from '@mui/material';
 import CodeMirror from '@uiw/react-codemirror';
-import { vscodeDark } from '@uiw/codemirror-theme-vscode';
-import { StreamLanguage } from '@codemirror/language';
-import { python } from '@codemirror/legacy-modes/mode/python';
-import { javascript } from '@codemirror/legacy-modes/mode/javascript';
-import { java } from '@codemirror/legacy-modes/mode/clike';
+import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
+import { useTheme } from "@/app/contexts/ThemeContext";
 
-const languageMap = {
-  python: StreamLanguage.define(python),
-  javascript: StreamLanguage.define(javascript),
-  java: StreamLanguage.define(java),
-};
 
-const CodeMirrorBox = ({ label, value, onChange = null, disabled = false, language = 'plaintext' }) => {
+const CodeMirrorBox = ({ label, value, onChange = null, disabled = false, isDarkMode = true }) => {
   return (
     <Paper
       sx={{
@@ -63,9 +55,9 @@ const CodeMirrorBox = ({ label, value, onChange = null, disabled = false, langua
         <CodeMirror
           value={value || ''}
           onChange={onChange}
-          theme={vscodeDark}
+          theme={isDarkMode ? githubDark : githubLight}
           height="100%"
-          extensions={[languageMap[language] || []]}
+          extensions={[]}
           editable={!disabled}
           basicSetup={{
             lineNumbers: !disabled,
@@ -83,8 +75,9 @@ const CodeMirrorBox = ({ label, value, onChange = null, disabled = false, langua
   );
 };
 
-const InputOutputSection = ({ input, setInput, output, language }) => (
-  <Box
+const InputOutputSection = ({ input, setInput, output}) => {
+  const { theme, isDarkMode } = useTheme();
+  return (<Box
     display="grid"
     gridTemplateColumns="1fr 1fr"
     gap={3}
@@ -98,15 +91,15 @@ const InputOutputSection = ({ input, setInput, output, language }) => (
       label="Input"
       value={input}
       onChange={setInput}
-      language={language}
+      isDarkMode={isDarkMode}
     />
     <CodeMirrorBox
       label="Output"
       value={output}
       disabled
-      language={language}
+      isDarkMode={isDarkMode}
     />
-  </Box>
-);
+  </Box>);
+};
 
 export default InputOutputSection;

@@ -101,7 +101,7 @@ const SideNav = ({ router }: { router: ReturnType<typeof useRouter> }) => {
           <NavLink href="/auth/login">
             <LogIn size={18}/> Login
           </NavLink>
-          <NavLink href="/auth/signup">
+          <NavLink href="/signup">
             <UserPlus size={18}/> Signup
           </NavLink>
         </NavSection>

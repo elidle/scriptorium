@@ -5,7 +5,7 @@ import {
   Box,
   IconButton,
   useMediaQuery,
-  ThemeProvider,
+  ThemeProvider, Avatar,
 } from "@mui/material";
 import { Menu, Search, X } from "lucide-react";
 import Link from 'next/link';
@@ -14,6 +14,7 @@ import UserAvatar from './UserAvatar';
 import SearchBar from './SearchBar';
 import { useTheme } from "@/app/contexts/ThemeContext";
 import ThemeToggle from "@/app/components/ThemeToggle";
+import Image from 'next/image';
 
 interface AppBarProps {
   type: 'post' | 'code-template';
@@ -26,6 +27,7 @@ export default function AppBar({ type, user, onSearch, onMenuClick }: AppBarProp
   const { theme, isDarkMode } = useTheme();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const isMobile = useMediaQuery('(max-width: 640px)');
+  console.log('Appbar User:', user); // TODO: Remove this line
 
   const toggleMobileSearch = () => {
     setMobileSearchOpen(!mobileSearchOpen);
@@ -98,10 +100,14 @@ export default function AppBar({ type, user, onSearch, onMenuClick }: AppBarProp
             >
               <Menu size={isMobile ? 20 : 24} />
             </IconButton>
-            <Link href="/">
+            <Link href="/" className={"flex gap-1 align-middle"}>
+              <Avatar
+                src="/favicon.ico"
+                alt="Scriptorium"
+                />
               <Typography
                 variant="h5"
-                className="text-lg sm:text-xl md:text-2xl text-blue-600 flex-shrink-0"
+                className="text-lg sm:text-xl md:text-2xl content-center text-blue-600 flex-shrink-0"
               >
                 Scriptorium
               </Typography>

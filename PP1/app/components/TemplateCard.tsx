@@ -7,7 +7,7 @@ import {
   Chip,
   Avatar,
   Tooltip,
-  IconButton
+  IconButton, alpha
 } from "@mui/material";
 import {
   GitBranch,
@@ -19,6 +19,9 @@ import {
 } from 'lucide-react';
 import { useRouter } from "next/navigation";
 import { CodeTemplate } from "@/app/types";
+import {useTheme} from "@/app/contexts/ThemeContext";
+import Link from "next/link";
+import UserAvatar from "@/app/components/UserAvatar";
 
 interface TemplateCardProps {
   template: CodeTemplate;
@@ -27,6 +30,7 @@ interface TemplateCardProps {
 const MAX_DESCRIPTION_LENGTH = 200;
 const TemplateCard: React.FC<TemplateCardProps> = ({ template }) => {
   const router = useRouter();
+  const { theme, isDarkMode } = useTheme();
 
 
   const needsTruncation = template.explanation?.length > MAX_DESCRIPTION_LENGTH;
@@ -34,10 +38,6 @@ const TemplateCard: React.FC<TemplateCardProps> = ({ template }) => {
   const truncatedText = needsTruncation
     ? template.explanation.slice(0, MAX_DESCRIPTION_LENGTH) + "..."
     : template.explanation;
-
-  const handleClick = () => {
-    router.push(`/code-templates/${template.author.username}/${template.id}`);
-  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -77,195 +77,219 @@ const TemplateCard: React.FC<TemplateCardProps> = ({ template }) => {
   };
 
   return (
-    <Card
-      elevation={3}
-      onClick={handleClick}
-      sx={{
-        cursor: 'pointer',
-        '&:hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: 4,
-        },
-        transition: 'all 0.2s ease-in-out',
-      }}
-      className={"w-full block"}
-    >
-      <CardContent>
-        {/* Header Section */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Typography variant="h5" component="h2" sx={{ color: 'text.primary' }}>
-              {template.title}
-            </Typography>
+    <Link href={`/code-templates/${template.author.username}/${template.id}`}>
+      <Card
+        elevation={isDarkMode ? 2 : 1}
+        sx={{
+          cursor: 'pointer',
+          bgcolor: 'background.paper',
+          borderRadius: 2,
+          border: 1,
+          borderColor: 'divider',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: isDarkMode
+              ? `0 8px 24px ${alpha(theme.palette.common.black, 0.3)}`
+              : `0 8px 24px ${alpha(theme.palette.common.black, 0.1)}`,
+            borderColor: 'primary.main',
+          },
+          transition: 'all 0.2s ease-in-out',
+        }}
+        className={"w-full block"}
+      >
+        <CardContent>
+          {/* Header Section */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Typography
+                variant="h5"
+                component="h2"
+                sx={{
+                  color: 'text.primary',
+                  fontWeight: 600,
+                }}
+              >
+                {template.title}
+              </Typography>
 
-            {/* Author Info & Language */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Avatar
-                  src={template.author.avatar || '/default-avatar.png'}
-                  alt={template.author.username}
-                  sx={{ width: 24, height: 24 }}
+              {/* Author Info & Language */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  '&:hover': {
+                    '& .MuiTypography-root': {
+                      color: 'primary.main',
+                    },
+                  },
+                }}>
+                  <Link className={"flex gap-2"} href={`/users/${template.author.username}`}>
+                    <UserAvatar username={template.author.username} userId={template.author.id}/>
+                    <Typography
+                      className={"content-center"}
+                      variant="body1"
+                      sx={{
+                        color: 'text.secondary',
+                        transition: 'color 0.2s',
+                        textAlign: 'center'
+                      }}
+                    >
+                      {template.author.username}
+                    </Typography>
+                  </Link>
+                </Box>
+
+                <Chip
+                  label={template.language}
+                  size="small"
+                  sx={{
+                    bgcolor: alpha(getLanguageColor(template.language), isDarkMode ? 0.2 : 0.1),
+                    color: getLanguageColor(template.language),
+                    fontSize: '0.75rem',
+                    fontFamily: 'monospace',
+                    fontWeight: 500,
+                    border: 1,
+                    borderColor: alpha(getLanguageColor(template.language), 0.2),
+                  }}
                 />
-                <Typography variant="body2" color="text.secondary">
-                  {template.author.username}
-                </Typography>
+              </Box>
+            </Box>
+
+            {/* Stats & Timestamps */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Tooltip title="Forks">
+                  <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    color: 'text.secondary',
+                    '&:hover': {
+                      color: 'primary.main',
+                    },
+                    transition: 'color 0.2s',
+                  }}>
+                    <GitFork className="w-4 h-4" />
+                    <Typography variant="caption">
+                      {formatCount(template.forkCount)}
+                    </Typography>
+                  </Box>
+                </Tooltip>
               </Box>
 
-              <Chip
-                label={template.language}
-                size="small"
-                sx={{
-                  bgcolor: getLanguageColor(template.language),
-                  color: 'white',
-                  fontSize: '0.75rem',
-                  fontFamily: 'monospace'
-                }}
-              />
-            </Box>
-          </Box>
-
-          {/* Stats & Timestamps */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
-            {/* Stats Row */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Tooltip title="Views">
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Eye className="w-4 h-4" />
-                  <Typography variant="caption" color="text.secondary">
-                    {formatCount(template.viewCount)}   {/* TODO: Extra */}
-                  </Typography>
-                </Box>
-              </Tooltip>
-
-              <Tooltip title="Forks">
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <GitFork className="w-4 h-4" />
-                  <Typography variant="caption" color="text.secondary">
-                    {formatCount(template.forkCount)}
-                  </Typography>
-                </Box>
-              </Tooltip>
-            </Box>
-
-            {/* Timestamp & Fork Status */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Tooltip title={`Updated: ${formatDate(template.updatedAt)}`}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Clock className="w-4 h-4" />
-                  <Typography variant="caption" color="text.secondary">
-                    {formatDate(template.createdAt)}
-                  </Typography>
-                </Box>
-              </Tooltip>
-
-              {template.isForked && (
-                <Tooltip title="Forked template">
-                  <Chip
-                    icon={<GitBranch className="w-3 h-3" />}
-                    label="Forked"
-                    color="secondary"
-                    size="small"
-                  />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Tooltip title={`Updated: ${formatDate(template.updatedAt)}`}>
+                  <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    color: 'text.secondary',
+                    '&:hover': {
+                      color: 'primary.main',
+                    },
+                    transition: 'color 0.2s',
+                  }}>
+                    <Clock className="w-4 h-4" />
+                    <Typography variant="caption">
+                      {formatDate(template.createdAt)}
+                    </Typography>
+                  </Box>
                 </Tooltip>
-              )}
+
+                {template.isForked && (
+                  <Tooltip title="Forked template">
+                    <Chip
+                      icon={<GitBranch className="w-3 h-3" />}
+                      label="Forked"
+                      size="small"
+                      sx={{
+                        bgcolor: alpha(theme.palette.primary.main, 0.1),
+                        color: 'primary.main',
+                        borderColor: alpha(theme.palette.primary.main, 0.2),
+                        border: 1,
+                      }}
+                    />
+                  </Tooltip>
+                )}
+              </Box>
             </Box>
           </Box>
-        </Box>
 
-        {/* Content Section */}
-        <Box className="mb-3">
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-            {truncatedText}
-          </Typography>
-        </Box>
-        {/* Code Preview */}
-        <Box
-          sx={{
-            bgcolor: 'background.default',
-            p: 2,
-            borderRadius: 1,
-            mb: 2,
-            maxHeight: '100px',
-            overflow: 'hidden',
-            position: 'relative',
-            '&::after': {
-              content: '""',
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: '40px',
-              background: 'linear-gradient(transparent, #0f172a)',
-            }
-          }}
-        >
-          <Typography
-            variant="body2"
-            sx={{
-              fontFamily: 'monospace',
-              whiteSpace: 'pre-wrap',
-              color: 'text.primary',
-            }}
-          >
-            {template.code}
-          </Typography>
-        </Box>
+          {/* Content Section */}
+          <Box className="mb-3">
+            <Typography
+              variant="body1"
+              sx={{
+                mb: 2,
+                color: 'text.secondary',
+                lineHeight: 1.6,
+              }}
+            >
+              {truncatedText}
+            </Typography>
+          </Box>
 
-        {/* Input Preview (if exists) */}
-        {template.input && (
+          {/* Code Preview */}
           <Box
             sx={{
-              bgcolor: 'background.default',
+              bgcolor: isDarkMode
+                ? alpha(theme.palette.common.black, 0.3)
+                : alpha(theme.palette.common.black, 0.05),
               p: 2,
               borderRadius: 1,
               mb: 2,
-              maxHeight: '60px',
+              maxHeight: '100px',
               overflow: 'hidden',
               position: 'relative',
+              border: 1,
+              borderColor: 'divider',
               '&::after': {
                 content: '""',
                 position: 'absolute',
                 bottom: 0,
                 left: 0,
                 right: 0,
-                height: '30px',
-                background: 'linear-gradient(transparent, #0f172a)',
+                height: '40px',
+                background: `linear-gradient(transparent, ${theme.palette.background.paper})`,
               }
             }}
           >
             <Typography
               variant="body2"
-              color="text.secondary"
               sx={{
                 fontFamily: 'monospace',
                 whiteSpace: 'pre-wrap',
+                color: 'text.primary',
               }}
             >
-              Input: {template.input}
+              {template.code}
             </Typography>
           </Box>
-        )}
 
-        {/* Tags Section */}
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          {template.tags.map((tag, index) => (
-            <Chip
-              key={index}
-              label={tag.name}
-              size="small"
-              sx={{
-                bgcolor: 'background.default',
-                '&:hover': {
-                  bgcolor: 'background.default',
-                  opacity: 0.8
-                }
-              }}
-            />
-          ))}
-        </Box>
-      </CardContent>
-    </Card>
+          {/* Tags Section */}
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            {template.tags.map((tag, index) => (
+              <Chip
+                key={index}
+                label={tag.name}
+                size="small"
+                sx={{
+                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                  color: 'primary.main',
+                  border: 1,
+                  borderColor: alpha(theme.palette.primary.main, 0.2),
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.2),
+                  },
+                  transition: 'all 0.2s',
+                }}
+              />
+            ))}
+          </Box>
+        </CardContent>
+      </Card>
+    </Link>
   );
 };
-
 export default TemplateCard;

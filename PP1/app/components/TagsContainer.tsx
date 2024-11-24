@@ -401,7 +401,6 @@ const TagsContainer = ({
         bgcolor: 'background.paper',
         borderRadius: 2,
         overflow: 'hidden',
-        maxWidth: '600px',
         width: '100%'
       }}
     >

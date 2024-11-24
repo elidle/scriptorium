@@ -39,6 +39,9 @@ interface AppBarProps {
   setShowDeleteDialog: (show: boolean) => void;
   handleDeleteConfirmed: () => void;
   router: any;
+  showForkDialog: boolean;
+  setShowForkDialog: (show: boolean) => void;
+  handleForkConfirmed: () => void;
 }
 
 const CodeEditorAppBar: React.FC<AppBarProps> = ({
@@ -63,6 +66,9 @@ const CodeEditorAppBar: React.FC<AppBarProps> = ({
   isDeleting,
   handleDeleteConfirmed,
   router,
+  showForkDialog,
+  setShowForkDialog,
+  handleForkConfirmed,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -283,6 +289,53 @@ const CodeEditorAppBar: React.FC<AppBarProps> = ({
       </DialogActions>
     </Dialog>
   );
+  const ForkConfirmationDialog = () => (
+    <Dialog
+      open={showForkDialog}
+      onClose={() => setShowForkDialog(false)}
+      aria-labelledby="fork-dialog-title"
+    >
+      <DialogTitle id="fork-dialog-title">
+        Fork Template
+      </DialogTitle>
+      <DialogContent>
+        <Alert
+          severity="info"
+          sx={{
+            mt: 1,
+            '& .MuiAlert-message': {
+              width: '100%'
+            }
+          }}
+        >
+          <AlertTitle>You are about to fork this template</AlertTitle>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            This will create a copy of <strong>{initialTemplate?.title}</strong> that you can modify.
+          </Typography>
+          <Typography variant="body2">
+            Original template by: <strong>{initialTemplate?.author.username}</strong>
+          </Typography>
+        </Alert>
+      </DialogContent>
+      <DialogActions>
+        <Button
+          onClick={() => setShowForkDialog(false)}
+          color="inherit"
+          sx={{ color: 'text.secondary' }}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleForkConfirmed}
+          variant="contained"
+          color="primary"
+          startIcon={<GitFork className="w-4 h-4" />}
+        >
+          Create Fork
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
 
   return (
     <>
@@ -380,6 +433,7 @@ const CodeEditorAppBar: React.FC<AppBarProps> = ({
       </AppBar>
       <LoginPromptDialog />
       <DeleteConfirmationDialog />
+      <ForkConfirmationDialog />
   </>
   );
 };

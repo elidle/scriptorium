@@ -346,7 +346,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     setShowForkDialog(true);
   };
 
-
   const handleForkConfirmed = () => {
     if (initialTemplate) {
       const forkedTemplate = {
@@ -482,6 +481,11 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     setTitle(e.target.value);
   }, []);
 
+  const handleCodeChange = useCallback((newCode: string) => {
+    console.log('CodeEditor handleChange:', newCode); // TODO: Remove this debug log
+    setCode(newCode);
+  }, []);
+
   const handleSaveConfirmed = async () => {
     setOpenConfirmModal(false);
     setIsSaving(true);
@@ -500,7 +504,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         code: code.trim(),
         language,
         explanation: explanation.trim(),
-        tags: [...selectedTags, isFork ? 'fork' : ''].filter(Boolean), // Add Fork tag if it's a fork
+        tags: [...selectedTags, isFork ? 'forked' : ''].filter(Boolean), // Add Fork tag if it's a fork
         authorId: user?.id,
         isForked: isFork,
         ...(isFork && { parentTemplateId: forkedTemplate?.forkedFrom?.id })
@@ -720,40 +724,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     </Button>
   );
 
-  const CodeEditorContainer = ({ children }) => (
-    <Paper
-      sx={{
-        p: { xs: 1, sm: 2 },
-        bgcolor: 'background.paper',
-        width: '100%',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        '& .cm-editor': {
-          height: { xs: '300px', sm: '400px', md: '500px' },
-          maxHeight: { xs: '300px', sm: '400px', md: '500px' },
-          overflow: 'hidden',
-          '&::-webkit-scrollbar': {
-            width: '8px',
-            height: '8px',
-          },
-          '&::-webkit-scrollbar-track': {
-            background: theme.palette.action.hover,
-          },
-          '&::-webkit-scrollbar-thumb': {
-            background: theme.palette.grey[600],
-            borderRadius: '4px',
-          },
-          '&::-webkit-scrollbar-thumb:hover': {
-            background: theme.palette.grey[500],
-          },
-        }
-      }}
-    >
-      {children}
-    </Paper>
-  );
-
   const ForkLabel = ({ parentTemplate }) => {
 
     const isParentDeleted = !(parentTemplate ?? 0); // Add this flag to your parentTemplate type/data
@@ -839,6 +809,9 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         setShowDeleteDialog={setShowDeleteDialog}
         handleDeleteConfirmed={handleDeleteConfirmed}
         router={router}
+        showForkDialog={showForkDialog}
+        setShowForkDialog={setShowForkDialog}
+        handleForkConfirmed={handleForkConfirmed}
       />
 
       <ResponsiveContainer>
@@ -905,18 +878,17 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
                 isSaving={isSaving}
               />
 
-              <CodeEditorContainer>
-                <CodeEditorWithCodeMirror
-                  code={code}
-                  language={language}
-                  onChange={setCode}
-                />
-              </CodeEditorContainer>
+              <CodeEditorWithCodeMirror
+                code={code}
+                language={language}
+                onChange={handleCodeChange}
+              />
 
               <InputOutputSection
                 input={input}
                 setInput={setInput}
                 output={output}
+                language={"plaintext"}
               />
             </Box>
           }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import {Providers} from "@/app/providers/Providers";
 
+
 export const metadata: Metadata = {
   title: "Scriptorium",
   description: "The new way of writing codes!",

@@ -18,7 +18,7 @@ export default function BaseLayout({ children, user, onSearch, type }: BaseLayou
   const [isSideNavOpen, setIsSideNavOpen] = useState(false);
 
   return (
-    <div className={`min-h-screen flex ${isDarkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
+    <div className={`flex ${isDarkMode ? 'bg-slate-900' : 'bg-slate-300'}`}>
       {/* Overlay for sidenav */}
       <div
         className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${

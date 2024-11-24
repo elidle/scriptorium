@@ -16,7 +16,7 @@ const ThemeToggle = () => {
             : 'hover:bg-slate-200 text-slate-700'
         }`}
       >
-        {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+        {isDarkMode ? <Moon size={20} /> : <Sun size={20} />}
       </IconButton>
     </Tooltip>
   );
