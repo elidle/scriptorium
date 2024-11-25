@@ -344,6 +344,30 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     }
   }, [mode]);
 
+  // Keyboard shortcut to run code
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check for Ctrl+Shift+Enter (Windows/Linux) or Cmd+Shift+Enter (Mac)
+      if (
+        (event.ctrlKey || event.metaKey) && // metaKey is Cmd on Mac
+        event.shiftKey &&
+        event.key === 'Enter'
+      ) {
+        event.preventDefault(); // Prevent default browser behavior
+        console.log('Running code with keyboard shortcut');
+        handleRunCode(); // Your existing run code function
+      }
+    };
+
+    // Add event listener to window
+    window.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup function to remove event listener
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [code, input]);
+
   // Handle routing
   const handleBack = () => {
     languages.forEach(lang => localStorage.removeItem(`${lang}Code`));
@@ -442,8 +466,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   };
 
   // Fetch functions
-  const handleRunCode = async (e) => {
-    e.preventDefault();
+  const handleRunCode = async () => {
     setIsLoading(true);
 
     try {
@@ -459,16 +482,14 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`${data.error || 'Unknown error'}\n${data.details}`);
+      }
       setOutput(data.output || 'No output received');
     } catch (error) {
-
-      console.error('Error running code:', error);
-      setOutput(`Error running code: ${error instanceof Error ? error.message : "Unknown error"}`);
+      console.log('Error running code:', error);
+      setOutput(`${error instanceof Error ? error.message : "Unknown error"}\n\n============================\nFailed to run code. Code exited with an error.`);
     } finally {
       setIsLoading(false);
     }
@@ -893,6 +914,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
               <CodeEditorWithCodeMirror
                 code={code}
+                onRun={handleRunCode}
                 onChange={handleCodeChange}
                 language={language}
               />

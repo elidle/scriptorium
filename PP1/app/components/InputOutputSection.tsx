@@ -7,19 +7,7 @@ import { useTheme } from "@/app/contexts/ThemeContext";
 
 const CodeMirrorBox = ({ label, value, onChange = null, disabled = false, isDarkMode = true }) => {
   return (
-    <Paper
-      sx={{
-        p: 2,
-        bgcolor: 'background.paper',
-        width: '100%',
-        height: '300px',
-        display: 'flex',
-        flexDirection: 'column'
-      }}
-    >
-      <Typography variant="h6" gutterBottom>
-        {label}
-      </Typography>
+    <>
       <Box
         sx={{
           flex: 1,
@@ -59,6 +47,7 @@ const CodeMirrorBox = ({ label, value, onChange = null, disabled = false, isDark
           height="100%"
           extensions={[]}
           editable={!disabled}
+          placeholder={label === "Input" ? "Input goes here..." : ""}
           basicSetup={{
             lineNumbers: !disabled,
             foldGutter: !disabled,
@@ -71,7 +60,7 @@ const CodeMirrorBox = ({ label, value, onChange = null, disabled = false, isDark
           style={{ height: '100%' }}
         />
       </Box>
-    </Paper>
+    </>
   );
 };
 
