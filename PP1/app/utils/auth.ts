@@ -38,8 +38,7 @@ export async function fetchAuth({
   router
 }: FetchAuthParams) {
   options.credentials = 'include'; // To use cookies
-  console.log('fetchAuth: ', options); // TODO: Remove this line
-  console.log('Url: ', url); // TODO: Remove this line
+
   let response = await fetch(url, options);
 
   if (response.status === 401) {
@@ -58,7 +57,6 @@ export async function fetchAuth({
       ...options.headers,
       'access-token': `Bearer ${newToken}`
     };
-
     console.log('New options: ', options); // TODO: Remove this line
     response = await fetch(url, options);
   }

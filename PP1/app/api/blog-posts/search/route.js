@@ -19,6 +19,8 @@ export async function GET(req) {
     // Filter parameters
     const q = searchParams.get('q') || '';
     const tags = req.nextUrl.searchParams.getAll('tags');
+    const codeTemplateIds = req.nextUrl.searchParams.getAll('codeTemplateIds').map(Number);
+
 
     // Sorting parameter
     const sortBy = searchParams.get('sortBy') || 'new';
@@ -57,9 +59,17 @@ export async function GET(req) {
             }
           },
         }),
+        ...(codeTemplateIds.length > 0 && {
+          codeTemplates: {
+            some: {
+              id: {
+                in: codeTemplateIds
+              }
+            }
+          }
+        }),
         isDeleted: false,
         isHidden: false,
-        // TODO : Fix searching with code templates
       },
       select: {
         id: true,
@@ -90,6 +100,12 @@ export async function GET(req) {
           select: {
             id: true,
             title: true,
+            author: {
+              select: {
+                id: true,
+                username: true
+              }
+            }
           }
         }
       }
@@ -112,7 +128,8 @@ export async function GET(req) {
       createdAt: post.createdAt,
       score: post.metrics.totalScore,
       userVote: post.userVote,
-      allowAction: true
+      allowAction: true,
+      codeTemplates: post.codeTemplates.map(template => ({ id: template.id, title: template.title, author: template.author }))
     }));
     const hasMore = paginatedPosts.hasMore;
     const nextPage = hasMore ? page + 1 : null;

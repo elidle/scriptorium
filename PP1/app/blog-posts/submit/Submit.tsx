@@ -1,44 +1,88 @@
 "use client";
 import {
-  AppBar,
   Typography,
   TextField,
   Button,
 } from "@mui/material";
-import { useState, useEffect } from "react";
+import {useState, useEffect} from "react";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from "../../contexts/AuthContext";
 import { fetchAuth } from "../../utils/auth";
-import SideNav from "../../components/SideNav";
+import SearchTemplate from "@/app/components/SearchTemplate";
+import {CodeTemplate, Tag} from "@/app/types";
+import BaseLayout from "@/app/components/BaseLayout";
+import TagsContainer from "@/app/components/TagsContainer";
+import { useTheme } from "@/app/contexts/ThemeContext";
 
 export default function Submit() {
   const router = useRouter();
+  const { theme, isDarkMode } = useTheme();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [selectedTemplates, setSelectedTemplates] = useState<CodeTemplate[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingTags, setIsLoadingTags] = useState(false);
 
-  const { accessToken, setAccessToken, user } = useAuth();
+  const { accessToken, setAccessToken, user, loading } = useAuth();
 
   useEffect(() => {
-    if (!user || !accessToken) {
+    if (!loading && (!user || !accessToken)) {
       router.push('/auth/login');
     }
-  }, [user, router]);
+  }, [user, router, loading]);
+
+  useEffect(() => {
+    const fetchTags = async () => {
+      if (!user || !accessToken) return;
+
+      setIsLoadingTags(true);
+      try {
+        const url = 'http://localhost:3000/api/tags/search/?q=';
+        const options: RequestInit = {
+          headers: {
+            'Content-Type': 'application/json',
+            'access-token': `Bearer ${accessToken}`,
+          },
+        };
+
+        const response = await fetch(url, options);
+        const data = await response.json();
+
+        if (data.status === "error") {
+          throw new Error(data.message);
+        }
+
+        setAvailableTags(data.tags || []);
+      } catch (err) {
+        console.error('Error fetching tags:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch tags');
+      } finally {
+        setIsLoadingTags(false);
+      }
+    };
+
+    fetchTags();
+  }, [user, accessToken]);
+
+  const handleTagsChange = (tags: string[]) => {
+    setSelectedTags(tags);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
-    
+
     if (!title.trim() || !content.trim()) {
       setError("Title and content are required");
       setIsLoading(false);
       return;
     }
-   
+
     try {
       const url = '/api/blog-posts';
       const options : RequestInit = {
@@ -52,20 +96,20 @@ export default function Submit() {
           authorId: user.id,
           title: title.trim(),
           content: content,
-          tags: [],
-          codeTemplateIds: []
+          tags: selectedTags,
+          codeTemplateIds: selectedTemplates.map(t => t.id)
         }),
       };
 
       let response = await fetchAuth({url, options, user, setAccessToken, router});
       if (!response) return;
-   
+
       const data = await response.json();
-   
+
       if (!response.ok) {
         throw new Error(data.message || 'Failed to create post');
       }
-   
+
       router.push(`/blog-posts/comments/${data.id}`);
     } catch (err) {
       console.error('Error creating post:', err);
@@ -73,54 +117,39 @@ export default function Submit() {
     } finally {
       setIsLoading(false);
     }
-   };
+  };
+
+  const handleSearch = () => {
+    router.push('/blog-posts/search');
+  };
 
   return (
-    <div className="min-h-screen flex bg-slate-900">
-      <SideNav router={router} />
-
-      {/* AppBar */}
-      <AppBar 
-        position="fixed" 
-        className="bg-slate-800 border-b border-slate-700"
-        sx={{ boxShadow: 'none' }}
-      >
-        <div className="p-3 flex flex-col sm:flex-row items-center gap-3">
-          <Link href="/">
-            <Typography 
-              className="text-xl sm:text-2xl text-blue-400 flex-shrink-0 cursor-pointer" 
-              variant="h5"
-            >
-              Scriptorium
-            </Typography>
-          </Link>
-          <div className="flex-grow" />
-          <Link href="/auth/login">
-            <Button 
-              className="bg-blue-600 hover:bg-blue-700 px-6 min-w-[100px] whitespace-nowrap h-9"
-              variant="contained"
-              size="small"
-            >
-              Log In
-            </Button>
-          </Link>
-        </div>
-      </AppBar>
-
-      {/* Main Content */}
+    <BaseLayout
+      user={user}
+      onSearch={handleSearch}
+      type="post"
+    >
       <main className="container mx-auto max-w-3xl px-4 pt-24 pb-8">
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+        <div className={`${
+          isDarkMode 
+            ? 'bg-slate-800 border-slate-700' 
+            : 'bg-white border-slate-200'
+        } rounded-lg border p-6`}>
           <Typography variant="h4" className="text-blue-400 mb-6">
             Create a Post
           </Typography>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6">
+            <div className={`${
+              isDarkMode 
+                ? 'bg-red-500/10 border-red-500' 
+                : 'bg-red-50 border-red-200'
+            } rounded-lg border p-4 mb-6`}>
               <Typography className="text-red-500">{error}</Typography>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-6">
             <TextField
               label="Title"
               variant="outlined"
@@ -130,22 +159,22 @@ export default function Submit() {
               disabled={isLoading}
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  backgroundColor: 'rgb(30, 41, 59)',
+                  backgroundColor: theme.palette.background.default,
                   '&:hover': {
-                    backgroundColor: 'rgb(30, 41, 59, 0.8)',
+                    backgroundColor: theme.palette.background.default,
                   },
                   '& fieldset': {
-                    borderColor: 'rgb(100, 116, 139)',
+                    borderColor: theme.palette.divider,
                   },
                   '&:hover fieldset': {
-                    borderColor: 'rgb(148, 163, 184)',
+                    borderColor: theme.palette.text.secondary,
                   },
                 },
                 '& .MuiInputLabel-root': {
-                  color: 'rgb(148, 163, 184)',
+                  color: theme.palette.text.secondary,
                 },
                 '& input': {
-                  color: 'rgb(226, 232, 240)',
+                  color: theme.palette.text.primary,
                 },
               }}
             />
@@ -161,49 +190,75 @@ export default function Submit() {
               disabled={isLoading}
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  backgroundColor: 'rgb(30, 41, 59)',
+                  backgroundColor: theme.palette.background.default,
                   '&:hover': {
-                    backgroundColor: 'rgb(30, 41, 59, 0.8)',
+                    backgroundColor: theme.palette.background.default,
                   },
                   '& fieldset': {
-                    borderColor: 'rgb(100, 116, 139)',
+                    borderColor: theme.palette.divider,
                   },
                   '&:hover fieldset': {
-                    borderColor: 'rgb(148, 163, 184)',
+                    borderColor: theme.palette.text.secondary,
                   },
                 },
                 '& .MuiInputLabel-root': {
-                  color: 'rgb(148, 163, 184)',
+                  color: theme.palette.text.secondary,
                 },
                 '& textarea': {
-                  color: 'rgb(226, 232, 240)',
+                  color: theme.palette.text.primary,
                   whiteSpace: 'pre-wrap',
                 },
               }}
             />
 
-            <div className="flex justify-end gap-4">
-              <Link href="/blog-posts/search">
-                <Button 
-                  variant="outlined"
+            <SearchTemplate
+              selectedTemplates={selectedTemplates}
+              onTemplateSelect={setSelectedTemplates}
+              mode="create"
+            />
+
+            <TagsContainer
+              tags={availableTags}
+              selectedTags={selectedTags}
+              onTagsChange={handleTagsChange}
+              mode="create"
+            />
+
+            <form onSubmit={handleSubmit}>
+              <div className="flex justify-end gap-4">
+                <Link href="/blog-posts/search">
+                  <Button
+                    variant="outlined"
+                    disabled={isLoading}
+                    sx={{
+                      borderColor: theme.palette.divider,
+                      color: theme.palette.text.primary,
+                      '&:hover': {
+                        borderColor: theme.palette.primary.main,
+                      },
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </Link>
+                <Button
+                  type="submit"
+                  variant="contained"
                   disabled={isLoading}
-                  className="text-slate-300 border-slate-700 hover:border-blue-400"
+                  sx={{
+                    bgcolor: theme.palette.primary.main,
+                    '&:hover': {
+                      bgcolor: theme.palette.primary.dark,
+                    },
+                  }}
                 >
-                  Cancel
+                  {isLoading ? 'Submitting...' : 'Submit Post'}
                 </Button>
-              </Link>
-              <Button 
-                type="submit"
-                variant="contained"
-                disabled={isLoading}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {isLoading ? 'Submitting...' : 'Submit Post'}
-              </Button>
-            </div>
-          </form>
+              </div>
+            </form>
+          </div>
         </div>
       </main>
-    </div>
+    </BaseLayout>
   );
 }

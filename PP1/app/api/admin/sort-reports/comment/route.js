@@ -31,6 +31,7 @@ export async function GET(req) {
       include: {
         author: {
           select: {
+            id: true,
             username: true
           }
         },
@@ -55,9 +56,8 @@ export async function GET(req) {
       authorId: comment.author?.id,
       authorUsername: comment.author?.username,
       postId: comment.postId,
-      parentId: comment.parentId,
       createdAt: comment.createdAt,
-      reportCount: comment._count.report
+      reportCount: comment._count.reports
     }));
 
     const hasMore = paginatedComments.hasMore;

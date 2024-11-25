@@ -105,3 +105,92 @@ export async function DELETE(req, { params }) {
     );
   }
 }
+
+export async function GET(req, { params }) {
+  try {
+    const searchParams = req.nextUrl.searchParams;
+    const userId = Number(searchParams.get('userId'));
+
+    let canViewHidden = false;
+
+    if (userId) {
+      await authorize(req, ['user', 'admin'], userId);
+    }
+
+    let { id } = params;
+    id = Number(id);
+
+    if (!id) {
+      return Response.json(
+        { status: 'error', error: 'Invalid comment ID' },
+        { status: 400 }
+      );
+    }
+
+    const comment = await prisma.comment.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        content: true,
+        authorId: true,
+        createdAt: true,
+        isHidden: true,
+        isDeleted: true,
+        author: {
+          select: { username: true }
+        },
+        ratings: {
+          select: {
+            value: true,
+            ...(userId && { userId: true })
+          }
+        },
+        postId: true
+      }
+    });
+
+    if (!comment) {
+      return Response.json(
+        { status: 'error', error: 'Comment not found' },
+        { status: 404 }
+      );
+    }
+
+    // set can view hidden
+    // either user is admin, or user is the author of the post
+
+    if (userId) {
+      // at this point userId matches the logged in user
+      // check for adminship first
+      try {
+        await authorize(req, ['admin']);
+        canViewHidden = true;
+      } catch {
+        // not admin, check if user is author
+        canViewHidden = userId === comment.authorId;
+      }
+    }
+
+    const processComment = (c) => ({
+      id: c.id,
+      content: c.isHidden
+        ? `[This comment has been hidden by a moderator.]${canViewHidden ? '\n\n' + c.content : ''}`
+        : c.content,
+      authorId: c.authorId,
+      authorUsername: c.author?.username ?? "[deleted]",
+      createdAt: c.createdAt,
+      score: c.ratings.reduce((sum, r) => sum + r.value, 0),
+      allowAction: !c.isDeleted && !c.isHidden,
+      userVote: userId ? c.ratings.find(r => r.userId === userId)?.value || 0 : 0,
+      postId: c.postId
+    });
+
+    return Response.json(processComment(comment), { status: 200 });
+  } catch (error) {
+    console.error(error);
+    return Response.json(
+      { status: 'error', error: 'Failed to fetch comment' },
+      { status: 500 }
+    );
+  }
+}

@@ -3,15 +3,13 @@ import {
   Paper,
   InputBase,
   IconButton,
-  Tooltip,
   Fade,
   Box,
   Typography,
-  Chip,
   ThemeProvider,
-  createTheme
 } from '@mui/material';
-import { Search, X, History, Sparkles, Command } from 'lucide-react';
+import { Search, X, History } from 'lucide-react';
+import { useTheme } from "@/app/contexts/ThemeContext";
 
 interface SearchBarProps {
   onSearch: (searchTerm: string) => void;
@@ -19,55 +17,29 @@ interface SearchBarProps {
   className?: string;
 }
 
-const searchTheme = createTheme({
-  components: {
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          backgroundColor: '#1e293b', // slate-800
-          transition: 'all 0.3s ease',
-          '&:hover': {
-            backgroundColor: '#334155', // slate-700
-          },
-        },
-      },
-    },
-    MuiInputBase: {
-      styleOverrides: {
-        root: {
-          color: '#f8fafc', // slate-50
-          '&::placeholder': {
-            color: '#94a3b8', // slate-400
-            opacity: 1,
-          },
-        },
-      },
-    },
-    MuiChip: {
-      styleOverrides: {
-        root: {
-          backgroundColor: '#334155', // slate-700
-          color: '#cbd5e1', // slate-300
-          '&:hover': {
-            backgroundColor: '#475569', // slate-600
-          },
-        },
-      },
-    },
-  },
-});
-
 const SearchBar: React.FC<SearchBarProps> = ({
   onSearch,
   placeholder = "Search...",
   className
 }) => {
+  const { theme, isDarkMode } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Load recent searches from localStorage on component mount
+  // Color schemes for dark and light modes
+  const colors = {
+    paper: isDarkMode ? '#1e293b' : '#ffffff',
+    border: isDarkMode ? '#2d3748' : '#e2e8f0',
+    hoverBg: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)',
+    text: isDarkMode ? '#e2e8f0' : '#1a202c',
+    secondaryText: isDarkMode ? '#94a3b8' : '#64748b',
+    focusBorder: '#3b82f6',
+    dropdownBg: isDarkMode ? '#1e293b' : '#ffffff',
+    headerBg: isDarkMode ? '#1e293b' : '#f8fafc',
+  };
+
   useEffect(() => {
     const saved = localStorage.getItem('recentSearches');
     if (saved) {
@@ -79,7 +51,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
     e.preventDefault();
     if (searchTerm.trim()) {
       onSearch(searchTerm.trim());
-      // Save to recent searches
       const updatedSearches = [
         searchTerm.trim(),
         ...recentSearches.filter(s => s !== searchTerm.trim())
@@ -101,8 +72,14 @@ const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   return (
-    <ThemeProvider theme={searchTheme}>
-      <Box className={className}>
+    <ThemeProvider theme={theme}>
+      <Box
+        className={className}
+        sx={{
+          position: 'relative',
+          width: '100%'
+        }}
+      >
         <form onSubmit={handleSubmit}>
           <Paper
             elevation={isFocused ? 4 : 1}
@@ -111,14 +88,25 @@ const SearchBar: React.FC<SearchBarProps> = ({
               display: 'flex',
               alignItems: 'center',
               borderRadius: '12px',
-              border: isFocused ? '2px solid #3b82f6' : '2px solid transparent',
+              border: isFocused ? `2px solid ${colors.focusBorder}` : `2px solid ${colors.border}`,
+              width: '100%',
+              backgroundColor: colors.paper,
+              transition: 'all 0.2s ease-in-out',
             }}
           >
             <IconButton sx={{ p: '10px' }} aria-label="search">
-              <Search className="h-5 w-5 text-slate-400" />
+              <Search className="h-5 w-5" style={{ color: colors.secondaryText }} />
             </IconButton>
             <InputBase
-              sx={{ ml: 1, flex: 1 }}
+              sx={{
+                ml: 1,
+                flex: 1,
+                color: colors.text,
+                '& ::placeholder': {
+                  color: colors.secondaryText,
+                  opacity: 1
+                }
+              }}
               placeholder={placeholder}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -128,7 +116,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
               }}
               onBlur={() => {
                 setIsFocused(false);
-                // Delayed hide for click handling
                 setTimeout(() => setShowSuggestions(false), 200);
               }}
             />
@@ -139,7 +126,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                   aria-label="clear"
                   onClick={handleClear}
                 >
-                  <X className="h-4 w-4 text-slate-400" />
+                  <X className="h-4 w-4" style={{ color: colors.secondaryText }} />
                 </IconButton>
               </Fade>
             )}
@@ -154,8 +141,15 @@ const SearchBar: React.FC<SearchBarProps> = ({
               borderRadius: '12px',
               overflow: 'hidden',
               position: 'absolute',
+              left: 0,
+              right: 0,
               width: '100%',
               zIndex: 1000,
+              maxHeight: '300px',
+              overflowY: 'auto',
+              backgroundColor: colors.dropdownBg,
+              border: `1px solid ${colors.border}`,
+              boxShadow: isDarkMode ? '0 4px 6px -1px rgba(0, 0, 0, 0.3)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
             }}
           >
             <Box sx={{ p: 1 }}>
@@ -167,7 +161,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   gap: 1,
-                  color: 'text.secondary'
+                  color: colors.secondaryText,
+                  position: 'sticky',
+                  top: 0,
+                  bgcolor: colors.headerBg,
+                  zIndex: 1,
+                  borderBottom: `1px solid ${colors.border}`,
                 }}
               >
                 <History className="h-4 w-4" />
@@ -183,26 +182,28 @@ const SearchBar: React.FC<SearchBarProps> = ({
                     alignItems: 'center',
                     gap: 2,
                     cursor: 'pointer',
+                    color: colors.text,
+                    transition: 'background-color 0.2s ease-in-out',
                     '&:hover': {
-                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                      backgroundColor: colors.hoverBg,
                     },
                   }}
                   onClick={() => handleRecentSearch(term)}
                 >
-                  <Search className="h-4 w-4 text-slate-400" />
-                  <Typography variant="body2">{term}</Typography>
+                  <Search className="h-4 w-4" style={{ color: colors.secondaryText }} />
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      color: 'inherit'
+                    }}
+                  >
+                    {term}
+                  </Typography>
                 </Box>
               ))}
-            </Box>
-
-            {/* Quick tips */}
-            <Box sx={{
-              borderTop: '1px solid',
-              borderColor: 'divider',
-              p: 1.5,
-              display: 'flex',
-              gap: 2,
-            }}>
             </Box>
           </Paper>
         )}

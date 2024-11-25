@@ -1,7 +1,6 @@
 "use client";
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import {User} from "@/app/types";
-import {cookies} from "next/headers";
+import { User } from "@/app/types";
 
 interface AuthContextType {
   accessToken: string | null;
@@ -13,14 +12,17 @@ interface AuthContextType {
 
 const SESSION_KEY = 'auth_user';
 
+// Utility functions that check for browser environment
+const isBrowser = () => typeof window !== 'undefined';
+
 const saveUserToSession = (user: User) => {
-  if (typeof window !== 'undefined') {
+  if (isBrowser()) {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
   }
 };
 
 const getUserFromSession = (): User | null => {
-  if (typeof window !== 'undefined') {
+  if (isBrowser()) {
     const userStr = sessionStorage.getItem(SESSION_KEY);
     return userStr ? JSON.parse(userStr) : null;
   }
@@ -28,7 +30,7 @@ const getUserFromSession = (): User | null => {
 };
 
 const clearUserSession = () => {
-  if (typeof window !== 'undefined') {
+  if (isBrowser()) {
     sessionStorage.removeItem(SESSION_KEY);
     localStorage.clear();
   }
@@ -37,9 +39,18 @@ const clearUserSession = () => {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // Initialize states with null and use useEffect for hydration
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [user, setUser] = useState<any | null>(() => getUserFromSession());
+  const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Initialize user from session storage after component mounts
+  useEffect(() => {
+    const sessionUser = getUserFromSession();
+    setUser(sessionUser);
+    setIsInitialized(true);
+  }, []);
 
   const handleSetUser = (newUser: User | null) => {
     if (newUser) {
@@ -48,7 +59,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearUserSession();
     }
     setUser(newUser);
-    console.log("Just signed in User: ", newUser);
   };
 
   // Separate function for token refresh
@@ -79,23 +89,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Verify session only after initial client-side hydration
   useEffect(() => {
+    if (!isInitialized) return;
+
     const verifySession = async () => {
       try {
-        // Try to verify with existing token
+        setLoading(true);
         const response = await fetch('/api/auth/verify', {
           credentials: 'include'
         });
-
         const data = await response.json();
 
         if (response.ok) {
-          console.log('Data:', data['access-token']);
           handleSetUser(data.user);
           setAccessToken(data["access-token"]);
-          console.log("Access Token:", accessToken);
         } else {
-          // Only attempt refresh if we have user data
           const sessionUser = getUserFromSession();
           if (sessionUser) {
             try {
@@ -121,7 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     verifySession();
-  }, []);
+  }, [isInitialized]);
+
   // Expose a refresh function that components can use
   const refresh = async () => {
     if (!user) {
@@ -138,6 +148,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
   };
+
+  // Don't render children until after initial client-side hydration
+  if (!isInitialized) {
+    return null;
+  }
 
   return (
     <AuthContext.Provider

@@ -2,22 +2,20 @@
 import {
   AppBar,
   Typography,
-  Button,
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
-import { FileText, ExternalLink, EyeOff } from "lucide-react";
 import Link from 'next/link';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useToast } from "@/app//contexts/ToastContext";
-import { refreshToken } from "@/app/utils/auth";
+import { fetchAuth, refreshToken } from "@/app/utils/auth";
 import { useRouter } from "next/navigation";
 
 import SideNav from "@/app/components/SideNav";
 import UserAvatar from '@/app/components/UserAvatar';
 import PostReportPreview from "./PostReportPreview";
 
-import { ReportedPost } from "@/app/types/blog";
+import { ReportedPost } from "@/app/types/post";
 
 export default function PostReports() {
   const router = useRouter();
@@ -68,11 +66,43 @@ export default function PostReports() {
   };
 
   const handleHide = async (postId: number) => {
-    // TODO: Implement post hiding functionality
-    showToast({
-      message: 'Post hiding functionality not implemented yet',
-      type: 'info'
-    });
+    if (!user || !accessToken) return;
+
+    try {
+      const url = `/api/admin/hide/post`;
+      const options: RequestInit = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'access-token': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          postId: postId
+        }),
+      };
+
+      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      if (!response) return;
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || `Failed to hide post`);
+      }
+
+      showToast({ 
+        message: `Post ${postId} hidden successfully`, 
+        type: 'success' 
+      });
+
+      fetchReportedPosts(true);
+    } catch (err) {
+      showToast({ 
+        message: err instanceof Error ? err.message : `Failed to hide post`, 
+        type: 'error' 
+      });
+    }
   };
 
   if (!user || user.role !== 'admin') {

@@ -13,17 +13,7 @@ import {
   CircularProgress,
   Theme,
   createTheme,
-  ThemeProvider,
-  List,
-  ListItemIcon,
-  ListItemText,
-  ListItemButton,
-  Collapse,
   Divider,
-  FormControl,
-  Select,
-  MenuItem,
-  InputLabel
 } from "@mui/material";
 import React, { useCallback, useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
@@ -38,7 +28,7 @@ import {
   Gamepad2,
   ChevronDown,
   ChevronUp,
-  Rocket, User
+  Rocket, User, Star, Clock, TrendingUp
 } from 'lucide-react';
 import TagsContainer from "@/app/components/TagsContainer";
 import ErrorBox from "@/app/components/ErrorBox";
@@ -46,47 +36,12 @@ import { CodeTemplate, Tag, SearchParams, SortByTypes } from "@/app/types";
 import SearchBar from "@/app/components/SearchBar";
 import {useRouter} from "next/navigation";
 import TemplateCard from "@/app/components/TemplateCard";
-import {fetchAuth, logoutUser} from "@/app/utils/auth";
+import {fetchAuth} from "@/app/utils/auth";
 import {useAuth} from "@/app/contexts/AuthContext";
-
-const theme = createTheme({
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#2563eb', // blue-600
-    },
-    secondary: {
-      main: '#7c3aed', // violet-600
-    },
-    background: {
-      default: '#0f172a', // slate-900
-      paper: '#1e293b', // slate-800
-    },
-    text: {
-      primary: '#f8fafc', // slate-50
-      secondary: '#cbd5e1', // slate-300
-    },
-  },
-  components: {
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          backgroundColor: '#1e293b',
-          marginBottom: '1rem',
-        },
-      },
-    },
-    MuiDrawer: {
-      styleOverrides: {
-        paper: {
-          backgroundColor: '#1e293b',
-          borderRight: '1px solid #334155',
-          marginTop: '64px',
-        },
-      },
-    },
-  },
-});
+import BaseLayout from "@/app/components/BaseLayout";
+import SortMenu from "@/app/components/SortMenu";
+import FilterDrawer from "@/app/components/FilterDrawer";
+import {useTheme} from "@/app/contexts/ThemeContext";
 
 const API_SERVICE = {
   domain: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
@@ -135,6 +90,7 @@ const API_SERVICE = {
 export default function CodeTemplates() {
   const router = useRouter();
   const { user, setUser, accessToken, setAccessToken } = useAuth();
+  const {theme, isDarkMode} = useTheme();
 
   // Handle routing
   const handleCreateTemplate = () => {
@@ -145,15 +101,29 @@ export default function CodeTemplates() {
     }
   };
 
-  const handleNavigation = (path: string) => {
-    router.push(path);
-  };
-
   // State management
+  // Sidebars state
   const [sideBarState, setSideBarState] = useState(false);
+
+  // Code templates state
   const [codeTemplates, setCodeTemplates] = useState<CodeTemplate[]>([]);
+
+  // Tags state
   const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // SortBy state
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
+  const sortOptions = [
+    { value: "new", label: "Newest First", icon: Star },
+    { value: "old", label: "Oldest First", icon: Clock },
+    { value: "most_relevant", label: "Most Relevant", icon: TrendingUp }
+  ];
+  const handleSortClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -178,6 +148,11 @@ export default function CodeTemplates() {
       const data = await API_SERVICE.fetchCodeTemplates(params, accessToken, user, setAccessToken, router);
 
       if (data.status === 'error') {
+        if (data.message === 'No templates found') {
+          setCodeTemplates([]);
+          setHasMore(false);
+          return;
+        }
         throw new Error(data.message);
       }
 
@@ -210,8 +185,8 @@ export default function CodeTemplates() {
 
   // Effects
   useEffect(() => {
-    console.log("User: ", user); // TODO: Remove this line
-    console.log("Access Token: ", accessToken); // TODO: Remove this line
+    console.log("CD, User: ", user); // TODO: Remove this line
+    console.log("CD, Access Token: ", accessToken); // TODO: Remove this line
     fetchCodeTemplates();
     fetchTags();
   }, []);
@@ -221,8 +196,13 @@ export default function CodeTemplates() {
     fetchCodeTemplates({ page: 1 });
   }, [selectedTags]);
 
+  // Debugging
+  useEffect(() => {
+    console.log("Debug Code Templates: ", codeTemplates); // TODO: Remove this line
+  }, [codeTemplates]);
+
   // Event handlers
-  const handleGeneralSearch = useCallback((query: string) => {
+  const handleCodeTemplateSearch = useCallback((query: string) => {
     setPage(1);
     fetchCodeTemplates({ query, page: 1 });
   }, [fetchCodeTemplates]);
@@ -231,330 +211,179 @@ export default function CodeTemplates() {
     setSideBarState(prev => !prev);
   }, []);
 
-  const handleSortChange = (event) => {
-    setSortBy(event.target.value);
-    setPage(1);
-    fetchCodeTemplates({ sortBy: event.target.value, page: 1 });
+  // SortBy handlers
+  const handleSortClose = (value?: string) => {
+    setAnchorEl(null);
+    if (value && value !== sortBy) {
+      setSortBy(value as SortByTypes);
+      setPage(1);
+      fetchCodeTemplates({ sortBy: value, page: 1 });
+    }
   };
 
-  const [openCodeMenu, setOpenCodeMenu] = useState(true);
-  const rightDrawerWidth = 340;
-  const leftDrawerWidth = 240;
-
-  const handleCodeMenuClick = () => {
-    setOpenCodeMenu(!openCodeMenu);
-  };
-
-  const navigationItems = [
-    {
-      title: 'Code',
-      icon: <Code className="w-4 h-4" />,
-      submenu: [
-        {
-          title: 'Run Code',
-          icon: <Play className="w-4 h-4" color="#10b981" />, // emerald-500
-          path: '/code-templates/new',
-          highlight: true
-        },
-        {
-          title: 'Code Templates',
-          icon: <FileCode className="w-4 h-4" />,
-          path: '/code-templates/search'
-        }
-      ]
-    },
-    {
-      title: 'Blog Posts',
-      icon: <BookOpen className="w-4 h-4" />,
-      path: '/blog'
-    },
-    ...(user ? [{
-      title: 'Profile',
-      icon: <User className="w-4 h-4" />,
-      path: '/profile'
-    }] : []),
-  ];
-
-  const AuthButtons = () => {
-    const handleLogout = async () => {
-      try {
-        await logoutUser();
-        setUser(null);
-        setAccessToken(null);
-      } catch (error) {
-        console.error('Logout failed:', error);
-        // Optionally show an error message to the user
-      }
-    };
-
-    if (user) {
-      return (
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-            Welcome, {user.username}
-          </Typography>
+  const NoTemplatesFound = () => (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        py: 8,
+        px: 3,
+        textAlign: 'center',
+        bgcolor: 'background.paper',
+        borderRadius: 1,
+        border: '1px solid',
+        borderColor: 'divider',
+      }}
+    >
+      <FileCode className="w-16 h-16 mb-4 text-slate-400" />
+      <Typography variant="h5" gutterBottom sx={{ color: 'text.primary' }}>
+        No templates found
+      </Typography>
+      <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: '500px', mb: 3 }}>
+        {selectedTags.length > 0
+          ? `No templates match the selected tags: ${selectedTags.join(', ')}`
+          : 'No templates match your search criteria'}
+      </Typography>
+      <Box sx={{ display: 'flex', gap: 2 }}>
+        {selectedTags.length > 0 && (
           <Button
             variant="outlined"
-            color="error"
-            onClick={handleLogout}
+            onClick={() => setSelectedTags([])}
             sx={{
-              borderColor: 'error.main',
-              color: 'error.main',
+              borderColor: 'primary.main',
+              color: 'primary.main',
               '&:hover': {
-                borderColor: 'error.dark',
-                backgroundColor: 'error.dark',
-                color: 'white',
-              },
+                borderColor: 'primary.light',
+                bgcolor: 'rgba(37, 99, 235, 0.1)'
+              }
             }}
           >
-            Logout
+            Clear Filters
           </Button>
-        </Box>
-      );
-    }
-
-    return (
-      <Button
-        variant="contained"
-        color="secondary"
-        sx={{ textTransform: 'none' }}
-        onClick={() => router.push('/auth/login')}
-      >
-        Sign In
-      </Button>
-    );
-  };
+        )}
+        <Button
+          variant="contained"
+          onClick={handleCreateTemplate}
+          startIcon={<Plus className="w-4 h-4" />}
+          sx={{
+            bgcolor: 'primary.main',
+            '&:hover': {
+              bgcolor: 'primary.dark'
+            }
+          }}
+        >
+          {user ? 'Create Template' : 'Sign In to Create Template'}
+        </Button>
+      </Box>
+    </Box>
+  );
 
   return (
-    <ThemeProvider theme={theme}>
-      <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
-        {/* AppBar */}
-        <AppBar
-          position="fixed"
-          sx={{
-            zIndex: (theme: Theme) => theme.zIndex.drawer + 1,
-            bgcolor: 'background.paper'
-          }}
-        >
-          <Toolbar>
-            <Typography
-              variant="h5"
-              component="h1"
-              sx={{
-                flexGrow: 0,
-                mr: 4,
-                cursor: 'pointer'
-              }}
-              onClick={() => handleNavigation('/')}
-            >
-              Scriptorium
-            </Typography>
-            <Box sx={{ flexGrow: 1, mx: 4 }}>
-              <SearchBar
-                onSearch={handleGeneralSearch}
-                placeholder="Search All..."
-                className="w-full"
-              />
-            </Box>
-            <AuthButtons />
-          </Toolbar>
-        </AppBar>
-
-        {/* Left Navigation Drawer */}
-        <Drawer
-          variant="permanent"
-          sx={{
-            width: leftDrawerWidth,
-            flexShrink: 0,
-            '& .MuiDrawer-paper': {
-              width: leftDrawerWidth,
-              boxSizing: 'border-box',
-              bgcolor: 'background.paper',
-              borderRight: '1px solid',
-              borderColor: 'divider'
-            },
-          }}
-        >
-          <Toolbar />
-          <Box sx={{ overflow: 'auto' }}>
-            <List>
-              {navigationItems.map((item) => (
-                <React.Fragment key={item.title}>
-                  {item.submenu ? (
-                    <>
-                      <ListItemButton onClick={handleCodeMenuClick}>
-                        <ListItemIcon>{item.icon}</ListItemIcon>
-                        <ListItemText primary={item.title} />
-                        {openCodeMenu ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                      </ListItemButton>
-                      <Collapse in={openCodeMenu} timeout="auto" unmountOnExit>
-                        <List component="div" disablePadding>
-                          {item.submenu.map((subitem) => (
-                            <ListItemButton
-                              key={subitem.title}
-                              onClick={() => handleNavigation(subitem.path)}
-                              sx={{
-                                pl: 4,
-                                ...(subitem.highlight && {
-                                  bgcolor: 'rgba(16, 185, 129, 0.1)', // emerald with opacity
-                                  '&:hover': {
-                                    bgcolor: 'rgba(16, 185, 129, 0.2)',
-                                  }
-                                })
-                              }}
-                            >
-                              <ListItemIcon>{subitem.icon}</ListItemIcon>
-                              <ListItemText primary={subitem.title} />
-                            </ListItemButton>
-                          ))}
-                        </List>
-                      </Collapse>
-                    </>
-                  ) : (
-                    <ListItemButton onClick={() => handleNavigation(item.path)}>
-                      <ListItemIcon>{item.icon}</ListItemIcon>
-                      <ListItemText primary={item.title} />
-                    </ListItemButton>
-                  )}
-                </React.Fragment>
-              ))}
-            </List>
-          </Box>
-        </Drawer>
-
+    <BaseLayout
+      user={user}
+      onSearch={handleCodeTemplateSearch}
+      type="code-template"
+    >
+      <Box sx={{display: 'flex', maxWidth: '75rem', margin: '0 auto'}}>
         {/* Main Content */}
         <Box
           component="main"
           sx={{
             flexGrow: 1,
-            p: 3,
-            mt: 8,
-            mr: sideBarState ? `${rightDrawerWidth}px` : 0,
+            p: 2,
+            margin: '0 auto',
             transition: (theme: Theme) => theme.transitions.create(['margin'], {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.standard,
             }),
           }}
         >
-          <Box sx={{ mt: 2, mb: 2 }}>
-            <FormControl fullWidth size="small">
-              <InputLabel id="sort-by-label">Sort By</InputLabel>
-              <Select
-                labelId="sort-by-label"
-                id="sort-by"
-                value={sortBy}
-                label="Sort By"
-                onChange={handleSortChange}
-                sx={{
-                  bgcolor: 'background.paper',
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(255, 255, 255, 0.23)',
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(255, 255, 255, 0.23)',
-                  },
-                }}
-              >
-                <MenuItem value="new">Newest First</MenuItem>
-                <MenuItem value="old">Oldest First</MenuItem>
-                <MenuItem value="most_relevant">Most Relevant</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
-          {error && <ErrorBox errorMessage={error} />}
+          {/* Sorting Section */}
+          <Box className="flex justify-between items-center mb-4">
+            <Typography variant="h4" sx={{ color: theme.palette.primary.main }}>
+              Templates
+            </Typography>
+            <Button
+              onClick={handleSortClick}
+              sx={{
+                color: theme.palette.text.secondary,
+                '&:hover': {
+                  color: theme.palette.primary.main,
+                },
+              }}
+            >
+              Sort by: {sortOptions.find(option => option.value === sortBy)?.label}
+            </Button>
+            <SortMenu
+              sortBy={sortBy}
+              anchorEl={anchorEl}
+              onClose={handleSortClose}
+              sortOptions={sortOptions}
+            />
+        </Box>
 
-          <InfiniteScroll
-            dataLength={codeTemplates.length}
-            next={() => fetchCodeTemplates()}
-            hasMore={hasMore}
-            loader={
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                <CircularProgress />
+          {error && <ErrorBox errorMessage={error} sx={{ mb: 4 }} />}
+
+          {codeTemplates.length === 0 && !isLoading ? (
+            <NoTemplatesFound />
+          ) : (
+            <InfiniteScroll
+              className="flex-1 mx-auto"
+              dataLength={codeTemplates.length}
+              next={() => fetchCodeTemplates()}
+              hasMore={hasMore}
+              loader={
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                  <CircularProgress />
+                </Box>
+              }
+              endMessage={
+                <Typography variant="body1" align="center" sx={{ p: 4, color: 'text.secondary' }}>
+                  You've reached the end!
+                </Typography>
+              }
+            >
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {codeTemplates.map((template, index) => (
+                  <TemplateCard key={index} template={template} />
+                ))}
               </Box>
-            }
-            endMessage={
-              <Typography variant="body1" align="center" sx={{ p: 2 }}>
-                Yay! You have seen it all
-              </Typography>
-            }
-          >
-            {codeTemplates.map((template, index) => (
-              <TemplateCard key={index} template={template} />
-            ))}
-          </InfiniteScroll>
+            </InfiniteScroll>
+          )}
         </Box>
 
         {/* Right Sidebar Drawer */}
-        <Drawer
-          variant="persistent"
-          anchor="right"
-          open={sideBarState}
-          sx={{
-            width: rightDrawerWidth,
-            flexShrink: 0,
-            '& .MuiDrawer-paper': {
-              width: rightDrawerWidth,
-              boxSizing: 'border-box',
-              // Add overlay effect instead of pushing content
-              borderLeft: '1px solid',
-              borderColor: 'divider',
-              // Optional: add subtle shadow
-              boxShadow: '-4px 0 15px rgba(0, 0, 0, 0.1)',
-            },
-            // Optional: add backdrop for better visibility
-            '& .MuiBackdrop-root': {
-              backgroundColor: 'rgba(0, 0, 0, 0.1)',
-            },
-          }}
+        <FilterDrawer
+          isOpen={sideBarState}
+          onToggle={toggleSidebar}
         >
-          <Box sx={{ p: 2 }}>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<Plus className="w-4 h-4" />}
-              fullWidth
-              sx={{ mb: 2 }}
-              onClick={handleCreateTemplate}
-            >
-              {user ? 'Create Template' : 'Sign In to Create Template'}
-            </Button>
-            <Divider sx={{ my: 2 }} />
-            <SearchBar
-              onSearch={handleGeneralSearch}
-              placeholder="Search Code Templates..."
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<Plus className="w-4 h-4"/>}
+            fullWidth
+            sx={{mb: 2}}
+            onClick={handleCreateTemplate}
+          >
+            {user ? 'Create Template' : 'Sign In to Create Template'}
+          </Button>
+          <Divider sx={{my: 2}}/>
+          <SearchBar
+            onSearch={handleCodeTemplateSearch}
+            placeholder="Search Code Templates..."
+          />
+          <Box sx={{mt: 2}}>
+            <TagsContainer
+              selectedTags={selectedTags}
+              onTagsChange={setSelectedTags}
+              tags={tags}
+              mode="search"
             />
-            <Box sx={{ mt: 2 }}>
-              <TagsContainer
-                selectedTags={selectedTags}
-                onTagsChange={setSelectedTags}
-                tags={tags}
-                mode="search"
-              />
-            </Box>
           </Box>
-        </Drawer>
-
-        {/* Right Sidebar Toggle Button */}
-        <IconButton
-          onClick={toggleSidebar}
-          sx={{
-            position: 'fixed',
-            right: sideBarState ? rightDrawerWidth : 0,
-            top: '80px',
-            zIndex: (theme: Theme) => theme.zIndex.drawer + 2,
-            bgcolor: 'background.paper',
-            '&:hover': {
-              bgcolor: 'background.default',
-            },
-            transition: (theme: Theme) => theme.transitions.create(['right'], {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.standard,
-            }),
-          }}
-        >
-          {sideBarState ? <ChevronRight /> : <ChevronLeft />}
-        </IconButton>
+        </FilterDrawer>
       </Box>
-    </ThemeProvider>
+    </BaseLayout>
   );
 }

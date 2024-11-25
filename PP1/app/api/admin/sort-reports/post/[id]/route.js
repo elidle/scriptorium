@@ -36,6 +36,7 @@ export async function GET(req, { params }) {
           include: {
             reporter: {
               select: {
+                id: true,
                 username: true
               }
             }
@@ -62,7 +63,8 @@ export async function GET(req, { params }) {
     const reports = post.reports.map(report => ({
       id: report.id,
       reason: report.reason,
-      reporterUsername: report.reporter.username ?? '[deleted]',
+      reporterId: report.reporter.id,
+      reporterUsername: report.reporter.username,
       createdAt: report.createdAt
     }));
 

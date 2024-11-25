@@ -1,6 +1,7 @@
 import { Tag } from './tag';
+import {CodeTemplate} from "@/app/types/code-template";
 
-export interface BlogPost {
+export interface Post {
   id: number;
   title: string;
   content: string;
@@ -11,8 +12,9 @@ export interface BlogPost {
   score: number;
   userVote: number;
   allowAction: boolean;
+  codeTemplates: CodeTemplate[];
 }
 
-export interface ReportedPost extends BlogPost {
+export interface ReportedPost extends Post {
   reportCount: number;
 }

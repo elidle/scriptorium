@@ -97,4 +97,3 @@ export async function PUT(req, { params }) {
         return Response.json({ status: "error", message: "Internal server error" }, { status: 500 });
     }
 }
-

@@ -160,7 +160,7 @@ export default function UserProfile({ params }: { params: { username: string } }
                         {isLoggedIn ? (
                           <UserAvatar username={currentUser.username} userId={currentUser.id} size={32} />
                         ) : (
-                          <button 
+                          <button
                             className="py-2 px-6 bg-black text-white rounded-3xl font-semibold ml-auto"
                             onClick={() => window.location.href = '/login'}
                           >

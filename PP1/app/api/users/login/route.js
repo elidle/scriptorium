@@ -40,8 +40,10 @@ export async function POST(req) {
                 email: user.email,
                 firstname: user.firstname,
                 lastname: user.lastname,
+                about: user.about,
                 role: user.role
             },
+            'access-token': accessToken,
             }, {
             status: 200,
             headers: {
@@ -53,7 +55,6 @@ export async function POST(req) {
                 ]
             }
         });
-
         return response;
     } catch (error) {
         console.error("Error during login:", error);

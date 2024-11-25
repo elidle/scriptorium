@@ -47,6 +47,7 @@ async function getUserData(currentUser: User, setAccessToken: (token: string) =>
         headers: {
             'Content-Type': 'application/json',
         },
+        credentials: 'include',
         cache: 'no-store' // Ensures fresh data is fetched on each request
     };
 
@@ -73,10 +74,10 @@ async function getUserData(currentUser: User, setAccessToken: (token: string) =>
 }
 
 
-export default function ProfileUpdate({ params }: {params: { username: string }}) {  
+export default function ProfileUpdate({ params }: {params: { username: string }}) {
   // Initialize states for user
   const [user, setUser] = useState<UserProfileProps | null>(null);
-  
+
   useEffect(() => {
     const fetchUserData = async () => {
       const data = await getUserData(currentUser, setAccessToken, router);
@@ -161,7 +162,7 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
       .catch((error) => console.error('Error deleting avatar:', error));
   }
 
-  
+
   // Fetch user data if not already available
   
   interface FormData {
@@ -176,7 +177,7 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
     message?: string;
     error?: string;
   }
-  
+
   // Redirect if user is not authorized to view this page
   if (!isCurrentUser){
     return <div className="min-h-screen flex items-center justify-center">You are not authorized to view this page</div>;
@@ -204,11 +205,12 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
     };
 
     try {
-      
+
       const option = {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          "access-token": "Bearer " + accessToken,
         },
         body: JSON.stringify(data),
       }
@@ -259,7 +261,7 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
                     </div>
                 </Toolbar>
             </AppBar>
-            
+
             <div className="flex flex-col md:flex-row w-full mt-4 p-8 gap-4">
             {/* Profile Card */}
             <div className="bg-white dark:bg-gray-800 md:w-1/2 rounded-xl shadow-2xl max-w-4xl w-full p-8 transition-all duration-300 animate-fade-in flex-grow">
@@ -300,10 +302,10 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
               </div>
             </div>
 
-            
+
                 <div className="flex flex-col items-center bg-white md:w-1/2 mb-8 rounded-lg p-6 max-h-[80vh] overflow-y-auto flex-grow">
   <h1 className="text-2xl font-bold mb-4">Update Profile</h1>
-  
+
   {/* Display message or error */}
   {message && <p className="text-green-500 mb-4">{message}</p>}
   {error && <p className="text-red-500 mb-4">{error}</p>}
@@ -339,7 +341,7 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
 
   {/* Profile Update Form */}
   <form onSubmit={handleSubmit} className="space-y-4 w-full md:w-3/4 lg:w-1/2">
-    
+
     {/* First Name Input */}
     <div>
       <label className="block text-sm font-medium text-gray-700">
@@ -428,5 +430,3 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
     </div>
   );
 }
-
-

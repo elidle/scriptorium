@@ -1,12 +1,18 @@
-import React from "react";
+"use client";
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-const App: React.FC = () => {
+const Page = () => {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.push('/blog-posts/search');
+  }, [router]);
+
+
   return (
-    <div>
-      <h1>Welcome to the Home Page</h1>
-      <p>This is the home page of your application.</p>
-    </div>
+    <div className="min-h-screen bg-slate-900"></div>
   );
 };
 
-export default App;
+export default Page;

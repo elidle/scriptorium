@@ -2,119 +2,150 @@ import { prisma, Prisma } from '../../../../utils/db';
 import { sortMostRelevantFirst } from "../../../../utils/code-template/sorts";
 import { fetchCurrentPage } from "../../../../utils/pagination";
 
-/*
- * This function is used to search for code templates with author information.
- */
 export async function GET(req) {
-  const q = req.nextUrl.searchParams.get('q');
-  const tags = req.nextUrl.searchParams.getAll('tags'); // Format: /search?q=...&tags=tag1&tags=tag2
-  const username = req.nextUrl.searchParams.get('username');
-  const page = req.nextUrl.searchParams.get('page');
-  const sortBy = req.nextUrl.searchParams.get('sortBy');
-  const limit = req.nextUrl.searchParams.get('limit') ? Number(req.nextUrl.searchParams.get('limit')) : 10;
-
-  let templates, userId;
   try {
+    const q = req.nextUrl.searchParams.get('q')?.trim() || '';
+    const tags = req.nextUrl.searchParams.getAll('tags');
+    const username = req.nextUrl.searchParams.get('username')?.trim();
+    const page = parseInt(req.nextUrl.searchParams.get('page') || '1');
+    const sortBy = req.nextUrl.searchParams.get('sortBy') || 'new';
+    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '10');
+
+    // Validate parameters
+    if (page < 1 || limit < 1) {
+      return Response.json(
+        { status: 'error', message: 'Invalid pagination parameters' },
+        { status: 400 }
+      );
+    }
+
+    // Find user ID if username is provided
+    let userId;
     if (username) {
       const existingUser = await prisma.user.findUnique({
-        where: {
-          username: username,
-        },
-        select: {
-          id: true,
-        },
+        where: { username },
+        select: { id: true },
       });
 
       if (!existingUser) {
-        return Response.json({ status: 'error', message: 'User not found' }, { status: 404 });
+        return Response.json(
+          { status: 'error', message: 'User not found' },
+          { status: 404 }
+        );
       }
       userId = existingUser.id;
     }
 
-    templates = await prisma.codeTemplate.findMany({
-      where: {
-        ...(userId && { authorId: userId }),
+    // Build search query
+    const searchQuery = q ? {
+      OR: [
+        { title: { contains: q } },
+        { tags: { some: { name: { contains: q } } } },
+        { explanation: { contains: q } },
+        { code: { contains: q } },
+      ]
+    } : {};
 
-        ...(tags.length > 0 && {
-          tags: {
-            some: {
-              name: {
-                in: tags,
-              },
-            },
-          },
-        }),
-
-        OR: [
-          {
-            title: { contains: q ?? ""},
-          },
-          {
-            tags: {
-              some: {
-                name: { contains: q ?? ""},
-              },
-            },
-          },
-          {
-            explanation: { contains: q ?? ""},
-          },
-          {
-            code: { contains: q ?? ""},
-          },
-        ],
-      },
-      orderBy: sortBy === 'old' ? { createdAt: 'asc' } : (sortBy === 'new' ? { createdAt: 'desc' } : Prisma.skip),
-      include: {
+    // Build where clause
+    const where = {
+      ...searchQuery,
+      ...(userId && { authorId: userId }),
+      ...(tags.length > 0 && {
         tags: {
-          select: {
-            id: true,
-            name: true,
+          some: {
+            name: {
+              in: tags,
+            },
           },
         },
+      }),
+    };
+
+    // Get total count for pagination
+    const totalCount = await prisma.codeTemplate.count({ where });
+
+    // If no results, return early
+    if (totalCount === 0) {
+      return Response.json({
+        templates: [],
+        hasMore: false,
+        nextPage: null,
+        total: 0
+      });
+    }
+
+    // Fetch templates with pagination
+    const templates = await prisma.codeTemplate.findMany({
+      where,
+      orderBy:
+        sortBy === 'old' ? { createdAt: 'asc' } :
+        sortBy === 'new' ? { createdAt: 'desc' } :
+        Prisma.skip,
+      skip: sortBy !== 'most_relevant' ? (page - 1) * limit : 0,
+      take: sortBy !== 'most_relevant' ? limit : Prisma.skip,
+      include: {
+        tags: true,
         author: {
           select: {
+            id: true,
             username: true,
             avatar: true,
           },
         },
-      },
+        parentFork: {
+          select: {
+            id: true,
+            title: true,
+            author: {
+              select: {
+                username: true,
+              }
+            }
+          }
+        },
+        childForks: {
+          select: {
+            id: true,
+          }
+        }
+      }
     });
 
-    if (!templates || templates.length === 0) {
-      return Response.json({ status: 'error', message: 'No templates found' }, { status: 404 });
-    }
-
-    // Transform the data to include author information directly in the template object
+    // Transform templates
     const transformedTemplates = templates.map(template => ({
       ...template,
       author: {
+        id: template.author.id,
         username: template.author.username,
-        name: template.author.name,
         avatar: template.author.avatar,
       },
+      forkCount: template.childForks.length,
+      childForks: undefined // Remove unnecessary data
     }));
 
+    // Handle pagination based on sort type
     let curPage, hasMore;
-    if (sortBy === 'most-relevant') {
-      const retObj = fetchCurrentPage(transformedTemplates, page ? Number(page) : 1, limit, sortMostRelevantFirst, [q]);
+    if (sortBy === 'most_relevant') {
+      const retObj = fetchCurrentPage(transformedTemplates, page, limit, sortMostRelevantFirst, [q]);
       curPage = retObj.curPage;
       hasMore = retObj.hasMore;
     } else {
-      const retObj = fetchCurrentPage(transformedTemplates, page ? Number(page) : 1, limit);
-      curPage = retObj.curPage;
-      hasMore = retObj.hasMore;
+      hasMore = totalCount > page * limit;
+      curPage = transformedTemplates;
     }
 
     return Response.json({
       templates: curPage,
-      hasMore: hasMore,
-      nextPage: hasMore ? (page ? Number(page) + 1 : 2) : null,
-      total: templates.length,
-    }, { status: 200 });
+      hasMore,
+      nextPage: hasMore ? page + 1 : null,
+      total: totalCount
+    });
 
   } catch (err) {
     console.error('Error fetching templates:', err);
-    return Response.json({ status: 'error', message: 'Failed to fetch templates' }, { status: 500 });
+    return Response.json(
+      { status: 'error', message: 'Failed to fetch templates' },
+      { status: 500 }
+    );
   }
 }
