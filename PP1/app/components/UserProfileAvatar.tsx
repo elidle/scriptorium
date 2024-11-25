@@ -14,15 +14,37 @@ export default function UserProfileAvatar({ username, userId, size = 200 }: User
 
   return (
     !avatarError ? (
-      <Image
+      <Avatar
         src={`/api/avatar/${userId}`}
         alt={username}
-        width={size}
-        height={size}
-        className={`rounded-full mx-auto mb-4 border-4 border-indigo-800 dark:border-blue-900 transition-transform duration-300 hover:scale-105
-          w-32 h-32 md:w-40 md:h-40 lg:w-48 lg:h-48`}
+        sx={{
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          mx: 'auto',
+          mb: 4,
+          border: 4,
+          borderColor: 'indigo-800',
+          dark: {
+            borderColor: 'blue-900',
+          },
+          transition: 'transform 0.3s',
+          '&:hover': {
+            transform: 'scale(1.05)',
+          },
+        }}
         onError={() => setAvatarError(true)}
       />
+
+      // <Avatar
+      //   src={`/api/avatar/${userId}`}
+      //   alt={username}
+      //   width={size}
+      //   height={size}
+      //   className={`rounded-full mx-auto mb-4 border-4 border-indigo-800 dark:border-blue-900 transition-transform duration-300 hover:scale-105
+      //     w-32 h-32 md:w-40 md:h-40 lg:w-48 lg:h-48`}
+      //   onError={() => setAvatarError(true)}
+      // />
     ) : (
         <Avatar
         alt={username}

@@ -4,9 +4,12 @@ import { join } from 'path'
 import { authorize } from '../../../middleware/auth';
 import { ForbiddenError } from '../../../../errors/ForbiddenError';
 import { UnauthorizedError } from '../../../../errors/UnauthorizedError';
+import * as fs from 'fs/promises';
+
 
 export async function GET(req, { params }) {
   try {
+
     const userId = Number(params.userId);
 
     const user = await prisma.user.findUnique({
@@ -22,11 +25,13 @@ export async function GET(req, { params }) {
     }
 
     const filePath = join(process.cwd(), `public/${user.avatar}`);
-    
+    console.log(filePath);
+
     // Check if the file exists
     try {
       await fs.access(filePath);
     } catch (err) {
+      console.log(err);
       return Response.json({ error: 'Avatar file not found on server' }, { status: 404 });
     }
 

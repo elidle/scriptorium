@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ErrorBox from '@/app/components/ErrorBox';
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { UserAuthData } from '@/app/types/user-auth-data';
 
 export default function Login() {
@@ -67,7 +67,7 @@ export default function Login() {
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
                 <label className="block text-gray-700 font-medium mb-2" htmlFor="email">
-                  Email
+                  Username
                 </label>
                 <input
                   type="username"
@@ -111,7 +111,7 @@ export default function Login() {
             )}
             <p className="text-center text-gray-600 mt-4">
               Don't have an account?{' '}
-              <a href="views/signup" className="text-blue-500 hover:underline">
+              <a href="signup" className="text-blue-500 hover:underline">
               Sign up
               </a>
             </p>

@@ -11,6 +11,7 @@ import { fetchAuth } from "@/app/utils/auth";
 import { RequestInit } from "next/dist/server/web/spec-extension/request";
 import { useRouter} from "next/navigation";
 import { User } from '@/app/types';
+import BaseLayoutProfile from "@/app/components/BaseLayoutProfile";
 
 interface InitialData {
   avatar?: string;
@@ -237,31 +238,9 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
   };
 
   return (
-    <div className = "min-h-screen black flex-col bg-slate-900">
-      <AppBar position="static">
-                <Toolbar className="w-full py-3 border-b bg-blue-500 dark:bg-gray-800">
-                    <div className="flex justify-between items-center w-full font-semibold">
-                        {/* Left Section */}
-                        <div className="flex items-center mr-auto">
-                            <button className="mr-4" onClick={() => window.history.back()}>
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                </svg>
-                            </button>
-                            <h1 className="text-2xl cursor-pointer" onClick={() => window.location.href = '/'}>Scriptorium</h1>
-                        </div>
-
-                        {/* Center Section */}
-                        <div className="flex items-center xl:gap-10 md:gap-8 gap-2 mx-auto">
-                            <h1 className="text-2xl">Profile</h1>
-                        </div>
-
-                        {/* Right Section */}
-                        <UserAvatar username={user.username} userId={user.id} />
-                    </div>
-                </Toolbar>
-            </AppBar>
-
+    <BaseLayoutProfile
+        user={user}
+      >
             <div className="flex flex-col md:flex-row w-full mt-4 p-8 gap-4">
             {/* Profile Card */}
             <div className="bg-white dark:bg-gray-800 md:w-1/2 rounded-xl shadow-2xl max-w-4xl w-full p-8 transition-all duration-300 animate-fade-in flex-grow">
@@ -427,6 +406,6 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
 </div>
 
     </div>
-    </div>
+    </BaseLayoutProfile>
   );
 }

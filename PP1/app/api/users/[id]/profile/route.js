@@ -2,7 +2,6 @@ import { ForbiddenError } from '../../../../../errors/ForbiddenError';
 import { UnauthorizedError } from '../../../../../errors/UnauthorizedError';
 import {prisma} from "../../../../../utils/db";
 import { authorize } from '@/app/middleware/auth';
-import { authorize } from '@/app/middleware/auth';
 
 export async function GET(req, { params }) {
   const userId = params.id;

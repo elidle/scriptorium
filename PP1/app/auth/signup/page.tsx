@@ -180,7 +180,7 @@ export default function Signup() {
             {error && <ErrorBox errorMessage={error} />}
             <p className="text-center text-gray-600 mt-4">
               Already have an account?{' '}
-              <a href="/views/login" className="text-green-500 hover:underline">
+              <a href="login" className="text-green-500 hover:underline">
                 Log in
               </a>
             </p>

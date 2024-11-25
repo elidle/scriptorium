@@ -67,7 +67,6 @@ export default function BlogPosts() {
   const { user, accessToken, setAccessToken, loading } = useAuth();
   const { showToast } = useToast();
 
-
   const sortOptions = [
     { value: "new", label: "New", icon: Star },
     { value: "old", label: "Old", icon: Clock },
