@@ -1,20 +1,23 @@
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import ps from 'ps-tree';
 
 // Constants
 const EXECUTION_LIMITS = {
-  TIME_LIMIT: 5000,    // 5 seconds
+  TIME_LIMIT: 7000,    // 5 seconds
   MEMORY_LIMIT: 100,   // 100 MB
   MAX_CODE_LENGTH: 50000,  // 50KB
   MAX_INPUT_LENGTH: 1000,  // 1KB
 };
 
+const FILE_PATH = path.join(process.cwd(), 'code');
+
 const LANGUAGE_CONFIG = {
-  python3: {
+  python: { // TODO: Add support for Python 3.8
     extension: 'py',
     compile: false,
-    command: 'python3',
+    command: 'python', // TODO: Use python3
     fileName: (timestamp) => `python_${timestamp}.py`,
     // Add encoding header and ensure proper imports for input handling
     codeWrapper: (code) => {
@@ -35,13 +38,13 @@ const LANGUAGE_CONFIG = {
     command: 'node',
     fileName: (timestamp) => `js_${timestamp}.js`,
     // Ensure proper input handling
-    codeWrapper: (code) => {
-      return `
-        process.stdin.resume();
-        process.stdin.setEncoding('utf-8');
-        
-        ${code}`;
-    },
+//     codeWrapper: (code) => {
+//       return `
+// process.stdin.resume();
+// process.stdin.setEncoding('utf-8');
+//
+// ${code}`;
+//     },
     cleanup: (filePath) => {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
@@ -73,10 +76,10 @@ const LANGUAGE_CONFIG = {
     cleanup: (filePath) => {
       // Clean up both source and class files
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      const classFile = path.join(process.cwd(), 'Main.class');
+      const classFile = path.join(FILE_PATH, 'Main.class');
       if (fs.existsSync(classFile)) fs.unlinkSync(classFile);
       // Also clean up any inner class files
-      const dir = process.cwd();
+      const dir = FILE_PATH;
       fs.readdirSync(dir)
         .filter(f => f.startsWith('Main$') && f.endsWith('.class'))
         .forEach(f => fs.unlinkSync(path.join(dir, f)));
@@ -185,7 +188,7 @@ const LANGUAGE_CONFIG = {
     compileArgs: (filePath) => [
       '--target', 'ES2020',   // Target ECMAScript version
       '--module', 'commonjs', // Module system
-      filePath               // Source file
+      `"${filePath}"`,               // Source file
     ],
     cleanup: (filePath, outputPath) => {
       // Need to clean up both TS and JS files
@@ -203,7 +206,7 @@ const LANGUAGE_CONFIG = {
     cleanup: (filePath) => {
       // Clean up both the R script and any potential output files
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      const plotFile = path.join(process.cwd(), 'Rplots.pdf');
+      const plotFile = path.join(FILE_PATH, 'Rplots.pdf');
       if (fs.existsSync(plotFile)) fs.unlinkSync(plotFile);
     }
   },
@@ -215,8 +218,9 @@ const sanitizeDetails = (details) => {
     if (!details) return null;
 
     return details.replace(/at\s+.*\((.*)\)/g, '') // Remove stack traces
-                 .replace(/[A-Za-z]:\\.*/g, '')     // Remove Windows paths
-                 .replace(/\/[\w/]+/g, '')          // Remove Unix paths
+                 .replace(/[A-Za-z]:\\.*\.[a-z]*/g, '')     // Remove Windows paths
+                 .replace(/.*\/\/\/[A-Za-z]:\/.*\.[a-z]*/g, '')     // Remove Windows paths
+                 .replace(/\/[\w/]+\.[a-z]/g, '')          // Remove Unix paths
                  .replace(/\[.*\]/g, '')            // Remove memory addresses
                  .trim();
 }
@@ -237,7 +241,7 @@ class ExecutionError extends Error {
       case 'RUNTIME':
         return 424;  // Failed Dependency - code fails during execution
       case 'TIMEOUT':
-        return 408;  // Request Timeout - code took too long
+        return 418;  // Request Timeout - code took too long
       case 'MEMORY':
         return 507;  // Insufficient Storage - exceeded memory limit
       default:
@@ -269,10 +273,10 @@ const writeCodeToFile = (code, language) => {
   const timestamp = Date.now();
   const config = LANGUAGE_CONFIG[language];
   const fileName = config.fileName(timestamp);
-  const filePath = path.join(process.cwd(), fileName);
+  const filePath = path.join(FILE_PATH, fileName);
 
   fs.writeFileSync(filePath, code);
-  return { fileName, filePath };
+  return { fileName, filePath, timestamp };
 };
 
 const cleanupFiles = (files) => {
@@ -283,14 +287,52 @@ const cleanupFiles = (files) => {
   });
 };
 
+function getAllProcessChildren(pid) {
+    return new Promise((resolve, reject) => {
+        ps(pid, (err, children) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(children);
+            }
+        });
+    });
+}
+
 const executeProcess = async (command, args, input = '') => {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args);
+    let child;
+    if (command === 'tsc') {
+      child = spawn(command, args, { shell: true, timeout: EXECUTION_LIMITS.TIME_LIMIT});
+    }
+    else{
+      child = spawn(command, args, { timeout: EXECUTION_LIMITS.TIME_LIMIT});
+    }
     let output = '';
     let errorOutput = '';
-
+    let isKilled = false;
     // Set up process monitoring
-    const { timeout, memoryCheckInterval } = setupProcessMonitoring(child);
+    const { timeout } = setupProcessMonitoring(child, async () => {
+      isKilled = true;
+      // Kill the process group
+      try {
+        if (process.platform === 'win32') {
+          // On Windows, use taskkill to forcefully terminate the process tree
+          const children = await getAllProcessChildren(child.pid);
+          children.forEach((child) => {
+            spawn('taskkill', ['/pid', child.PID, '/t', '/f']);
+          });
+          spawn('taskkill', ['/pid', child.pid, '/t', '/f']);
+        } else {
+          // On Unix, kill the entire process group
+          process.kill(-child.pid, 'SIGKILL');
+        }
+      } catch (killError) {
+        console.error('Error killing process:', killError);
+      } finally {
+        reject(new ExecutionError('Execution timed out', 'Process exceeded time limit', 'TIMEOUT'));
+      }
+    });
 
     // Handle input if provided
     if (input) {
@@ -306,13 +348,21 @@ const executeProcess = async (command, args, input = '') => {
     });
 
     child.on('error', (error) => {
-      cleanupMonitoring(timeout, memoryCheckInterval);
+      cleanupMonitoring(timeout);
       reject(new Error(`Process error: ${error.message}`));
     });
 
     child.on('close', (code) => {
-      cleanupMonitoring(timeout, memoryCheckInterval);
+      cleanupMonitoring(timeout);
+
       if (code !== 0) {
+        if (child.killed) {
+          reject(new ExecutionError('Execution timed out', 'Process exceeded time limit', 'TIMEOUT'));
+        }
+        // TODO: Not sure if this is the best way to handle C# and TypeScript compilation errors
+        if ((command === 'csc' || command === 'tsc') && output){
+          reject(new Error(output));
+        }
         reject(new Error(errorOutput || 'Process exited with code ' + code));
       } else {
         resolve(output);
@@ -331,9 +381,10 @@ const writeInput = (process, input) => {
 };
 
 // Helper for process monitoring
-const setupProcessMonitoring = (child) => {
-  const timeout = setTimeout(() => {
-    child.kill();
+const setupProcessMonitoring = (child, onTimeout) => {
+  const timeout = setTimeout( () => {
+    // onTimeout();
+    const ret = child.kill();
   }, EXECUTION_LIMITS.TIME_LIMIT);
 
   // const memoryCheckInterval = setInterval(() => {
@@ -352,13 +403,23 @@ const cleanupMonitoring = (timeout) => { // memoryCheckInterval?
   // clearInterval(memoryCheckInterval);
 };
 
-const executeCode = async (language, filePath, code, input) => {
+const renameFile = (oldPath, newPath) => {
+  return new Promise((resolve, reject) => {
+    fs.rename(oldPath, newPath, (error) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
+const executeCode = async (language, filePath, code, input, timestamp) => {
   const config = LANGUAGE_CONFIG[language];
   let outputPath = null;
   let actualCode = code;
   let output = '';
-  console.log("Code: ", code); // TODO: Debugging
-
   try {
     // Pre-process code if needed
     if (config.classTemplate) {
@@ -367,7 +428,6 @@ const executeCode = async (language, filePath, code, input) => {
     if (config.codeWrapper) {
       actualCode = config.codeWrapper(code);
     }
-
     // Write code to file
     fs.writeFileSync(filePath, actualCode, 'utf8');
 
@@ -375,8 +435,10 @@ const executeCode = async (language, filePath, code, input) => {
     if (config.compile) {
       // Set output path based on language config
       outputPath = config.outputFile ?
-        config.outputFile(process.cwd()) :
-        path.join(process.cwd(), 'a.out');
+        (language === 'typescript' ?
+          config.outputFile(FILE_PATH, timestamp) :
+          config.outputFile(FILE_PATH)) :
+        path.join(FILE_PATH, 'a.out');
 
       // Compile the code
       const compileArgs = config.compileArgs ?
@@ -385,6 +447,7 @@ const executeCode = async (language, filePath, code, input) => {
       try {
         await executeProcess(config.compileCommand, compileArgs);
       } catch (error) {
+        console.error('Compilation error:', error);
         throw new ExecutionError(
           'Compilation failed',
           sanitizeDetails(error.message),
@@ -394,11 +457,11 @@ const executeCode = async (language, filePath, code, input) => {
 
       // Handle special cases for Java
       if (language === 'java') {
-        const classFile = path.join(process.cwd(), 'Main.class');
+        const classFile = path.join(FILE_PATH, 'Main.class');
         if (!fs.existsSync(classFile)) {
           throw new Error('Compilation failed: Class file not generated');
         }
-        output = await executeProcess('java', ['-cp', process.cwd(), 'Main'], input);
+        output = await executeProcess('java', ['-cp', FILE_PATH, 'Main'], input);
       }
       // Handle C/C++
       else if (language === 'c' || language === 'cpp') {
@@ -407,11 +470,19 @@ const executeCode = async (language, filePath, code, input) => {
         }
         output = await executeProcess(outputPath, [], input);
       }
+      else if (language === 'typescript') {
+        const runCommand = config.runCommand;
+        const curFilepath = path.join(FILE_PATH, 'typescript_' + timestamp.toString() + '.js');
+        const newFilepath = path.join(FILE_PATH, 'typescript_' + timestamp.toString() + '.cjs');
+        await renameFile(curFilepath, newFilepath);
+        const runArgs = [newFilepath];
+        output = await executeProcess(runCommand, runArgs, input);
+      }
       // Handle other compiled languages
       else {
         const runCommand = config.runCommand;
         const runArgs = [
-          language === 'csharp' ? outputPath :
+          language === 'csharp' || language === 'typescript' ? outputPath :
           language === 'kotlin' ? path.basename(outputPath) :
           path.basename(outputPath, path.extname(outputPath))
         ];
@@ -427,6 +498,9 @@ const executeCode = async (language, filePath, code, input) => {
     return output;
 
   } catch (error) {
+    if (error instanceof ExecutionError) {
+      throw error;
+    }
     throw new Error(`Execution failed: ${error.message}`);
   } finally {
     try {
@@ -457,19 +531,19 @@ export async function POST(req) {
     validateInput(code, input, language);
 
     // Write code to file
-    const { fileName, filePath } = writeCodeToFile(code, language);
+    const { fileName, filePath, timestamp } = writeCodeToFile(code, language);
     const filesToCleanup = [filePath];
 
     if (LANGUAGE_CONFIG[language].compile) {
       filesToCleanup.push(
         language === 'java' ?
-          path.join(process.cwd(), 'Main.class') :
-          LANGUAGE_CONFIG[language].outputFile(process.cwd())
+          path.join(FILE_PATH, 'Main.class') :
+          LANGUAGE_CONFIG[language].outputFile(FILE_PATH)
       );
     }
 
     try {
-      const output = await executeCode(language, filePath, code, input);
+      const output = await executeCode(language, filePath, code, input, timestamp);
       return Response.json({ output });
     } finally {
       cleanupFiles(filesToCleanup);
@@ -487,8 +561,8 @@ export async function POST(req) {
 
     // Unexpected errors still return 500
     return Response.json({
-      error: 'Internal server error',
-      details: sanitizeDetails(error.message)
+      error: "Internal Server Error",
+      details: sanitizeDetails(error.message),
     }, { status: 500 });
   }
 }
