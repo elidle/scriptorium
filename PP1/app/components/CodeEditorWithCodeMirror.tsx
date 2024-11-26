@@ -71,15 +71,15 @@ export const CodeEditorWithCodeMirror: React.FC<CodeEditorProps> = ({
   ]);
 
   const getDefaultCodeStarter = (lang: string) => {
-   switch (lang.toLowerCase()) {
-     case 'python':
-       return '# Start typing your Python code!\nprint("Hello, World!")';
+    switch (lang.toLowerCase()) {
+      case 'python':
+        return '# Start typing your Python code!\nprint("Hello, World!")';
 
-     case 'javascript':
-       return '// Start typing your JavaScript code!\nconsole.log("Hello, World!");';
+      case 'javascript':
+        return '// Start typing your JavaScript code!\nconsole.log("Hello, World!");';
 
-     case 'java':
-       return `// Start typing your Java code!
+      case 'java':
+        return `// Start typing your Java code!
 import java.util.*;
 import java.io.*;
 
@@ -89,11 +89,11 @@ public class Main {
    }
 }`;
 
-     case 'typescript':
-       return '// Start typing your TypeScript code!\nconsole.log("Hello, World!");';
+      case 'typescript':
+        return '// Start typing your TypeScript code!\nconsole.log("Hello, World!");';
 
-     case 'c':
-       return `// Start typing your C code!
+      case 'c':
+        return `// Start typing your C code!
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -103,8 +103,8 @@ int main() {
    return 0;
 }`;
 
-     case 'cpp':
-       return `// Start typing your C++ code!
+      case 'cpp':
+        return `// Start typing your C++ code!
 #include <iostream>
 #include <string>
 #include <vector>
@@ -126,13 +126,32 @@ public class Program {
    }
 }`;
 
-     case 'r':
-       return `# Start typing your R code!
+    case 'r':
+      return `# Start typing your R code!
 world <- "Mars"    
 print(paste("Hello,", world, "!"))`;
+    case 'swift':
+      return `// Start typing your Swift code!
+import Foundation
+print("Hello, World!");`;
+    case 'kotlin':
+      return `// Start typing your Kotlin code!
+import java.util.*
+import kotlin.collections.*
+import kotlin.io.*
+import kotlin.text.*
 
-     default:
-       return '// Start typing your code here...';
+fun main(args: Array<String>) {
+    // For better performance in competitive programming
+    val reader = System.\`in\`.bufferedReader()
+    val writer = System.out.bufferedWriter()
+    
+    println("Hello, World!")
+    
+    writer.flush()
+}`;
+    default:
+      return '// Start typing your code here...';
    }
   };
 

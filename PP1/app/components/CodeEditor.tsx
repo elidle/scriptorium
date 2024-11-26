@@ -147,6 +147,8 @@ const ControlPanel = ({
             <MenuItem value="csharp">C#</MenuItem>
             <MenuItem value="typescript">TypeScript</MenuItem>
             <MenuItem value="r">R</MenuItem>
+            <MenuItem value="swift">Swift</MenuItem>
+            <MenuItem value="kotlin">Kotlin</MenuItem>
           </Select>
         </FormControl>
 

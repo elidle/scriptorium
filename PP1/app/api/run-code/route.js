@@ -3,9 +3,12 @@ import path from 'path';
 import fs from 'fs';
 import ps from 'ps-tree';
 
+// TODO: REMOVE THIS
+const DEBUG_LOGS_PATH = path.join(process.cwd(), 'debug', 'logs.txt');
+fs.writeFileSync(DEBUG_LOGS_PATH, 'Starting execution', { flag: 'w' });
 // Constants
 const EXECUTION_LIMITS = {
-  TIME_LIMIT: 7000,    // 5 seconds
+  TIME_LIMIT: 10000,    // 10 seconds
   MEMORY_LIMIT: 100,   // 100 MB
   MAX_CODE_LENGTH: 50000,  // 50KB
   MAX_INPUT_LENGTH: 1000,  // 1KB
@@ -37,14 +40,6 @@ const LANGUAGE_CONFIG = {
     compile: false,
     command: 'node',
     fileName: (timestamp) => `js_${timestamp}.js`,
-    // Ensure proper input handling
-//     codeWrapper: (code) => {
-//       return `
-// process.stdin.resume();
-// process.stdin.setEncoding('utf-8');
-//
-// ${code}`;
-//     },
     cleanup: (filePath) => {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
@@ -58,21 +53,6 @@ const LANGUAGE_CONFIG = {
     fileName: () => 'Main.java',
     className: 'Main',
     compileArgs: (filePath) => [filePath],
-    // Ensure code has proper class structure
-    // classTemplate: (code) => {
-    //   if (!code.includes("class Main")) {
-    //     return `
-    //       import java.util.*;
-    //       import java.io.*;
-    //
-    //       public class Main {
-    //           public static void main(String[] args) {
-    //               ${code}
-    //           }
-    //       }`;
-    //   }
-    //   return code;
-    // },
     cleanup: (filePath) => {
       // Clean up both source and class files
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
@@ -91,21 +71,6 @@ const LANGUAGE_CONFIG = {
     compileCommand: 'gcc',
     fileName: (timestamp) => `c_${timestamp}.c`,
     outputFile: (dir) => path.join(dir, 'a.out'),
-    // Add necessary includes and main function if not present
-    // classTemplate: (code) => {
-    //   if (!code.includes("main")) {
-    //     return `
-    //       #include <stdio.h>
-    //       #include <stdlib.h>
-    //       #include <string.h>
-    //
-    //       int main() {
-    //           ${code}
-    //           return 0;
-    //       }`;
-    //   }
-    //   return code;
-    // },
     cleanup: (filePath, outputPath) => {
       // Clean up both source and compiled files
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
@@ -122,24 +87,6 @@ const LANGUAGE_CONFIG = {
     compileCommand: 'g++',
     fileName: (timestamp) => `cpp_${timestamp}.cpp`,
     outputFile: (dir) => path.join(dir, 'a.out'),
-    // Add necessary includes and main function if not present
-    // classTemplate: (code) => {
-    //   if (!code.includes("main")) {
-    //     return `
-    //       #include <iostream>
-    //       #include <string>
-    //       #include <vector>
-    //       using namespace std;
-    //
-    //       int main() {
-    //           ios_base::sync_with_stdio(false);
-    //           cin.tie(NULL);
-    //           ${code}
-    //           return 0;
-    //       }`;
-    //   }
-    //   return code;
-    // },
     cleanup: (filePath, outputPath) => {
       // Clean up both source and compiled files
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
@@ -163,19 +110,6 @@ const LANGUAGE_CONFIG = {
       `/out:${outputPath}`,// Output file path
       filePath             // Source file
     ],
-    // classTemplate: (code) => {
-    //   // If code doesn't include a class/namespace definition, wrap it
-    //   if (!code.includes("class Program")) {
-    //     return `
-    //       using System;
-    //       public class Program {
-    //           public static void Main(string[] args) {
-    //               ${code}
-    //           }
-    //       }`;
-    //   }
-    //   return code;
-    // }
   },
   typescript: {
     extension: 'ts',
@@ -183,7 +117,7 @@ const LANGUAGE_CONFIG = {
     compileCommand: 'tsc',    // TypeScript compiler
     runCommand: 'node',       // Node.js for running compiled JS
     fileName: (timestamp) => `typescript_${timestamp}.ts`,
-    outputFile: (dir, timestamp) => path.join(dir, `typescript_${timestamp}.js`),
+    outputFile: (dir, timestamp) => path.join(dir, `typescript_${timestamp}.cjs`),
     // Special settings for TypeScript
     compileArgs: (filePath) => [
       '--target', 'ES2020',   // Target ECMAScript version
@@ -208,6 +142,55 @@ const LANGUAGE_CONFIG = {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       const plotFile = path.join(FILE_PATH, 'Rplots.pdf');
       if (fs.existsSync(plotFile)) fs.unlinkSync(plotFile);
+    }
+  },
+  swift: {
+    extension: 'swift',
+    compile: true,
+    compileCommand: 'swiftc',  // Swift compiler
+    runCommand: path.join(FILE_PATH, 'swift_program.exe'), // Compiled executable
+    fileName: (timestamp) => `swift_${timestamp}.swift`,
+    outputFile: (dir) => path.join(dir, 'swift_program.exe'),
+    compileArgs: (filePath, outputPath) => [
+      filePath,          // Source file
+      '-o', outputPath,  // Output file
+      '-O'              // Enable optimizations
+    ],
+    cleanup: (filePath, outputPath) => {
+      // Clean up both source and compiled files
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+      if (fs.existsSync(path.join(FILE_PATH, 'swift_program.exp'))) {
+        fs.unlinkSync(path.join(FILE_PATH, 'swift_program.exp'));
+      }
+      if (fs.existsSync(path.join(FILE_PATH, 'swift_program.lib'))) {
+        fs.unlinkSync(path.join(FILE_PATH, 'swift_program.lib'));
+      }
+    }
+  },
+  kotlin: {
+    extension: 'kt',
+    compile: true,
+    compileCommand: 'kotlinc',      // Kotlin compiler
+    runCommand: 'java',           // Kotlin runtime
+    commandArgs: ['-jar'],        // Run as a jar file
+    fileName: (timestamp) => `kotlin_${timestamp}.kt`,
+    outputFile: (dir) => path.join(dir, 'Program.jar'),
+    // Special settings for Kotlin
+    compileArgs: (filePath, outputPath) => [
+      `"${filePath}"`,                     // Source file
+      '-include-runtime',           // Include Kotlin runtime in jar
+      '-d', `"${outputPath}"  `           // Output jar file
+    ],
+    cleanup: (filePath, outputPath) => {
+      // Clean up both source and jar files
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      while (fs.existsSync(outputPath)){
+        fs.unlinkSync(outputPath);
+      }
+      // Clean up any potential class files
+      const classFile = filePath.replace('.kt', '.class');
+      if (fs.existsSync(classFile)) fs.unlinkSync(classFile);
     }
   },
 };
@@ -302,7 +285,7 @@ function getAllProcessChildren(pid) {
 const executeProcess = async (command, args, input = '') => {
   return new Promise((resolve, reject) => {
     let child;
-    if (command === 'tsc') {
+    if (command === 'tsc' || command === 'kotlinc') {
       child = spawn(command, args, { shell: true, timeout: EXECUTION_LIMITS.TIME_LIMIT});
     }
     else{
@@ -314,6 +297,7 @@ const executeProcess = async (command, args, input = '') => {
     // Set up process monitoring
     const { timeout } = setupProcessMonitoring(child, async () => {
       isKilled = true;
+
       // Kill the process group
       try {
         if (process.platform === 'win32') {
@@ -325,6 +309,9 @@ const executeProcess = async (command, args, input = '') => {
           spawn('taskkill', ['/pid', child.pid, '/t', '/f']);
         } else {
           // On Unix, kill the entire process group
+          const children = await getAllProcessChildren(child.pid);
+          fs.writeFileSync(DEBUG_LOGS_PATH, "Child pid: " + child.pid + '\n', { flag: 'a+' });
+          fs.writeFileSync(DEBUG_LOGS_PATH, 'children:' + children.map(child => child.PID) + '\n', { flag: 'a+' });
           process.kill(-child.pid, 'SIGKILL');
         }
       } catch (killError) {
@@ -340,6 +327,7 @@ const executeProcess = async (command, args, input = '') => {
     }
 
     child.stdout.on('data', (data) => {
+      // fs.writeFileSync(DEBUG_LOGS_PATH, data.toString(), { flag: 'a+' });
       output += data.toString();
     });
 
@@ -355,10 +343,14 @@ const executeProcess = async (command, args, input = '') => {
     child.on('close', (code) => {
       cleanupMonitoring(timeout);
 
-      if (code !== 0) {
-        if (child.killed) {
+      fs.writeFileSync(DEBUG_LOGS_PATH, "Command: " +  command + '\n', { flag: 'a+' });
+      fs.writeFileSync(DEBUG_LOGS_PATH, 'child process exited with code' + code + '\n', { flag: 'a+' });
+      fs.writeFileSync(DEBUG_LOGS_PATH, "Killed?" + child.killed + '\n', { flag: 'a+' });
+      if (child.killed || isKilled) {
           reject(new ExecutionError('Execution timed out', 'Process exceeded time limit', 'TIMEOUT'));
-        }
+      }
+
+      if (code !== 0) {
         // TODO: Not sure if this is the best way to handle C# and TypeScript compilation errors
         if ((command === 'csc' || command === 'tsc') && output){
           reject(new Error(output));
@@ -382,9 +374,10 @@ const writeInput = (process, input) => {
 
 // Helper for process monitoring
 const setupProcessMonitoring = (child, onTimeout) => {
-  const timeout = setTimeout( () => {
-    // onTimeout();
-    const ret = child.kill();
+  const timeout = setTimeout( async () => {
+    await onTimeout();
+    // const ret = child.kill('SIGKILL');
+    // fs.writeFileSync(DEBUG_LOGS_PATH, "Child.kill(): " + ret + '\n', { flag: 'a+' });
   }, EXECUTION_LIMITS.TIME_LIMIT);
 
   // const memoryCheckInterval = setInterval(() => {
@@ -422,9 +415,6 @@ const executeCode = async (language, filePath, code, input, timestamp) => {
   let output = '';
   try {
     // Pre-process code if needed
-    if (config.classTemplate) {
-      actualCode = config.classTemplate(code);
-    }
     if (config.codeWrapper) {
       actualCode = config.codeWrapper(code);
     }
@@ -464,7 +454,7 @@ const executeCode = async (language, filePath, code, input, timestamp) => {
         output = await executeProcess('java', ['-cp', FILE_PATH, 'Main'], input);
       }
       // Handle C/C++
-      else if (language === 'c' || language === 'cpp') {
+      else if (language === 'c' || language === 'cpp' || language === 'swift') {
         if (!fs.existsSync(outputPath)) {
           throw new Error('Compilation failed: Executable not generated');
         }
@@ -478,12 +468,17 @@ const executeCode = async (language, filePath, code, input, timestamp) => {
         const runArgs = [newFilepath];
         output = await executeProcess(runCommand, runArgs, input);
       }
+      else if (language === 'kotlin') {
+        fs.writeFileSync(DEBUG_LOGS_PATH, 'Running Kotlin\n', { flag: 'a+' });
+        const runCommand = config.runCommand;
+        const runArgs = ['-jar', outputPath];
+        output = await executeProcess(runCommand, runArgs, input);
+      }
       // Handle other compiled languages
       else {
         const runCommand = config.runCommand;
         const runArgs = [
-          language === 'csharp' || language === 'typescript' ? outputPath :
-          language === 'kotlin' ? path.basename(outputPath) :
+          language === 'csharp' ? outputPath :
           path.basename(outputPath, path.extname(outputPath))
         ];
         output = await executeProcess(runCommand, runArgs, input);
@@ -506,6 +501,9 @@ const executeCode = async (language, filePath, code, input, timestamp) => {
     try {
       // Use language-specific cleanup if available
       if (config.cleanup) {
+        console.log('Cleaning up');
+        console.log('File path:', filePath);
+        console.log('Output path:', outputPath);
         config.cleanup(filePath, outputPath);
       } else {
         // Default cleanup
@@ -517,8 +515,8 @@ const executeCode = async (language, filePath, code, input, timestamp) => {
         }
       }
     } catch (cleanupError) {
-      console.error('Cleanup error:', cleanupError);
-      // Don't throw cleanup errors, just log them
+      // console.error('Cleanup error:', cleanupError);
+      // Don't throw cleanup errors, just log them`
     }
   }
 };
@@ -536,8 +534,7 @@ export async function POST(req) {
 
     if (LANGUAGE_CONFIG[language].compile) {
       filesToCleanup.push(
-        language === 'java' ?
-          path.join(FILE_PATH, 'Main.class') :
+        language === 'java' ? path.join(FILE_PATH, 'Main.class') :
           LANGUAGE_CONFIG[language].outputFile(FILE_PATH)
       );
     }
@@ -546,7 +543,7 @@ export async function POST(req) {
       const output = await executeCode(language, filePath, code, input, timestamp);
       return Response.json({ output });
     } finally {
-      cleanupFiles(filesToCleanup);
+      // cleanupFiles(filesToCleanup);
     }
 
   } catch (error) {
@@ -558,7 +555,7 @@ export async function POST(req) {
     if (error instanceof ExecutionError) {
       return Response.json(response, { status: error.statusCode });
     }
-
+    console.log('Unexpected error:', error);
     // Unexpected errors still return 500
     return Response.json({
       error: "Internal Server Error",
