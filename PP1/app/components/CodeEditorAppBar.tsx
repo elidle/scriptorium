@@ -14,13 +14,15 @@ import {
   TextField, Dialog, DialogTitle, DialogContent, Alert, AlertTitle, DialogActions, CircularProgress,
 } from "@mui/material";
 import { ArrowLeft, Edit, GitFork, Share2, Trash2, MoreVertical } from 'lucide-react';
-import Link from 'next/link';
 import ThemeToggle from "@/app/components/ThemeToggle";
+import {CodeTemplate, ForkLabelProps, mode, User} from "@/app/types";
+import {AppRouterInstance} from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { useState } from 'react';
 
 interface AppBarProps {
-  mode: 'view' | 'create';
+  mode: mode;
   title: string;
-  initialTemplate?: any;
+  initialTemplate?: CodeTemplate;
   handleBack: () => void;
   handleTitleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   isEditing: boolean;
@@ -30,15 +32,15 @@ interface AppBarProps {
   handleDelete: () => void;
   handleFork: () => void;
   handleShare: () => void;
-  user: any;
-  ForkLabel?: React.ComponentType<any>;
+  user: User | null;
+  ForkLabel?: React.FC<ForkLabelProps>;
   showLoginDialog: boolean;
   setShowLoginDialog: (show: boolean) => void;
   actionAfterLogin: 'save' | 'fork' | null;
   showDeleteDialog: boolean;
   setShowDeleteDialog: (show: boolean) => void;
   handleDeleteConfirmed: () => void;
-  router: any;
+  router: AppRouterInstance;
   showForkDialog: boolean;
   setShowForkDialog: (show: boolean) => void;
   handleForkConfirmed: () => void;
@@ -76,9 +78,9 @@ const CodeEditorAppBar: React.FC<AppBarProps> = ({
   // ViewModeButtons component integrated with the parent's functions
   const ViewModeButtons = () => {
     const canEdit = user?.id === initialTemplate?.author.id;
-    const [anchorEl, setAnchorEl] = React.useState(null);
+    const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
-    const handleMenuClick = (event) => {
+    const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
       setAnchorEl(event.currentTarget);
     };
 

@@ -1,11 +1,12 @@
 import React from 'react';
-import { Paper, Typography, Box } from '@mui/material';
+import { Box } from '@mui/material';
 import CodeMirror from '@uiw/react-codemirror';
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import { useTheme } from "@/app/contexts/ThemeContext";
 
 
-const CodeMirrorBox = ({ label, value, onChange = null, disabled = false, isDarkMode = true }) => {
+const CodeMirrorBox = ({ label, value, onChange, disabled = false, isDarkMode = true }
+: {label: string, value: string, onChange: ((value: string) => void )| null, disabled: boolean, isDarkMode: boolean}) => {
   return (
     <>
       <Box
@@ -42,7 +43,7 @@ const CodeMirrorBox = ({ label, value, onChange = null, disabled = false, isDark
       >
         <CodeMirror
           value={value || ''}
-          onChange={onChange}
+          onChange={onChange ? onChange : undefined}
           theme={isDarkMode ? githubDark : githubLight}
           height="100%"
           extensions={[]}
@@ -64,8 +65,9 @@ const CodeMirrorBox = ({ label, value, onChange = null, disabled = false, isDark
   );
 };
 
-const InputOutputSection = ({ input, setInput, output}) => {
-  const { theme, isDarkMode } = useTheme();
+const InputOutputSection = ({ input, setInput, output}
+                                                          : { input: string, setInput: (value: string) => void, output: string}) => {
+  const { isDarkMode } = useTheme();
   return (<Box
     display="grid"
     gridTemplateColumns="1fr 1fr"
@@ -79,13 +81,15 @@ const InputOutputSection = ({ input, setInput, output}) => {
     <CodeMirrorBox
       label="Input"
       value={input}
+      disabled={false}
       onChange={setInput}
       isDarkMode={isDarkMode}
     />
     <CodeMirrorBox
       label="Output"
+      onChange={null}
       value={output}
-      disabled
+      disabled={true}
       isDarkMode={isDarkMode}
     />
   </Box>);

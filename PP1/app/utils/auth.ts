@@ -1,4 +1,5 @@
 import { User } from '@/app/types';
+import {AppRouterInstance} from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 // This util function is used to refresh the access token.
 export async function refreshToken(user: User) {
@@ -23,9 +24,9 @@ export async function refreshToken(user: User) {
 type FetchAuthParams = {
   url: string;
   options: RequestInit;
-  user: User;
+  user: User | null;
   setAccessToken: (token: string) => void;
-  router: any;
+  router: AppRouterInstance | null;
 };
 
 // This util function is used to fetch data with auth.
@@ -41,8 +42,7 @@ export async function fetchAuth({
 
   let response = await fetch(url, options);
 
-  if (response.status === 401) {
-    console.log("Refreshing for User: ", user);
+  if (user && router && response.status === 401) {
     const refreshResponse = await refreshToken(user);
 
     if (!refreshResponse.ok && refreshResponse.status === 401) {
@@ -57,7 +57,6 @@ export async function fetchAuth({
       ...options.headers,
       'access-token': `Bearer ${newToken}`
     };
-    console.log('New options: ', options); // TODO: Remove this line
     response = await fetch(url, options);
   }
 

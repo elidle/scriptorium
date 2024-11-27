@@ -8,10 +8,8 @@ import { Box} from '@mui/material';
 import {useTheme} from "@/app/contexts/ThemeContext";
 import {githubDark, githubLight} from "@uiw/codemirror-theme-github";
 import {r} from "@codemirror/legacy-modes/mode/r";
-import {keymap} from '@codemirror/view';
-import {defaultKeymap} from '@codemirror/commands';
 
-const languageMap = {
+const languageMap: Record<string, ReturnType<typeof StreamLanguage.define>> = {
   python: StreamLanguage.define(python),
   javascript: StreamLanguage.define(javascript),
   java: StreamLanguage.define(java),
@@ -31,7 +29,6 @@ interface CodeEditorProps {
   code: string;
   language?: string;
   onChange: (code: string) => void;
-  onRun: () => void;
   disabled?: boolean;
   minHeight?: string;
   placeholder?: string;
@@ -41,34 +38,10 @@ export const CodeEditorWithCodeMirror: React.FC<CodeEditorProps> = ({
   code = '',
   language = 'python',
   onChange,
-  onRun,
   disabled = false,
   minHeight = '400px',
 }) => {
   const { theme, isDarkMode } = useTheme();
-
-  const customKeymap = keymap.of([
-    {
-      key: "Ctrl-Shift-Enter",
-      run: () => {
-        if (onRun) {
-          onRun();
-        }
-        return true;
-      },
-      preventDefault: true
-    },
-    {
-      key: "Cmd-Shift-Enter",  // For Mac users
-      run: () => {
-        if (onRun) {
-          onRun();
-        }
-        return true;
-      },
-      preventDefault: true
-    }
-  ]);
 
   const getDefaultCodeStarter = (lang: string) => {
     switch (lang.toLowerCase()) {

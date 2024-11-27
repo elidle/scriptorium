@@ -13,7 +13,7 @@ import {
   Fade,
   Checkbox, alpha
 } from '@mui/material';
-import {Tags, Plus, RefreshCw, X, Search} from 'lucide-react';
+import {Tags, Plus, RefreshCw, X} from 'lucide-react';
 import SearchBar from '@/app/components/SearchBar';
 import debounce from 'lodash.debounce';
 import { mode } from "@/app/types";

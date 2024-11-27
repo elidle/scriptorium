@@ -4,10 +4,11 @@ import SideNav from './SideNav';
 import {useState} from "react";
 import {useRouter} from "next/navigation";
 import {useTheme} from "@/app/contexts/ThemeContext";
+import {User} from "@/app/types";
 
 interface BaseLayoutProps {
   children: React.ReactNode;
-  user: any;
+  user: User | null;
   onSearch: (searchTerm: string) => void;
   type: 'post' | 'code-template';
 }

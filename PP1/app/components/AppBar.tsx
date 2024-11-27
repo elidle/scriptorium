@@ -14,11 +14,11 @@ import UserAvatar from './UserAvatar';
 import SearchBar from './SearchBar';
 import { useTheme } from "@/app/contexts/ThemeContext";
 import ThemeToggle from "@/app/components/ThemeToggle";
-import Image from 'next/image';
+import {User} from "@/app/types";
 
 interface AppBarProps {
   type: 'post' | 'code-template';
-  user: any;
+  user: User | null;
   onSearch: (searchTerm: string) => void;
   onMenuClick: () => void;
 }
@@ -27,7 +27,6 @@ export default function AppBar({ type, user, onSearch, onMenuClick }: AppBarProp
   const { theme, isDarkMode } = useTheme();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const isMobile = useMediaQuery('(max-width: 640px)');
-  console.log('Appbar User:', user); // TODO: Remove this line
 
   const toggleMobileSearch = () => {
     setMobileSearchOpen(!mobileSearchOpen);

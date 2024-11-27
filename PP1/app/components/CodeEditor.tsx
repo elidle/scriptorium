@@ -1,8 +1,7 @@
 "use client"; // Enable client-side rendering
 
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {ReactNode, useCallback, useEffect, useState} from 'react';
 import {
-  AppBar,
   Button,
   TextField,
   Select,
@@ -12,23 +11,15 @@ import {
   FormControl,
   InputLabel,
   Box,
-  Toolbar,
   Container,
-  createTheme,
-  ThemeProvider,
-  Modal,
   Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions, IconButton, Tooltip, AlertTitle, Chip,
-  CircularProgress,
-  Snackbar, useMediaQuery, SpeedDial, SpeedDialIcon, SpeedDialAction, alpha
+  AlertTitle,
+  Chip,
+  useMediaQuery, SpeedDial, SpeedDialIcon, SpeedDialAction, alpha, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import { useAuth } from "@/app/contexts/AuthContext";
-import {ArrowLeft, Edit, GitFork, Heart, Play, Plus, Save, Share2, Trash2, X, XCircle} from 'lucide-react';
-import SearchBar from '@/app/components/SearchBar';
-import {CodeTemplate, SearchParams, Tag} from '@/app/types'
+import {GitFork, Play, Save, XCircle} from 'lucide-react';
+import {CodeTemplate, ForkLabelProps, Tag} from '@/app/types'
 import TagsContainer from "@/app/components/TagsContainer";
 import ErrorBox from "@/app/components/ErrorBox";
 import { mode } from "@/app/types";
@@ -39,6 +30,18 @@ import InputOutputSection from "@/app/components/InputOutputSection";
 import {useToast} from "@/app/contexts/ToastContext";
 import CodeEditorAppBar from "@/app/components/CodeEditorAppBar";
 import {useTheme} from "@/app/contexts/ThemeContext";
+
+interface ControlPanelParams {
+  language: string;
+  setLanguage: (value: string) => void;
+  mode: mode;
+  SaveButton: () => React.ReactElement;
+  RunButton: () => React.ReactElement;
+  handleSaveEdit: () => void;
+  handleCancelEdit: () => void;
+  isEditing: boolean;
+  isSaving: boolean;
+}
 
 // Mobile-friendly control panel
 const ControlPanel = ({
@@ -51,14 +54,14 @@ const ControlPanel = ({
   handleCancelEdit,
   isEditing,
   isSaving
-}) => {
+}: ControlPanelParams) => {
   const getSpeedDialActions = React.useMemo(() => {
     return [
       // Run action is always present
       {
         icon: <Play className="w-5 h-5" />,
         tooltipTitle: "Run Code",
-        onClick: (e) => RunButton().props.onClick(e)
+        onClick: (e: React.MouseEvent<HTMLElement>) => RunButton().props.onClick(e)
       },
       // Conditionally add save action for create mode
       ...(mode === 'create' ? [{
@@ -82,7 +85,7 @@ const ControlPanel = ({
     ];
   }, [mode, isEditing, RunButton, SaveButton, handleSaveEdit, handleCancelEdit]);
 
-  const { theme, isDarkMode} = useTheme();
+  const { theme } = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   if (isMobile) {
@@ -189,7 +192,7 @@ const ControlPanel = ({
   );
 };
 
-const ResponsiveContainer = ({ children }) => (
+const ResponsiveContainer = ({ children }: { children: ReactNode }) => (
   <Container
     maxWidth="xl"
     sx={{
@@ -202,7 +205,7 @@ const ResponsiveContainer = ({ children }) => (
   </Container>
 );
 
-const ResponsiveGrid = ({ leftContent, rightContent }) => (
+const ResponsiveGrid = ({ leftContent, rightContent }: {leftContent: ReactNode, rightContent: ReactNode}) => (
   <Box
     sx={{
       display: "grid",
@@ -232,7 +235,11 @@ const ResponsiveGrid = ({ leftContent, rightContent }) => (
   </Box>
 );
 
-const ExplanationSection = ({ explanation, setExplanation, mode, isEditing }) => (
+const ExplanationSection = ({ explanation, setExplanation, mode, isEditing }
+                              : {explanation: string,
+                                  setExplanation: (explanation: string) => void,
+                                  mode: mode,
+                                  isEditing: boolean}) => (
   <Paper
     sx={{
       p: { xs: 1, sm: 2 },
@@ -291,7 +298,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   const router = useRouter();
   const { user, accessToken, setAccessToken } = useAuth();
   const { showToast } = useToast();
-  const { theme, isDarkMode } = useTheme();
+  const { theme } = useTheme();
 
   const searchParams = useSearchParams();
   const isFork = searchParams?.get('fork') === 'true';
@@ -309,7 +316,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   const [output, setOutput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [openConfirmModal, setOpenConfirmModal] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [emptyFields, setEmptyFields] = useState<string[]>([]);
   const [showForkDialog, setShowForkDialog] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
@@ -421,51 +428,51 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   };
 
   // View mode buttons
-  const ViewModeButtons = () => {
-    const canEdit = user?.id === initialTemplate?.author.id;
-
-    return (
-      <Box display="flex" gap={2}>
-        {canEdit && (
-          <>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<Edit className="w-4 h-4" />}
-              onClick={handleEdit}
-              disabled={isSaving || isEditing}
-            >
-              Edit
-            </Button>
-            <Button
-              variant="contained"
-              color="error"
-              startIcon={<Trash2 className="w-4 h-4" />}
-              onClick={handleDelete}
-              disabled={isSaving || isEditing || isDeleting}
-            >
-              Delete
-            </Button>
-          </>
-        )}
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<GitFork className="w-4 h-4" />}
-          onClick={handleFork}
-        >
-          {user ? 'Fork' : 'Sign in to Fork'}
-        </Button>
-        <Button
-          variant="outlined"
-          startIcon={<Share2 className="w-4 h-4" />}
-          onClick={handleShare}
-        >
-          Share
-        </Button>
-      </Box>
-    );
-  };
+  // const ViewModeButtons = () => {
+  //   const canEdit = user?.id === initialTemplate?.author.id;
+  //
+  //   return (
+  //     <Box display="flex" gap={2}>
+  //       {canEdit && (
+  //         <>
+  //           <Button
+  //             variant="contained"
+  //             color="primary"
+  //             startIcon={<Edit className="w-4 h-4" />}
+  //             onClick={handleEdit}
+  //             disabled={isSaving || isEditing}
+  //           >
+  //             Edit
+  //           </Button>
+  //           <Button
+  //             variant="contained"
+  //             color="error"
+  //             startIcon={<Trash2 className="w-4 h-4" />}
+  //             onClick={handleDelete}
+  //             disabled={isSaving || isEditing || isDeleting}
+  //           >
+  //             Delete
+  //           </Button>
+  //         </>
+  //       )}
+  //       <Button
+  //         variant="contained"
+  //         color="primary"
+  //         startIcon={<GitFork className="w-4 h-4" />}
+  //         onClick={handleFork}
+  //       >
+  //         {user ? 'Fork' : 'Sign in to Fork'}
+  //       </Button>
+  //       <Button
+  //         variant="outlined"
+  //         startIcon={<Share2 className="w-4 h-4" />}
+  //         onClick={handleShare}
+  //       >
+  //         Share
+  //       </Button>
+  //     </Box>
+  //   );
+  // };
 
   // Fetch functions
   const handleRunCode = async () => {
@@ -522,7 +529,9 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   }, []);
 
   const handleSaveConfirmed = async () => {
-    setOpenConfirmModal(false);
+    if (isSaving) return;
+
+    setShowSaveDialog(false);
     setIsSaving(true);
     setError('');
 
@@ -576,7 +585,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         localStorage.removeItem('forkedTemplate');
         clearForkParam();
       }
-
+      if (!user) return;
       // Redirect to the new template view
       router.push(`/code-templates/${user.username}/${data.id}`);
     } catch (err) {
@@ -597,7 +606,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     const emptyFieldsList = validateFields();
     if (emptyFieldsList.length > 0) {
       setEmptyFields(emptyFieldsList);
-      setOpenConfirmModal(true);
+      setShowSaveDialog(true);
     } else {
       handleSaveConfirmed();
     }
@@ -750,7 +759,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       color="primary"
       startIcon={<Save className="w-4 h-4" />}
       onClick={handleSave}
-      disabled={isSaving}
+      disabled={isSaving || !title.trim()}
     >
       {!user
         ? 'Sign in to Save'
@@ -760,9 +769,9 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     </Button>
   );
 
-  const ForkLabel = ({ parentTemplate }) => {
+  const ForkLabel: React.FC<ForkLabelProps> = ({ parentTemplate }: { parentTemplate: CodeTemplate }) => {
 
-    const isParentDeleted = !(parentTemplate ?? 0); // Add this flag to your parentTemplate type/data
+    const isParentDeleted = !(parentTemplate ?? 0); // Check if parent template is deleted
 
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 2 }}>
@@ -916,7 +925,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
               <CodeEditorWithCodeMirror
                 code={code}
-                onRun={handleRunCode}
                 onChange={handleCodeChange}
                 language={language}
               />
@@ -947,6 +955,44 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
           isEditing={isEditing}
         />
       </ResponsiveContainer>
+
+      {/* Save confirmation */}
+      <Dialog
+          open={showSaveDialog}
+          onClose={() => setShowSaveDialog(false)}
+          aria-labelledby="confirm-dialog-title"
+      >
+        <DialogTitle id="confirm-dialog-title">
+          Missing Information
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            The following fields are empty:
+            <ul>
+              {emptyFields.map((field) => (
+                <li key={field}>{field}</li>
+              ))}
+            </ul>
+            Do you want to continue anyway?
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setShowSaveDialog(false)}
+            color="primary"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSaveConfirmed}
+            variant="contained"
+            color="primary"
+          >
+            Save Anyway
+          </Button>
+        </DialogActions>
+      </Dialog>
+
     </Box>
   );
 };

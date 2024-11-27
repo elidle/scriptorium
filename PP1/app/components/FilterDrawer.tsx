@@ -22,7 +22,6 @@ const FilterDrawer: React.FC<RightDrawerProps> = ({
   children
 }) => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   return (
     <>
@@ -100,13 +99,12 @@ const FilterDrawer: React.FC<RightDrawerProps> = ({
         }}
       >
         <Box sx={{
-          display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           p: 2,
           borderBottom: '1px solid',
           borderColor: 'divider',
-          display: { sm: 'none' } // Only show on mobile
+          display: { xs: 'flex', sm: 'none' }
         }}>
           <h2 className="text-lg font-semibold">Filters</h2>
           <IconButton onClick={onToggle} size="small">

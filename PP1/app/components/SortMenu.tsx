@@ -1,9 +1,10 @@
 import { Menu, MenuItem, ListItemIcon, ListItemText, ThemeProvider } from "@mui/material";
 import { LucideIcon } from "lucide-react";
 import { useTheme } from "../contexts/ThemeContext";
+import {SortByTypes} from "@/app/types";
 
 interface SortOption {
-  value: string;
+  value: string | SortByTypes;
   label: string;
   icon: LucideIcon;
 }

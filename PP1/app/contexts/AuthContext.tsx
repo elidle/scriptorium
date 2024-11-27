@@ -5,8 +5,8 @@ import { User } from "@/app/types";
 interface AuthContextType {
   accessToken: string | null;
   setAccessToken: (token: string | null) => void;
-  user: any | null;
-  setUser: (user: any | null) => void;
+  user: User | null;
+  setUser: (user: User | null) => void;
   loading: boolean;
 }
 
@@ -41,7 +41,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   // Initialize states with null and use useEffect for hydration
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Separate function for token refresh
-  const refreshAccessToken = async (userData: any) => {
+  const refreshAccessToken = async (userData: User) => {
     try {
       const refreshResponse = await fetch('/api/refresh', {
         method: 'POST',
@@ -112,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               handleSetUser(sessionUser);
               setAccessToken(newAccessToken);
             } catch (refreshError) {
+              console.error('Refresh token error:', refreshError);
               handleSetUser(null);
               setAccessToken(null);
             }
@@ -132,22 +133,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     verifySession();
   }, [isInitialized]);
 
-  // Expose a refresh function that components can use
-  const refresh = async () => {
-    if (!user) {
-      throw new Error('No user data available for refresh');
-    }
-
-    try {
-      const newAccessToken = await refreshAccessToken(user);
-      setAccessToken(newAccessToken);
-      return true;
-    } catch (error) {
-      setUser(null);
-      setAccessToken(null);
-      return false;
-    }
-  };
+  // // Expose a refresh function that components can use
+  // const refresh = async () => {
+  //   if (!user) {
+  //     throw new Error('No user data available for refresh');
+  //   }
+  //
+  //   try {
+  //     const newAccessToken = await refreshAccessToken(user);
+  //     setAccessToken(newAccessToken);
+  //     return true;
+  //   } catch (error) {
+  //     setUser(null);
+  //     setAccessToken(null);
+  //     return false;
+  //   }
+  // };
 
   // Don't render children until after initial client-side hydration
   if (!isInitialized) {
