@@ -1,13 +1,15 @@
+import { NextRequest } from 'next/server';
 import { prisma } from '../../../../utils/db';
 import { itemRatingsToMetrics } from '../../../../utils/blog/metrics';
 import { authorize } from '../../../middleware/auth';
 import { ForbiddenError } from '../../../../errors/ForbiddenError';
 import { UnauthorizedError } from '../../../../errors/UnauthorizedError';
+import { BlogPostRequest, Post } from '@/app/types/post';
+import { Tag } from '@/app/types/tag';
 
-export async function PUT(req, { params }) {
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    let { id } = params;
-    id = Number(id);
+    const id = Number(params.id);
     console.log("Received request to update post with ID: ", id);
 
     if (!id) {
@@ -17,7 +19,7 @@ export async function PUT(req, { params }) {
       );
     }
 
-    const { title, content, tags, codeTemplateIds} = await req.json();
+    const { title, content, tags, codeTemplateIds } = await req.json() as BlogPostRequest;
 
     const post = await prisma.blogPost.findUnique({ where: { id } });
 
@@ -28,23 +30,19 @@ export async function PUT(req, { params }) {
       );
     }
 
-
     await authorize(req, ['user', 'admin'], post.authorId);
 
-    for (let i = 0; i < codeTemplateIds.length; i++) {
-      if (!Number(codeTemplateIds[i])) {
-        return Response.json(
-          { status: 'error', error: 'One or more invalid code template ID' },
-          { status: 400 }
-        );
-      }
-
-      const currentTemplate = await prisma.codeTemplate.findUnique({ where: { id: Number(codeTemplateIds[i]) } });
-      if (!currentTemplate) {
-        return Response.json(
-          { status: 'error', error: 'Code template not found' },
-          { status: 404 }
-        );
+    if (codeTemplateIds) {
+      for (const templateId of codeTemplateIds) {
+        const currentTemplate = await prisma.codeTemplate.findUnique({
+          where: { id: Number(templateId) }
+        });
+        if (!currentTemplate) {
+          return Response.json(
+            { status: 'error', error: 'Code template not found' },
+            { status: 404 }
+          );
+        }
       }
     }
 
@@ -65,7 +63,7 @@ export async function PUT(req, { params }) {
         ...(codeTemplateIds && {
           codeTemplates: {
             set: [],
-            connect: codeTemplateIds.map(id => ({ id: id }))
+            connect: codeTemplateIds.map(id => ({ id: Number(id) }))
           }
         })
       },
@@ -99,10 +97,9 @@ export async function PUT(req, { params }) {
   }
 }
 
-export async function DELETE(req, { params }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    let { id } = params;
-    id = Number(id);
+    const id = Number(params.id);
     console.log("Received request to delete post with ID: ", id);
 
     if (!id) {
@@ -123,7 +120,7 @@ export async function DELETE(req, { params }) {
 
     await authorize(req, ['user', 'admin'], post.authorId);
 
-    const deletedPost = await prisma.blogPost.update({
+    await prisma.blogPost.update({
       where: { id },
       data: {
         isDeleted: true,
@@ -156,30 +153,27 @@ export async function DELETE(req, { params }) {
   }
 }
 
-export async function GET(req, { params }) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const searchParams = req.nextUrl.searchParams;
-
-    // User parameter
     const userId = Number(searchParams.get('userId'));
     console.log("Received request to fetch post from user: ", userId);
 
-    let canViewHidden = false; // guest cannot see hidden no matter what
+    let canViewHidden = false;
 
     if (userId) {
-      // Check that user id matches the user sending the request
       await authorize(req, ['user', 'admin'], userId);
     }
 
-    let { id } = params;
-    id = Number(id);
+    const id = Number(params.id);
 
     if (!id) {
       return Response.json(
-          { status: 'error', error: 'Invalid post ID' }, 
-          { status: 400 }
+        { status: 'error', error: 'Invalid post ID' },
+        { status: 400 }
       );
     }
+
     const post = await prisma.blogPost.findUnique({
       where: { id },
       select: {
@@ -225,27 +219,24 @@ export async function GET(req, { params }) {
       );
     }
 
-    // set can view hidden
-    // either user is admin, or user is the author of the post
-
     if (userId) {
-      // at this point userId matches the logged in user
-      // check for adminship first
       try {
         await authorize(req, ['admin']);
         canViewHidden = true;
       } catch {
-        // not admin, check if user is author
         canViewHidden = userId === post.author?.id;
       }
     }
 
-    const postWithVote = {...post, userVote: userId ? post.ratings.find(rating => rating.userId === userId)?.value || 0 : 0};
+    const postWithVote = {
+      ...post,
+      userVote: userId ? post.ratings.find(rating => rating.userId === userId)?.value || 0 : 0
+    };
     const postWithMetrics = itemRatingsToMetrics(postWithVote);
 
-    const responsePost = {
+    const responsePost: Post = {
       id: postWithMetrics.id,
-      title: post.isHidden 
+      title: post.isHidden
         ? `[Hidden post] ${canViewHidden ? post.title : ''}`
         : postWithMetrics.title,
       content: post.isHidden
@@ -253,14 +244,15 @@ export async function GET(req, { params }) {
         : postWithMetrics.content,
       authorId: postWithMetrics.author?.id ?? null,
       authorUsername: postWithMetrics.author?.username ?? "[deleted]",
-      tags: postWithMetrics.tags.map(tag => ({ id: tag.id, name: tag.name })),
+      tags: postWithMetrics.tags.map((tag: Tag) => ({ id: tag.id, name: tag.name })),
       createdAt: postWithMetrics.createdAt,
       score: postWithMetrics.metrics.totalScore,
       userVote: postWithMetrics.userVote,
       allowAction: !post.isDeleted && !post.isHidden,
-    }
+      author: postWithMetrics.author || { id: 0, username: '[deleted]' }
+    };
 
-    return Response.json(responsePost, {status: 200} );
+    return Response.json(responsePost, { status: 200 });
   } catch (error) {
     console.error(error);
     return Response.json(

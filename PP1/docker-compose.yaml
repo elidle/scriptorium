@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - db-data:/app/prisma
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /app/temp:/app/temp
+    privileged: true
+
+volumes:
+  db-data:

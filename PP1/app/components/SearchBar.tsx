@@ -6,6 +6,7 @@ import {
   Fade,
   Box,
   Typography,
+  ThemeProvider,
 } from '@mui/material';
 import { Search, X, History } from 'lucide-react';
 import { useTheme } from "@/app/contexts/ThemeContext";
@@ -27,7 +28,18 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Load recent searches from localStorage on component mount
+  // Color schemes for dark and light modes
+  const colors = {
+    paper: isDarkMode ? '#1e293b' : '#ffffff',
+    border: isDarkMode ? '#2d3748' : '#e2e8f0',
+    hoverBg: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)',
+    text: isDarkMode ? '#e2e8f0' : '#1a202c',
+    secondaryText: isDarkMode ? '#94a3b8' : '#64748b',
+    focusBorder: '#3b82f6',
+    dropdownBg: isDarkMode ? '#1e293b' : '#ffffff',
+    headerBg: isDarkMode ? '#1e293b' : '#f8fafc',
+  };
+
   useEffect(() => {
     const saved = localStorage.getItem('recentSearches');
     if (saved) {
@@ -37,8 +49,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch(searchTerm.trim());
     if (searchTerm.trim()) {
+      onSearch(searchTerm.trim());
       const updatedSearches = [
         searchTerm.trim(),
         ...recentSearches.filter(s => s !== searchTerm.trim())
@@ -60,128 +72,143 @@ const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   return (
-    <Box className={className} sx={{ position: 'relative' }}>
-      <form onSubmit={handleSubmit}>
-        <Paper
-          elevation={isFocused ? 4 : 1}
-          sx={{
-            p: '2px 4px',
-            display: 'flex',
-            alignItems: 'center',
-            borderRadius: '12px',
-            bgcolor: 'background.default',
-            border: isFocused ? `2px solid ${theme.palette.primary.main}` : '2px solid transparent',
-            transition: 'all 0.3s ease',
-            '&:hover': {
-              bgcolor: theme.palette.grey[isDarkMode ? 700 : 200]
-            },
-          }}
-        >
-          <IconButton sx={{ p: '10px' }} aria-label="search">
-            <Search className="h-5 w-5" sx={{ color: 'text.secondary' }} />
-          </IconButton>
-          <InputBase
+    <ThemeProvider theme={theme}>
+      <Box
+        className={className}
+        sx={{
+          position: 'relative',
+          width: '100%'
+        }}
+      >
+        <form onSubmit={handleSubmit}>
+          <Paper
+            elevation={isFocused ? 4 : 1}
             sx={{
-              ml: 1,
-              flex: 1,
-              color: 'text.primary',
-              '& ::placeholder': {
-                color: 'text.secondary',
-                opacity: 1,
-              },
+              p: '2px 4px',
+              display: 'flex',
+              alignItems: 'center',
+              borderRadius: '12px',
+              border: isFocused ? `2px solid ${colors.focusBorder}` : `2px solid ${colors.border}`,
+              width: '100%',
+              backgroundColor: colors.paper,
+              transition: 'all 0.2s ease-in-out',
             }}
-            placeholder={placeholder}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onFocus={() => {
-              setIsFocused(true);
-              setShowSuggestions(true);
-            }}
-            onBlur={() => {
-              setIsFocused(false);
-              setTimeout(() => setShowSuggestions(false), 200);
-            }}
-          />
-          {searchTerm && (
-            <Fade in={true}>
-              <IconButton
-                sx={{ p: '10px' }}
-                aria-label="clear"
-                onClick={handleClear}
-              >
-                <X className="h-4 w-4" sx={{ color: 'text.secondary' }} />
-              </IconButton>
-            </Fade>
-          )}
-        </Paper>
-      </form>
-
-      {/* Suggestions dropdown */}
-      {showSuggestions && (recentSearches.length > 0) && (
-        <Paper
-          sx={{
-            mt: 1,
-            borderRadius: '12px',
-            overflow: 'hidden',
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            width: 'auto',
-            zIndex: 1000,
-            bgcolor: 'background.paper',
-            border: 1,
-            borderColor: 'divider',
-          }}
-        >
-          <Box sx={{ p: 1 }}>
-            <Typography
-              variant="caption"
+          >
+            <IconButton sx={{ p: '10px' }} aria-label="search">
+              <Search className="h-5 w-5" style={{ color: colors.secondaryText }} />
+            </IconButton>
+            <InputBase
               sx={{
-                px: 2,
-                py: 1,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                color: 'text.secondary'
+                ml: 1,
+                flex: 1,
+                color: colors.text,
+                '& ::placeholder': {
+                  color: colors.secondaryText,
+                  opacity: 1
+                }
               }}
-            >
-              <History className="h-4 w-4" sx={{ color: 'text.secondary' }} />
-              Recent Searches
-            </Typography>
-            {recentSearches.map((term, index) => (
-              <Box
-                key={index}
+              placeholder={placeholder}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => {
+                setIsFocused(true);
+                setShowSuggestions(true);
+              }}
+              onBlur={() => {
+                setIsFocused(false);
+                setTimeout(() => setShowSuggestions(false), 200);
+              }}
+            />
+            {searchTerm && (
+              <Fade in={true}>
+                <IconButton
+                  sx={{ p: '10px' }}
+                  aria-label="clear"
+                  onClick={handleClear}
+                >
+                  <X className="h-4 w-4" style={{ color: colors.secondaryText }} />
+                </IconButton>
+              </Fade>
+            )}
+          </Paper>
+        </form>
+
+        {/* Suggestions dropdown */}
+        {showSuggestions && (recentSearches.length > 0) && (
+          <Paper
+            sx={{
+              mt: 1,
+              borderRadius: '12px',
+              overflow: 'hidden',
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              width: '100%',
+              zIndex: 1000,
+              maxHeight: '300px',
+              overflowY: 'auto',
+              backgroundColor: colors.dropdownBg,
+              border: `1px solid ${colors.border}`,
+              boxShadow: isDarkMode ? '0 4px 6px -1px rgba(0, 0, 0, 0.3)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            }}
+          >
+            <Box sx={{ p: 1 }}>
+              <Typography
+                variant="caption"
                 sx={{
                   px: 2,
                   py: 1,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 2,
-                  cursor: 'pointer',
-                  color: 'text.primary',
-                  '&:hover': {
-                    bgcolor: theme.palette.grey[isDarkMode ? 700 : 200]
-                  },
+                  gap: 1,
+                  color: colors.secondaryText,
+                  position: 'sticky',
+                  top: 0,
+                  bgcolor: colors.headerBg,
+                  zIndex: 1,
+                  borderBottom: `1px solid ${colors.border}`,
                 }}
-                onClick={() => handleRecentSearch(term)}
               >
-                <Search className="h-4 w-4" sx={{ color: 'text.secondary' }} />
-                <Typography variant="body2">{term}</Typography>
-              </Box>
-            ))}
-          </Box>
-
-          <Box sx={{
-            borderTop: 1,
-            borderColor: 'divider',
-            p: 1.5,
-            display: 'flex',
-            gap: 2,
-          }}>
-          </Box>
-        </Paper>
-      )}
-    </Box>
+                <History className="h-4 w-4" />
+                Recent Searches
+              </Typography>
+              {recentSearches.map((term, index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    px: 2,
+                    py: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    cursor: 'pointer',
+                    color: colors.text,
+                    transition: 'background-color 0.2s ease-in-out',
+                    '&:hover': {
+                      backgroundColor: colors.hoverBg,
+                    },
+                  }}
+                  onClick={() => handleRecentSearch(term)}
+                >
+                  <Search className="h-4 w-4" style={{ color: colors.secondaryText }} />
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      color: 'inherit'
+                    }}
+                  >
+                    {term}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </Paper>
+        )}
+      </Box>
+    </ThemeProvider>
   );
 };
 

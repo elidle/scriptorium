@@ -1,4 +1,4 @@
-import { prisma, Prisma } from '../../../../utils/db';
+import { prisma } from '../../../../utils/db';
 
 /* This function is used to search for tags.
  * If the query parameter 'q' is provided, it will search for tags that contain the query string.
@@ -18,7 +18,7 @@ export async function GET(req) {
         name: 'asc',
       }
     });
-  } catch (err) {
+  } catch {
     return Response.json({ status: 'error', message: 'Failed to search tags' }, { status: 500 });
   }
   return Response.json({ status: 'success', tags: tags }, { status: 200 });

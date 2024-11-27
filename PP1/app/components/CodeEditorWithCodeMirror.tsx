@@ -1,18 +1,23 @@
-import React, {useCallback} from 'react';
+import React, {useEffect} from 'react';
 import CodeMirror from '@uiw/react-codemirror';
-import { vscodeDark } from '@uiw/codemirror-theme-vscode';
 import { StreamLanguage } from '@codemirror/language';
 import { python } from '@codemirror/legacy-modes/mode/python';
 import { javascript } from '@codemirror/legacy-modes/mode/javascript';
-import { java } from '@codemirror/legacy-modes/mode/clike';
-import { Box, Typography } from '@mui/material';
+import {cpp, csharp, java} from '@codemirror/legacy-modes/mode/clike';
+import { Box} from '@mui/material';
 import {useTheme} from "@/app/contexts/ThemeContext";
 import {githubDark, githubLight} from "@uiw/codemirror-theme-github";
+import {r} from "@codemirror/legacy-modes/mode/r";
 
-const languageMap = {
+const languageMap: Record<string, ReturnType<typeof StreamLanguage.define>> = {
   python: StreamLanguage.define(python),
   javascript: StreamLanguage.define(javascript),
   java: StreamLanguage.define(java),
+  c: StreamLanguage.define(cpp),  // C uses the C++ mode with different settings
+  cpp: StreamLanguage.define(cpp),
+  csharp: StreamLanguage.define(csharp),
+  typescript: StreamLanguage.define(javascript),
+  r: StreamLanguage.define(r)
 };
 
 const getLanguageExtension = (language: string = 'python') => {
@@ -35,9 +40,109 @@ export const CodeEditorWithCodeMirror: React.FC<CodeEditorProps> = ({
   onChange,
   disabled = false,
   minHeight = '400px',
-  placeholder = '// Start typing your code here...'
 }) => {
   const { theme, isDarkMode } = useTheme();
+
+  const getDefaultCodeStarter = (lang: string) => {
+    switch (lang.toLowerCase()) {
+      case 'python':
+        return '# Start typing your Python code!\nprint("Hello, World!")';
+
+      case 'javascript':
+        return '// Start typing your JavaScript code!\nconsole.log("Hello, World!");';
+
+      case 'java':
+        return `// Start typing your Java code!
+import java.util.*;
+import java.io.*;
+
+public class Main {
+   public static void main(String[] args) {
+       System.out.println("Hello, World!");
+   }
+}`;
+
+      case 'typescript':
+        return '// Start typing your TypeScript code!\nconsole.log("Hello, World!");';
+
+      case 'c':
+        return `// Start typing your C code!
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main() {
+   printf("Hello, World!\\n");
+   return 0;
+}`;
+
+      case 'cpp':
+        return `// Start typing your C++ code!
+#include <iostream>
+#include <string>
+#include <vector>
+using namespace std;
+
+int main() {
+   ios_base::sync_with_stdio(false);
+   cin.tie(NULL);
+   printf("Hello, World!\\n");
+   return 0;
+}`;
+
+     case 'csharp':
+       return `// Start typing your C# code!
+using System;
+public class Program {
+   public static void Main(string[] args) {
+       Console.WriteLine("Hello, World!");
+   }
+}`;
+
+    case 'r':
+      return `# Start typing your R code!
+world <- "Mars"    
+print(paste("Hello,", world, "!"))`;
+    case 'swift':
+      return `// Start typing your Swift code!
+import Foundation
+print("Hello, World!");`;
+    case 'kotlin':
+      return `// Start typing your Kotlin code!
+import java.util.*
+import kotlin.collections.*
+import kotlin.io.*
+import kotlin.text.*
+
+fun main(args: Array<String>) {
+    // For better performance in competitive programming
+    val reader = System.\`in\`.bufferedReader()
+    val writer = System.out.bufferedWriter()
+    
+    println("Hello, World!")
+    
+    writer.flush()
+}`;
+    default:
+      return '// Start typing your code here...';
+   }
+  };
+
+  const onChangeSetLocal = (code: string) => {
+    localStorage.setItem(language + 'Code', code);
+    onChange(code);
+  }
+
+  useEffect(() => {
+    if(!language) return;
+    const previousCode = localStorage.getItem(language + 'Code');
+    if(previousCode) {
+      onChange(previousCode);
+    }
+    else{
+      onChange(getDefaultCodeStarter(language));
+    }
+  }, [language]);
 
   return (
     <Box
@@ -133,14 +238,14 @@ export const CodeEditorWithCodeMirror: React.FC<CodeEditorProps> = ({
       >
         <CodeMirror
           value={code || ''}
-          onChange={onChange}
+          onChange={onChangeSetLocal}
           theme={isDarkMode ? githubDark : githubLight}
           height="100%"
           minHeight={minHeight}
           width='100%'
           extensions={[getLanguageExtension(language)]}
           editable={!disabled}
-          placeholder={placeholder}
+          // placeholder={getDefaultPlaceholder(language)}
           basicSetup={{
             lineNumbers: true,
             highlightActiveLineGutter: true,
@@ -156,7 +261,6 @@ export const CodeEditorWithCodeMirror: React.FC<CodeEditorProps> = ({
             crosshairCursor: true,
             highlightSelectionMatches: true,
             tabSize: 4,
-            indentUnit: 4,
           }}
         />
       </Box>

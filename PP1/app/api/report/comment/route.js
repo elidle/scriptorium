@@ -32,7 +32,7 @@ export async function POST(req) {
     if (!existingComment || existingComment.isDeleted) {
       return Response.json({ status: 'error', message: 'Comment not found' }, { status: 404 });
     }
-    const report = await prisma.commentReport.create({
+    await prisma.commentReport.create({
       data: {
         reporterId: reporterId,
         commentId: Number(commentId),

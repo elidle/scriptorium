@@ -29,6 +29,7 @@ export default function CodeTemplates() {
   const [hasMore, setHasMore] = useState(true);
 
   const fetchCodeTemplates = async () => {
+    if (isLoading || !hasMore) return;
     setError("");
     setIsLoading(true);
 
@@ -244,7 +245,7 @@ export default function CodeTemplates() {
               }
               endMessage={
                 <Typography className="text-center p-4 text-slate-400">
-                  You've seen all templates!
+                  You&apos;ve seen all templates!
                 </Typography>
               }
             >

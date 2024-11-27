@@ -9,22 +9,11 @@ import UserAvatar from '@/app/components/UserAvatar';
 import { CodeTemplate } from '@/app/types';
 import { useAuth } from '@/app/contexts/AuthContext';
 import UserProfileAvatar from '@/app/components/UserProfileAvatar';
-
-
-interface UserProfileProps {
-    avatar: string;
-    firstname: string;
-    lastname: string;
-    email: string;
-    phoneNumber: string;
-    username: string; // Added username property
-    role: string;
-    id: string | number;
-    about: string;
-}
+import { Comment } from '@/app/types/comment';
+import { User } from '@/app/types/auth';
 
 // This function runs on the server and fetches user data.
-async function getUserData(username: string): Promise<UserProfileProps | null> {
+async function getUserData(username: string): Promise<User | null> {
 
     try {
         // Find the corresponding user id from the database
@@ -97,9 +86,9 @@ async function getTemplates(username: string): Promise<CodeTemplate[]> {
 
 export default function UserProfile({ params }: { params: { username: string } }) {
   const router = useRouter();
-  const [user, setUser] = useState<UserProfileProps | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [view, setView] = useState("templates");
-  const [comments, setComments] = useState<any[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [templates, setTemplates] = useState<CodeTemplate[]>([]);
   const {user: currentUser } = useAuth();
 
@@ -121,7 +110,7 @@ export default function UserProfile({ params }: { params: { username: string } }
         setComments(Array.isArray(data) ? data : []);;
     };
     fetchUserComments();
-``}, [params.username]); // Fetch data when the username changes
+ }, [params.username]); // Fetch data when the username changes
 
   useEffect(() => {
     const fetchUserTemplates = async () => {
@@ -265,13 +254,13 @@ export default function UserProfile({ params }: { params: { username: string } }
                 comments.map((comment) => (
                     <div key={comment.id} className="mb-4 border-b border-gray-300 dark:border-gray-700 pb-4">
                         <div className="flex items-center mb-2">
-                            <UserAvatar username={comment.author} userId={comment.id} size={32} />
+                            <UserAvatar username={comment.authorUsername} userId={comment.authorId} size={32} />
                             <p className="ml-2 text-gray-700 dark:text-gray-300">
-                                <strong>{comment.author}</strong>
+                                <strong>{comment.authorUsername}</strong>
                             </p>
                         </div>
                         <p className="text-gray-700 dark:text-gray-300 ml-10">
-                            {comment.text}
+                            {comment.content}
                         </p>
                     </div>
                 ))

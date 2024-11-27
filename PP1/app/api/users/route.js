@@ -1,7 +1,6 @@
 import { ForbiddenError } from '../../../errors/ForbiddenError';
 import { UnauthorizedError } from '../../../errors/UnauthorizedError';
-import { authorize } from '../../middleware/auth';
-import {prisma} from "../../../utils/db";
+import { prisma } from "../../../utils/db";
 
 export async function GET(req) {
     // An alternative for [id]/profile route except it uses username instead of id

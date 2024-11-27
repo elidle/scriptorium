@@ -80,7 +80,7 @@ export async function DELETE(req, { params }) {
 
     await authorize(req, ['user', 'admin'], comment.authorId);
 
-    const deletedComment = await prisma.comment.update({
+    await prisma.comment.update({
       where: { id },
       data: {
         authorId: null,

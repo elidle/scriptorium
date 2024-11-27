@@ -116,7 +116,11 @@ export default function CommentReport({ params }: CommentReportParams) {
         return;
       }
 
-      reset ? setReports(data.reports) : setReports(prev => [...prev, ...data.reports]);
+      if (reset) {
+        setReports(data.reports);
+      } else {
+        setReports(prev => [...prev, ...data.reports]);
+      }
       setHasMore(data.hasMore);
       setPage(data.nextPage);
     } catch (err) {

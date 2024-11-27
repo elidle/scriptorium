@@ -1,16 +1,15 @@
-'use client'; // This directive makes the component a Client Component
+'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ErrorBox from '@/app/components/ErrorBox';
 import { useAuth } from "../contexts/AuthContext";
-import { UserAuthData } from '@/app/types/user-auth-data';
 
 export default function Login() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
-    const {user, accessToken, setAccessToken, setUser } = useAuth();
+    const { accessToken, setAccessToken, setUser } = useAuth();
 
     const router = useRouter();
 
@@ -28,12 +27,11 @@ export default function Login() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password } as LoginFormData),
+        body: JSON.stringify({ username, password }),
       });
       
       if (response.ok) {
         // Clear the input fields after successful login
-        // console.log('Login successful');
         setUsername('');
         setPassword('');
         setError(null); // Clear any previous error messages
@@ -41,19 +39,13 @@ export default function Login() {
         // Save the access token in the context
         const data = await response.json();
         setAccessToken(data.accessToken);
-        const userAuthData: UserAuthData = {
-          id: data.user.id,
-          username: data.user.username,
-          role: data.user.role,
-          // Add other properties as needed
-        };
-        setUser(userAuthData);
+        setUser(data.user);
 
         // Redirect user or perform any other actions here  
         router.push('/');
 
       } else {    
-        const errorData: ErrorResponse = await response.json();
+        const errorData = await response.json();
         setError(errorData.message || 'Invalid username or password');
       }
     };
@@ -110,7 +102,7 @@ export default function Login() {
               </div>
             )}
             <p className="text-center text-gray-600 mt-4">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <a href="views/signup" className="text-blue-500 hover:underline">
               Sign up
               </a>

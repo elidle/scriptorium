@@ -5,7 +5,7 @@ import { ForbiddenError } from '../../../../errors/ForbiddenError';
 import { UnauthorizedError } from '../../../../errors/UnauthorizedError';
 import { authorize } from '../../../middleware/auth';
 import {prisma} from "../../../../utils/db";
-import {hashPassword} from "../../../../utils/auth.js";
+import {hashPassword} from "../../../../utils/auth";
 
 export async function GET(req, { params }) {
     const { id } = params;

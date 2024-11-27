@@ -23,9 +23,11 @@
     "@mui/material-nextjs": "^6.1.6",
     "@prisma/client": "^5.21.1",
     "@prisma/studio": "^0.503.0",
+    "@uiw/codemirror-theme-github": "^4.23.6",
     "@uiw/codemirror-theme-vscode": "^4.23.6",
     "@uiw/react-codemirror": "^4.23.6",
     "bcrypt": "^5.1.1",
+    "dockerode": "^4.0.2",
     "js-cookie": "^3.0.5",
     "jsonwebtoken": "^9.0.2",
     "lodash.debounce": "^4.0.8",
@@ -37,7 +39,9 @@
     "react-infinite-scroll-component": "^6.1.0"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
     "@types/js-cookie": "^3.0.6",
+    "@types/jsonwebtoken": "^9.0.7",
     "@types/lodash.debounce": "^4.0.9",
     "@types/node": "^20",
     "@types/prismjs": "^1.26.5",

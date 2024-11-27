@@ -1,4 +1,4 @@
-export async function POST(req) {
+export async function POST() {
   try {
     // Create response headers with cookie clearing
     const headers = new Headers();

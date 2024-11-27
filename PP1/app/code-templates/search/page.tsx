@@ -1,38 +1,24 @@
 "use client";
 import {
-  AppBar,
   Typography,
   Button,
-  IconButton,
-  Drawer,
   Box,
-  Toolbar,
-  Card,
-  CardContent,
-  Chip,
   CircularProgress,
   Theme,
-  createTheme,
   Divider,
 } from "@mui/material";
 import React, { useCallback, useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import {
-  ChevronLeft,
-  ChevronRight,
-  Code,
-  Play,
   FileCode,
-  BookOpen,
-  Plus,
-  Gamepad2,
-  ChevronDown,
-  ChevronUp,
-  Rocket, User, Star, Clock, TrendingUp
+  Star,
+  Clock,
+  TrendingUp,
+  Plus
 } from 'lucide-react';
 import TagsContainer from "@/app/components/TagsContainer";
 import ErrorBox from "@/app/components/ErrorBox";
-import { CodeTemplate, Tag, SearchParams, SortByTypes } from "@/app/types";
+import {CodeTemplate, Tag, SearchParams, SortByTypes, User} from "@/app/types";
 import SearchBar from "@/app/components/SearchBar";
 import {useRouter} from "next/navigation";
 import TemplateCard from "@/app/components/TemplateCard";
@@ -42,11 +28,16 @@ import BaseLayout from "@/app/components/BaseLayout";
 import SortMenu from "@/app/components/SortMenu";
 import FilterDrawer from "@/app/components/FilterDrawer";
 import {useTheme} from "@/app/contexts/ThemeContext";
+import {AppRouterInstance} from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 const API_SERVICE = {
   domain: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
 
-   async fetchCodeTemplates(params: SearchParams, accessToken = null, user = null, setAccessToken = null, router = null) {
+  async fetchCodeTemplates(params: SearchParams,
+                           accessToken: string | null = null,
+                           user: User | null = null,
+                           setAccessToken: ((token: string | null) => void ) | null = null,
+                           router: AppRouterInstance | null = null) {
     const tagsQuery = params.tags.length ? `&tags=${params.tags.join('&tags=')}` : '';
     const url = `${this.domain}/api/code-templates/search?q=${params.query || ''}&sortBy=${params.sortBy || 'new'}&username=${params.username || ''}&page=${params.page}${tagsQuery}`;
 
@@ -89,8 +80,8 @@ const API_SERVICE = {
 
 export default function CodeTemplates() {
   const router = useRouter();
-  const { user, setUser, accessToken, setAccessToken } = useAuth();
-  const {theme, isDarkMode} = useTheme();
+  const { user, accessToken, setAccessToken } = useAuth();
+  const { theme } = useTheme();
 
   // Handle routing
   const handleCreateTemplate = () => {
@@ -185,8 +176,6 @@ export default function CodeTemplates() {
 
   // Effects
   useEffect(() => {
-    console.log("CD, User: ", user); // TODO: Remove this line
-    console.log("CD, Access Token: ", accessToken); // TODO: Remove this line
     fetchCodeTemplates();
     fetchTags();
   }, []);
@@ -198,7 +187,6 @@ export default function CodeTemplates() {
 
   // Debugging
   useEffect(() => {
-    console.log("Debug Code Templates: ", codeTemplates); // TODO: Remove this line
   }, [codeTemplates]);
 
   // Event handlers
@@ -324,7 +312,7 @@ export default function CodeTemplates() {
             />
         </Box>
 
-          {error && <ErrorBox errorMessage={error} sx={{ mb: 4 }} />}
+          {error && <ErrorBox errorMessage={error}/>}
 
           {codeTemplates.length === 0 && !isLoading ? (
             <NoTemplatesFound />
@@ -341,7 +329,7 @@ export default function CodeTemplates() {
               }
               endMessage={
                 <Typography variant="body1" align="center" sx={{ p: 4, color: 'text.secondary' }}>
-                  You've reached the end!
+                  You&apos;ve reached the end!
                 </Typography>
               }
             >

@@ -1,9 +1,16 @@
+import { NextRequest } from 'next/server';
 import { UnauthorizedError } from '../../errors/UnauthorizedError';
 import { ForbiddenError } from '../../errors/ForbiddenError';
 import { verifyAccessToken } from '../../utils/auth';
 
-export async function authorize(req, roles = [], owner = -1) {
-    if (typeof roles === 'string') roles = [roles];
+import { TokenVerification } from '@/app/types/auth';
+
+export async function authorize(
+  req: NextRequest, 
+  roles: string[] = [], 
+  owner: number | null = -1
+): Promise<boolean> {
+    if (typeof roles === 'string') roles = [roles] as string[];
 
     const authorizationHeader = req.headers.get('access-token');
     if (!authorizationHeader) {
@@ -11,7 +18,7 @@ export async function authorize(req, roles = [], owner = -1) {
     }
 
     try {
-        const verification = verifyAccessToken(authorizationHeader);
+        const verification: TokenVerification | null = verifyAccessToken(authorizationHeader);
         if (!verification || (!verification.valid && verification.reason === "Invalid token.")) {
             throw new UnauthorizedError("Invalid token");
         }
@@ -19,8 +26,8 @@ export async function authorize(req, roles = [], owner = -1) {
             throw new UnauthorizedError("Token has expired");
         }
 
-        const userRole = verification.decoded.role;
-        const userId = verification.decoded.id;
+        const userRole = verification.decoded!.role;
+        const userId = verification.decoded?.id;
 
         if (roles.length && !roles.includes(userRole)) {
             throw new ForbiddenError("Insufficient permissions");
@@ -35,6 +42,6 @@ export async function authorize(req, roles = [], owner = -1) {
         if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
             throw error;
         }
-        throw new UnauthorizedError(error.message);
+        throw new UnauthorizedError((error as Error).message);
     }
 }

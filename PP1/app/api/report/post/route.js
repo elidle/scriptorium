@@ -33,7 +33,7 @@ export async function POST(req) {
     if (!existingPost || existingPost.isDeleted) {
       return Response.json({ status: 'error', message: 'Post not found' }, { status: 404 });
     }
-    const report = await prisma.postReport.create({
+    await prisma.postReport.create({
       data: {
         reporterId: reporterId,
         postId: Number(postId),

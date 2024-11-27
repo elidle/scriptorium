@@ -14,4 +14,3 @@ const ContentContainer: React.FC<ContentContainerProps> = ({children, key}) => {
 }
 
 export default ContentContainer;
-

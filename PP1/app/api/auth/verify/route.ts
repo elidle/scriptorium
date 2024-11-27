@@ -1,6 +1,6 @@
-import {verifyAccessToken} from "@/utils/auth";
+import { verifyAccessToken } from "@/utils/auth";
 import { cookies } from "next/headers";
-import { prisma } from "@/utils/db"; // assuming you use Prisma
+import { prisma } from "@/utils/db";
 
 export async function GET() {
     try {
@@ -17,9 +17,8 @@ export async function GET() {
             return Response.json({ error: "Invalid token" }, { status: 401 });
         }
 
-        // Fetch fresh user data
         const user = await prisma.user.findUnique({
-            where: { id: result.decoded.id },
+            where: { id: result.decoded?.id },
             select: {
                 id: true,
                 username: true,
@@ -33,7 +32,7 @@ export async function GET() {
 
         return Response.json({ user: user, "access-token": accessToken.value });
 
-    } catch (error) {
+    } catch {
         return Response.json({ error: "Internal server error" }, { status: 500 });
     }
 }

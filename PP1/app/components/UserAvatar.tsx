@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar } from '@mui/material';
 
@@ -11,7 +10,6 @@ interface UserAvatarProps {
 
 export default function UserAvatar({ username, userId, size = 40 }: UserAvatarProps) {
   const [avatarError, setAvatarError] = useState(false);
-
   return (
     username[0] === '[' ? (
       <div className={`relative h-${size/4} w-${size/4}`}>

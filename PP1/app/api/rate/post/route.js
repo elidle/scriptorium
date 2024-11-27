@@ -124,7 +124,7 @@ export async function DELETE(req) {
       );
     }
 
-    const deletedRating = await prisma.postRating.update({
+    await prisma.postRating.update({
       where: { id: rating.id },
       data: { value: 0 }
     });

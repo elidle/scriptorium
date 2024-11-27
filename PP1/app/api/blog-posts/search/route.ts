@@ -1,27 +1,31 @@
+import { NextRequest } from 'next/server';
 import { prisma } from '../../../../utils/db';
 import { itemsRatingsToMetrics } from '../../../../utils/blog/metrics';
 import { sortItems } from '../../../../utils/blog/sorts';
 import { fetchCurrentPage } from '../../../../utils/pagination';
 import { authorize } from '../../../middleware/auth';
 import { ForbiddenError } from '../../../../errors/ForbiddenError';
+import { Post, PostWithMetrics, PaginatedResponse } from '@/app/types/post';
 
-export async function GET(req) {
+type SortType = 'new' | 'old' | 'top' | 'controversial';
+
+export async function GET(req: NextRequest): Promise<Response> {
   try {
     const searchParams = req.nextUrl.searchParams;
 
-     // User parameter
-     const userId = Number(searchParams.get('userId'));
+    // User parameter
+    const userId = Number(searchParams.get('userId'));
 
-     if (userId) {
-       await authorize(req, ['user', 'admin'], userId);
-     }
+    if (userId) {
+      await authorize(req, ['user', 'admin'], userId);
+    }
 
     // Filter parameters
     const q = searchParams.get('q') || '';
-    const tags = req.nextUrl.searchParams.getAll('tags');
+    const tags = searchParams.getAll('tags');
 
     // Sorting parameter
-    const sortBy = searchParams.get('sortBy') || 'new';
+    const sortBy = (searchParams.get('sortBy') || 'new') as SortType;
 
     if (!['new', 'old', 'top', 'controversial'].includes(sortBy)) {
       return Response.json(
@@ -40,9 +44,10 @@ export async function GET(req) {
         { status: 400 }
       );
     }
+
     const posts = await prisma.blogPost.findMany({
       where: {
-        ...(q && { 
+        ...(q && {
           OR: [
             { title: { contains: q } },
             { content: { contains: q } }
@@ -59,7 +64,6 @@ export async function GET(req) {
         }),
         isDeleted: false,
         isHidden: false,
-        // TODO : Fix searching with code templates
       },
       select: {
         id: true,
@@ -99,10 +103,12 @@ export async function GET(req) {
       ...post,
       userVote: userId ? (post.ratings.find(rating => rating.userId === userId)?.value || 0) : 0
     }));
+
     const postsWithMetrics = itemsRatingsToMetrics(postsWithVotes);
     const sortedPosts = sortItems(postsWithMetrics, sortBy);
     const paginatedPosts = fetchCurrentPage(sortedPosts, page, limit);
-    const curPage = paginatedPosts.curPage.map(post => ({
+
+    const curPage: Post[] = paginatedPosts.curPage.map((post: PostWithMetrics) => ({
       id: post.id,
       title: post.title,
       content: post.content,
@@ -114,10 +120,14 @@ export async function GET(req) {
       userVote: post.userVote,
       allowAction: true
     }));
-    const hasMore = paginatedPosts.hasMore;
-    const nextPage = hasMore ? page + 1 : null;
 
-    return Response.json( { posts: curPage, hasMore: hasMore, nextPage: nextPage }, { status: 200 });
+    const response: PaginatedResponse = {
+      posts: curPage,
+      hasMore: paginatedPosts.hasMore,
+      nextPage: paginatedPosts.hasMore ? page + 1 : null
+    };
+
+    return Response.json(response, { status: 200 });
   } catch (error) {
     console.error(error);
     if (error instanceof ForbiddenError) {

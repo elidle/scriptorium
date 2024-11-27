@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import {useParams, useRouter} from 'next/navigation';
+import {useParams} from 'next/navigation';
 import {
   Box,
   Container,
@@ -14,8 +14,6 @@ import CodeEditor from '@/app/components/CodeEditor';
 
 
 const CodeTemplatePage = () => {
-
-
   const params = useParams();
   const [template, setTemplate] = useState<CodeTemplate | null>(null);
   const [isLoading, setIsLoading] = useState(true);

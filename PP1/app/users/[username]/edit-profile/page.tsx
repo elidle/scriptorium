@@ -7,18 +7,7 @@ import { useAuth } from "@/app/contexts/AuthContext";
 import UserAvatar from "@/app/components/UserAvatar";
 import { notFound } from "next/navigation";
 import UserProfileAvatar from "@/app/components/UserProfileAvatar";
-
-interface UserProfileProps {
-  avatar: string;
-  firstname: string;
-  lastname: string;
-  email: string;
-  phoneNumber: string;
-  username: string;
-  role: string;
-  id: string | number;
-  about: string;
-}
+import { User } from "@/app/types/auth";
 
 interface FormData {
   firstName: string;
@@ -29,7 +18,7 @@ interface FormData {
 }
 
 // Custom hook for form handling
-const useProfileForm = (initialData: UserProfileProps | null) => {
+const useProfileForm = (initialData: User | null) => {
   const [formData, setFormData] = useState<FormData>({
     firstName: initialData?.firstname || "",
     lastName: initialData?.lastname || "",
@@ -60,7 +49,7 @@ const useProfileForm = (initialData: UserProfileProps | null) => {
 
 // Separate API calls into a service
 const profileService = {
-  async getUserData(username: string): Promise<UserProfileProps | null> {
+  async getUserData(username: string): Promise<User | null> {
     try {
       const response = await fetch(`http://localhost:3000/api/users?username=${username}`, {
         headers: { 'Content-Type': 'application/json' },
@@ -157,7 +146,7 @@ export default function ProfileUpdate({ params }: { params: { username: string }
       if (result.message) {
         showToast(result.message);
       }
-    } catch (err) {
+    } catch {
       showToast("Failed to update profile", "error");
     }
   };
@@ -165,9 +154,9 @@ export default function ProfileUpdate({ params }: { params: { username: string }
   const handleFileUpload = async (file: File) => {
     try {
       if (!user) return;
-      const result = await profileService.uploadAvatar(file, user.id);
+      await profileService.uploadAvatar(file, user.id);
       showToast("Avatar uploaded successfully");
-    } catch (error) {
+    } catch {
       showToast("Failed to upload avatar", "error");
     }
   };
@@ -177,7 +166,7 @@ export default function ProfileUpdate({ params }: { params: { username: string }
       if (!user) return;
       await profileService.deleteAvatar(user.id);
       showToast("Avatar deleted successfully");
-    } catch (error) {
+    } catch {
       showToast("Failed to delete avatar", "error");
     }
   };
@@ -195,7 +184,7 @@ export default function ProfileUpdate({ params }: { params: { username: string }
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 max-w-md w-full text-center">
           <h2 className="text-2xl font-bold text-red-600 mb-4">Not Authorized</h2>
           <p className="text-gray-600 dark:text-gray-300 mb-6">
-            You don't have permission to view or edit this profile.
+            You don&apos;t have permission to view or edit this profile.
           </p>
           <button
             onClick={() => window.history.back()}

@@ -27,7 +27,7 @@ export async function GET(req, { params }) {
         'Cache-Control': 'public, max-age=31536000'
       }
     })
-  } catch (e) {
+  } catch {
     return Response.json({ error: 'Avatar not found' }, { status: 404 });
   }
 }

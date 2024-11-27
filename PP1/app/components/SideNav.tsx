@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { ThemeProvider, Box, Typography } from '@mui/material';
 import {
   Code,
   Search,
@@ -16,13 +15,15 @@ import {
   Flag,
   Eye
 } from 'lucide-react';
+import {logoutUser} from "@/app/utils/auth";
 
 const SideNav = ({ router }: { router: ReturnType<typeof useRouter> }) => {
   const pathname = usePathname();
   const { user, setUser, setAccessToken } = useAuth();
-  const { theme, isDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logoutUser();
     setUser(null);
     setAccessToken(null);
     router.refresh();
@@ -31,144 +32,95 @@ const SideNav = ({ router }: { router: ReturnType<typeof useRouter> }) => {
   const isActive = (path: string) => pathname === path;
 
   const NavLink = ({ href, children }: { href: string, children: React.ReactNode }) => (
-    <Link 
-      href={href}
-      style={{ textDecoration: 'none' }}
-    >
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          p: 1,
-          borderRadius: 1,
-          transition: 'all 0.2s ease-in-out',
-          color: isActive(href) ? 'primary.main' : 'text.secondary',
-          bgcolor: isActive(href) 
-            ? (isDarkMode ? 'rgba(37, 99, 235, 0.2)' : 'rgba(37, 99, 235, 0.1)')
-            : 'transparent',
-          '&:hover': {
-            bgcolor: isDarkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(241, 245, 249, 0.8)',
-            color: 'primary.main',
-          },
-        }}
-      >
-        {children}
-      </Box>
+    <Link href={href}
+      className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200
+        ${isActive(href) 
+          ? isDarkMode
+            ? 'bg-blue-600/20 text-blue-400'
+            : 'bg-blue-50 text-blue-600'
+          : isDarkMode
+            ? 'text-slate-400 hover:bg-slate-800/80 hover:text-blue-400'
+            : 'text-slate-600 hover:bg-slate-100 hover:text-blue-600'
+        }`}>
+      {children}
     </Link>
   );
 
   const NavSection = ({ title, children }: { title: string, children: React.ReactNode }) => (
-    <Box sx={{ mb: 3 }}>
-      <Typography
-        variant="subtitle2"
-        sx={{
-          px: 1,
-          mb: 1,
-          color: 'text.secondary',
-          fontWeight: 500,
-          fontSize: '0.875rem',
-        }}
-      >
+    <div className="mb-6">
+      <h3 className={`px-2 mb-2 text-sm font-medium
+        ${isDarkMode ? 'text-slate-500' : 'text-slate-600'}`}>
         {title}
-      </Typography>
-      <Box
-        component="nav"
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 0.5,
-        }}
-      >
+      </h3>
+      <nav className="space-y-1">
         {children}
-      </Box>
-    </Box>
+      </nav>
+    </div>
   );
 
   return (
-    <ThemeProvider theme={theme}>
-      <Box
-        sx={{
-          height: '100%',
-          overflowY: 'auto',
-          pt: '80px',
-          px: 2,
-          bgcolor: 'background.paper',
-        }}
-      >
-        <NavSection title="Code">
-          <NavLink href="/code-templates/new">
-            <Code size={18} /> Run Code
+    <div className={`h-full overflow-y-auto pt-20 px-4
+      ${isDarkMode 
+        ? 'bg-slate-900 border-r border-slate-800'
+        : 'bg-white border-r border-slate-200'}`}>
+      <NavSection title="Code">
+        <NavLink href="/code-templates/new">
+          <Code size={18}/> Run Code
+        </NavLink>
+        <NavLink href="/code-templates/search">
+          <Search size={18}/> Code Templates
+        </NavLink>
+      </NavSection>
+
+      <NavSection title="Blog">
+        <NavLink href="/blog-posts/submit">
+          <PenSquare size={18}/> Submit Post
+        </NavLink>
+        <NavLink href="/blog-posts/search">
+          <Search size={18}/> Posts
+        </NavLink>
+      </NavSection>
+
+      {user ? (
+        <NavSection title="Account">
+          <NavLink href={`/users/${user.username}`}>
+            <User size={18}/> Profile
           </NavLink>
-          <NavLink href="/code-templates/search">
-            <Search size={18}/> Code Templates
+          <Link
+            href="/blog-posts/search"
+            onClick={handleLogout}
+            className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200
+              ${isDarkMode
+                ? 'text-slate-400 hover:bg-slate-800/80 hover:text-blue-400'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-blue-600'}`}>
+            <LogOut size={18}/> Logout
+          </Link>
+        </NavSection>
+      ) : (
+        <NavSection title="Account">
+          <NavLink href="/auth/login">
+            <LogIn size={18}/> Login
+          </NavLink>
+          <NavLink href="/signup">
+            <UserPlus size={18}/> Signup
           </NavLink>
         </NavSection>
+      )}
 
-        <NavSection title="Blog">
-          <NavLink href="/blog-posts/submit">
-            <PenSquare size={18}/> Submit Post
+      {user?.role === 'admin' && (
+        <NavSection title="Admin">
+          <NavLink href="/admin/post-reports">
+            <Shield size={18}/> Reported Posts
           </NavLink>
-          <NavLink href="/blog-posts/search">
-            <Search size={18}/> Posts
+          <NavLink href="/admin/comment-reports">
+            <Flag size={18}/> Reported Comments
+          </NavLink>
+          <NavLink href="/admin/unhide">
+            <Eye size={18}/> Unhide
           </NavLink>
         </NavSection>
-
-        {user ? (
-          <NavSection title="Account">
-            <NavLink href={`/users/${user.username}`}>
-              <User size={18}/> Profile
-            </NavLink>
-            <Link 
-              href="/blog-posts/search"
-              onClick={handleLogout}
-              style={{ textDecoration: 'none' }}
-            >
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  p: 1,
-                  borderRadius: 1,
-                  transition: 'all 0.2s ease-in-out',
-                  color: 'text.secondary',
-                  '&:hover': {
-                    bgcolor: isDarkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(241, 245, 249, 0.8)',
-                    color: 'primary.main',
-                  },
-                }}
-              >
-                <LogOut size={18}/> Logout
-              </Box>
-            </Link>
-          </NavSection>
-        ) : (
-          <NavSection title="Account">
-            <NavLink href="/auth/login">
-              <LogIn size={18}/> Login
-            </NavLink>
-            <NavLink href="/auth/signup">
-              <UserPlus size={18}/> Signup
-            </NavLink>
-          </NavSection>
-        )}
-
-        {user?.role === 'admin' && (
-          <NavSection title="Admin">
-            <NavLink href="/admin/post-reports">
-              <Shield size={18}/> Reported Posts
-            </NavLink>
-            <NavLink href="/admin/comment-reports">
-              <Flag size={18}/> Reported Comments
-            </NavLink>
-            <NavLink href="/admin/unhide">
-              <Eye size={18}/> Unhide
-            </NavLink>
-          </NavSection>
-        )}
-      </Box>
-    </ThemeProvider>
+      )}
+    </div>
   );
 };
 

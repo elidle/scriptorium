@@ -4,57 +4,51 @@ import SideNav from './SideNav';
 import {useState} from "react";
 import {useRouter} from "next/navigation";
 import {useTheme} from "@/app/contexts/ThemeContext";
-import { ThemeProvider as MuiThemeProvider } from '@mui/material';
+import {User} from "@/app/types";
 
 interface BaseLayoutProps {
   children: React.ReactNode;
-  user: any;
+  user: User | null;
   onSearch: (searchTerm: string) => void;
   type: 'post' | 'code-template';
 }
 
 export default function BaseLayout({ children, user, onSearch, type }: BaseLayoutProps) {
   const router = useRouter();
-  const { theme, isDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
   const [isSideNavOpen, setIsSideNavOpen] = useState(false);
 
   return (
-    <MuiThemeProvider theme={theme}>
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex',
-        backgroundColor: theme.palette.background.default 
-      }}>
-        {/* Overlay for sidenav */}
-        <div
-          className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${
-            isSideNavOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
-          onClick={() => setIsSideNavOpen(false)}
+    <div className={`flex ${isDarkMode ? 'bg-slate-900' : 'bg-slate-300'}`}>
+      {/* Overlay for sidenav */}
+      <div
+        className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${
+          isSideNavOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={() => setIsSideNavOpen(false)}
+      />
+
+      {/* Left sidebar */}
+      <div
+        className={`fixed left-0 top-0 h-screen w-64 bg-slate-900 border-r border-slate-800 z-50 transition-transform duration-300 transform ${
+          isSideNavOpen ? "translate-x-0" : "-translate-x-full"
+        }`}>
+        <SideNav router={router}/>
+      </div>
+
+      <div className="flex-1 transition-all duration-300">
+        <AppBar
+          user={user}
+          onSearch={onSearch}
+          onMenuClick={() => setIsSideNavOpen(!isSideNavOpen)}
+          type={type}
         />
 
-        {/* Left sidebar */}
-        <div
-          className={`fixed left-0 top-0 h-screen w-64 bg-slate-900 border-r border-slate-800 z-50 transition-transform duration-300 transform ${
-            isSideNavOpen ? "translate-x-0" : "-translate-x-full"
-          }`}>
-          <SideNav router={router}/>
-        </div>
-
-        <div className="flex-1 transition-all duration-300">
-          <AppBar
-            user={user}
-            onSearch={onSearch}
-            onMenuClick={() => setIsSideNavOpen(!isSideNavOpen)}
-            type={type}
-          />
-
-          {/* Content area */}
-          <div>
-            {children}
-          </div>
+        {/* Content area */}
+        <div>
+          {children}
         </div>
       </div>
-    </MuiThemeProvider>
+    </div>
   );
 }

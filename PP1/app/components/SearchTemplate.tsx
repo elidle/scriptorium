@@ -40,9 +40,9 @@ const SearchTemplate = ({
 
       try {
         const url = `http://localhost:3000/api/code-templates/search?q=${encodeURIComponent(query)}&sortBy=most_relevant`;
-        let options: RequestInit = {};
+        const options: RequestInit = {};
 
-        let response = await fetch(url, options);
+        const response = await fetch(url, options);
         const data = await response.json();
 
         if (data.status === "error") {
@@ -66,9 +66,9 @@ const SearchTemplate = ({
 
     try {
       const url = "http://localhost:3000/api/code-templates/search?q=&sortBy=most_relevant";
-      let options: RequestInit = {};
+      const options: RequestInit = {};
 
-      let response = await fetch(url, options);
+      const response = await fetch(url, options);
       const data = await response.json();
 
       if (data.status === "error") {

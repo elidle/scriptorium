@@ -13,7 +13,7 @@ import {
   Fade,
   Checkbox, alpha
 } from '@mui/material';
-import {Tags, Plus, RefreshCw, X, Search} from 'lucide-react';
+import {Tags, Plus, RefreshCw, X} from 'lucide-react';
 import SearchBar from '@/app/components/SearchBar';
 import debounce from 'lodash.debounce';
 import { mode } from "@/app/types";
@@ -187,9 +187,12 @@ const TagsContainer = ({
           bgcolor: 'background.paper',
           borderRadius: 2,
           overflow: 'hidden',
+          p: 3,
+          maxWidth: '600px',
           width: '100%'
         }}
       >
+
         {/* Search Bar */}
         <Box sx={{
           display: 'flex',

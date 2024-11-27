@@ -58,7 +58,11 @@ export default function CommentReports() {
       }
 
       const data = await response.json();
-      (reset ? setReportedComments(data.comments) : setReportedComments(prev => [...prev, ...data.comments]));
+      if (reset) {
+        setReportedComments(data.comments);
+      } else {
+        setReportedComments(prev => [...prev, ...data.comments]);
+      }
       setHasMore(data.hasMore);
       setPage(data.nextPage);
     } catch (err) {

@@ -1,12 +1,22 @@
+import { NextRequest } from 'next/server';
 import { prisma } from '../../../utils/db';
 import { authorize } from "../../middleware/auth";
 import { ForbiddenError } from "../../../errors/ForbiddenError";
 import { UnauthorizedError } from "../../../errors/UnauthorizedError";
 
-export async function POST(req) {
+interface BlogPostRequest {
+  authorId: number | string;
+  title: string;
+  content: string;
+  tags?: string[];
+  codeTemplateIds?: (number | string)[];
+}
+
+export async function POST(req: NextRequest): Promise<Response> {
   try {
-    let { authorId, title, content, tags = [], codeTemplateIds = [] } = await req.json();
-    authorId = Number(authorId);
+    const body = await req.json() as BlogPostRequest;
+    const { title, content, tags = [], codeTemplateIds = [] } = body;
+    const authorId = Number(body.authorId);
 
     if (!authorId || !title || !content) {
       return Response.json(
@@ -15,15 +25,17 @@ export async function POST(req) {
       );
     }
 
-    for (let i = 0; i < codeTemplateIds.length; i++) {
-      if (!Number(codeTemplateIds[i])) {
+    const numericTemplateIds = codeTemplateIds.map(id => Number(id));
+    
+    for (const templateId of numericTemplateIds) {
+      if (!templateId) {
         return Response.json(
           { status: 'error', error: 'One or more invalid code template ID' },
           { status: 400 }
         );
       }
 
-      const currentTemplate = await prisma.codeTemplate.findUnique({ where: { id: Number(codeTemplateIds[i]) } });
+      const currentTemplate = await prisma.codeTemplate.findUnique({ where: { id: templateId } });
       if (!currentTemplate) {
         return Response.json(
           { status: 'error', error: 'Code template not found' },
@@ -35,9 +47,7 @@ export async function POST(req) {
     await authorize(req, ['user', 'admin'], authorId);
 
     const author = await prisma.user.findUnique({
-      where: {
-          id: authorId,
-      },
+      where: { id: authorId }
     });
 
     if (!author) {
@@ -59,7 +69,7 @@ export async function POST(req) {
           }))
         },
         codeTemplates: {
-          connect: codeTemplateIds.map(id => ({ id: id }))
+          connect: numericTemplateIds.map(id => ({ id }))
         }
       },
       include: {

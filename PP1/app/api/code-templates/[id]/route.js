@@ -61,7 +61,7 @@ export async function GET(req, { params }) {
 
     });
   }
-  catch(err){
+  catch {
     return Response.json({ status: 'error', message: 'Failed to fetch template' }, { status: 400 });
   }
   if(!template){
@@ -159,7 +159,7 @@ export async function DELETE(req, { params }) {
     // Authorize author
     await authorize(req, ['user', 'admin'], existingTemplate.authorId);
 
-    const template = await prisma.codeTemplate.delete({
+    await prisma.codeTemplate.delete({
         where: {
           id: parseInt(id),
         },
