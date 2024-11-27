@@ -25,3 +25,9 @@ body {
     text-wrap: balance;
   }
 }
+
+.div-class {
+  width: 100%;      /* Take full width of the container */
+  max-width: 1200px; /* Limit maximum width */
+  height: auto;     /* Adjust height according to content */
+}

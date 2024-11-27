@@ -2,6 +2,7 @@ import { prisma } from '../../../../../utils/db';
 import { authorize } from "../../../../middleware/auth";
 import { fetchCurrentPage } from '../../../../../utils/pagination';
 import { ForbiddenError } from '../../../../../errors/ForbiddenError';
+import { UnauthorizedError } from '../../../../../errors/UnauthorizedError';
 
 export async function GET(req) {
   try {
@@ -30,6 +31,7 @@ export async function GET(req) {
       include: {
         author: {
           select: {
+            id: true,
             username: true
           }
         },
@@ -55,7 +57,7 @@ export async function GET(req) {
       authorId: post.author?.id,
       authorUsername: post.author?.username,
       createdAt: post.createdAt,
-      reportCount: post._count.report
+      reportCount: post._count.reports
     }));
 
     const hasMore = paginatedPosts.hasMore;
@@ -64,7 +66,7 @@ export async function GET(req) {
     return Response.json( { posts: curPage, hasMore: hasMore, nextPage: nextPage }, { status: 200 });
   } catch (error) {
     console.error(error);
-    if (error instanceof ForbiddenError) {
+    if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {
       return Response.json(
         { status: 'error', error: error.message },
         { status: error.statusCode }

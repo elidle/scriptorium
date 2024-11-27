@@ -1,6 +1,7 @@
 import { prisma, Prisma } from '../../../../utils/db'
 import {authorize} from "../../../middleware/auth";
 import {ForbiddenError} from "../../../../errors/ForbiddenError.js";
+import { UnauthorizedError } from '../../../../errors/UnauthorizedError.js';
 
 /*
   * This function is used to retrieve existing code template.
@@ -27,13 +28,37 @@ export async function GET(req, { params }) {
         explanation: true,
         tags: {
           select: {
+            id: true,
             name: true,
           }
         },
-        authorId: true,
+        author: {
+          select: {
+            id: true,
+            username: true,
+            avatar: true,
+          },
+        },
         isForked: true,
-        parentForkId: true,
+        parentFork: {
+          select: {
+            id: true,
+            title: true,
+            author: {
+              select: {
+                username: true,
+              }
+            }
+          }
+        },
+        childForks: {
+          select: {
+            id: true,
+            title: true,
+          }
+        }
       }
+
     });
   }
   catch(err){
@@ -42,7 +67,12 @@ export async function GET(req, { params }) {
   if(!template){
     return Response.json({ status: 'error', message: 'Template not found' }, { status: 404 });
   }
-  return Response.json(template, { status: 200 });
+  const response = {
+    ...template,
+    forkCount: template.childForks.length,
+  };
+
+  return Response.json(response, { status: 200 });
 }
 
 /*
@@ -95,7 +125,7 @@ export async function PUT(req, { params }) {
     });
   }
   catch(err){
-    if (err instanceof ForbiddenError) {
+    if (err instanceof ForbiddenError || err instanceof UnauthorizedError) {
       return Response.json({ status: "error", message: err.message }, { status: err.statusCode });
     }
     return Response.json({ status: 'error', message: 'Failed to update template' }, { status: 400 });
@@ -137,7 +167,7 @@ export async function DELETE(req, { params }) {
   }
   catch(err){
 
-    if (err instanceof ForbiddenError) {
+    if (err instanceof ForbiddenError || err instanceof UnauthorizedError) {
       return Response.json({ status: "error", message: err.message }, { status: err.statusCode });
     }
 

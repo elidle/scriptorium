@@ -8,7 +8,6 @@ export async function POST(req) {
     if (!username || !password) {
         return Response.json({ status: "error", message: "Missing fields" }, { status: 400 });
     }
-
     try {
         // Check if the user exists
         const user = await prisma.user.findUnique({
@@ -33,7 +32,7 @@ export async function POST(req) {
         const refreshToken = generateRefreshToken(obj);
 
         // Successful login
-        return Response.json({
+        const response = Response.json({
             message: "Login successful",
             user: {
                 id: user.id,
@@ -41,13 +40,23 @@ export async function POST(req) {
                 email: user.email,
                 firstname: user.firstname,
                 lastname: user.lastname,
+                about: user.about,
+                role: user.role
             },
-            "refresh-token" : refreshToken,
-            "access-token" : accessToken
-            }, {status: 200,
+            'access-token': accessToken,
+            }, {
+            status: 200,
+            headers: {
+                'Set-Cookie': [
+                    // Access token cookie
+                    `access_token=${accessToken}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${15 * 60}`, // 15 minutes
+                    // Refresh token cookie
+                    `refresh_token=${refreshToken}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${7 * 24 * 60 * 60}` // 7 days
+                ]
+            }
         });
+        return response;
     } catch (error) {
-        
         console.error("Error during login:", error);
         return Response.json({ status: "error", message: "Internal server error" }, { status: 500 });
     }

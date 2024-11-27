@@ -11,7 +11,7 @@ export async function GET(req) {
     tags = await prisma.tag.findMany({
       where: {
         name: {
-          contains: q ?? Prisma.skip,
+          contains: q ?? "",
         }
       },
       orderBy: {

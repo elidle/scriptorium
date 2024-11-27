@@ -1,6 +1,7 @@
 import { prisma } from '../../../../utils/db';
 import {authorize} from "../../../middleware/auth";
 import {ForbiddenError} from "../../../../errors/ForbiddenError.js";
+import { UnauthorizedError } from '../../../../errors/UnauthorizedError.js';
 
 // This function is used to report a post.
 export async function POST(req) {
@@ -41,7 +42,7 @@ export async function POST(req) {
     });
   }
   catch(err){
-    if (err instanceof ForbiddenError) {
+    if (err instanceof ForbiddenError || err instanceof UnauthorizedError) {
       return Response.json({ status: "error", message: err.message }, { status: err.statusCode });
     }
     return Response.json({ status: 'error', message: 'Failed to report post' }, { status: 500 });
