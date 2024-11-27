@@ -1,3 +1,3 @@
 #!/bin/sh
 npx prisma migrate deploy
-npm start
+/usr/local/lib/node_modules/pm2/bin/pm2-runtime start npm --name "scriptorium" -- start
