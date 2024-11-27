@@ -1,9 +1,15 @@
 import {Tag} from "@/app/types/tag";
 
-interface Author {
+export interface Author {
   id: string;
   username: string;
   avatar: string;
+}
+
+interface ParentFork {
+  id: string;
+  title: string;
+  author: { username: string };
 }
 
 export interface CodeTemplate {
@@ -32,4 +38,8 @@ export interface CodeEditorProps {
   language: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+}
+
+export interface ForkLabelProps {
+    parentTemplate?: ParentFork;
 }

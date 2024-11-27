@@ -1,24 +1,7 @@
-import React, { useState } from 'react';
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  Chip,
-  Avatar,
-  Tooltip,
-  IconButton, alpha
-} from "@mui/material";
-import {
-  GitBranch,
-  Clock,
-  Eye,
-  GitFork,
-  ChevronUp,
-  ChevronDown
-} from 'lucide-react';
-import { useRouter } from "next/navigation";
-import { CodeTemplate } from "@/app/types";
+import React from 'react';
+import {alpha, Box, Card, CardContent, Chip, Tooltip, Typography} from "@mui/material";
+import {Clock, GitBranch, GitFork} from 'lucide-react';
+import {CodeTemplate} from "@/app/types";
 import {useTheme} from "@/app/contexts/ThemeContext";
 import Link from "next/link";
 import UserAvatar from "@/app/components/UserAvatar";
@@ -29,7 +12,6 @@ interface TemplateCardProps {
 
 const MAX_DESCRIPTION_LENGTH = 200;
 const TemplateCard: React.FC<TemplateCardProps> = ({ template }) => {
-  const router = useRouter();
   const { theme, isDarkMode } = useTheme();
 
 
@@ -59,7 +41,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({ template }) => {
   };
 
   const getLanguageColor = (language: string) => {
-    const colors = {
+    const colors: Record<string, string> = {
       python: '#3776AB',
       python3: '#3776AB',
       javascript: '#F7DF1E',
