@@ -3,13 +3,25 @@ import { authorize } from "../../../../middleware/auth";
 import { fetchCurrentPage } from '../../../../../utils/pagination';
 import { ForbiddenError } from '../../../../../errors/ForbiddenError';
 import { UnauthorizedError } from '../../../../../errors/UnauthorizedError';
+import { NextRequest } from 'next/server';
 
-export async function GET(req) {
+import { CommentReports } from '@/app/types/comment';
+
+interface CommentReportsResponse {
+  id: number;
+  content: string;
+  authorId: number | null;
+  authorUsername: string | null;
+  postId: number;
+  createdAt: Date;
+  reportCount: number;
+}
+
+export async function GET(req: NextRequest): Promise<Response> {
   try {
     const searchParams = req.nextUrl.searchParams;
     await authorize(req, ['admin']);
 
-    // Pagination parameters
     const page = Number(searchParams.get('page') || '1');
     const limit = Number(searchParams.get('limit') || '10');
 
@@ -50,7 +62,7 @@ export async function GET(req) {
 
     const paginatedComments = fetchCurrentPage(comments, page, limit);
 
-    const curPage = paginatedComments.curPage.map(comment => ({
+    const curPage = paginatedComments.curPage.map((comment: CommentReports) => ({
       id: comment.id,
       content: comment.content,
       authorId: comment.author?.id,
@@ -58,12 +70,12 @@ export async function GET(req) {
       postId: comment.postId,
       createdAt: comment.createdAt,
       reportCount: comment._count.reports
-    }));
+    })) as CommentReportsResponse[];
 
     const hasMore = paginatedComments.hasMore;
     const nextPage = hasMore ? page + 1 : null;
 
-    return Response.json( { comments: curPage, hasMore: hasMore, nextPage: nextPage }, { status: 200 });
+    return Response.json({ comments: curPage, hasMore, nextPage }, { status: 200 });
   } catch (error) {
     console.error(error);
     if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {

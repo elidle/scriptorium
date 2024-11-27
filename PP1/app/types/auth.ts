@@ -17,5 +17,13 @@ export interface TokenVerification {
     id: number;
     role: string;
     exp?: number;
+    username?: string;
   };
 };
+
+export interface TokenPayload {
+  id: number;
+  role: string;
+  username?: string;
+  exp?: number;
+}

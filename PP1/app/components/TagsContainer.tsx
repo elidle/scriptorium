@@ -19,6 +19,8 @@ import debounce from 'lodash.debounce';
 import { mode } from "@/app/types";
 import { Tag } from "@/app/types";
 
+const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
 interface TagsContainerProps {
   tags: Tag[];
   selectedTags: string[];
@@ -78,7 +80,7 @@ const TagsContainer = ({
 
       try {
         const response = await fetch(
-          `http://localhost:3000/api/tags/search/?q=${encodeURIComponent(query)}`,
+          `${domain}/api/tags/search/?q=${encodeURIComponent(query)}`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -108,7 +110,7 @@ const TagsContainer = ({
     setError("");
 
     try {
-      const response = await fetch("http://localhost:3000/api/tags/search/?q=", {
+      const response = await fetch(`${domain}/api/tags/search/?q=`, {
         headers: {
           "Content-Type": "application/json",
         },

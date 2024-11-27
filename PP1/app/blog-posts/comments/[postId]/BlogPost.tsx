@@ -26,7 +26,7 @@ import { useRouter } from "next/navigation";
 
 import ConfirmationModal from "@/app/components/ConfirmationModal";
 
-const domain = "http://localhost:3000";
+const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 import { Post } from "@/app/types/post";
 import { Comment } from "@/app/types/comment";

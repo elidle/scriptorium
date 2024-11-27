@@ -1,22 +1,24 @@
+import { NextRequest } from 'next/server';
 import { prisma } from '../../../../utils/db';
 import { authorize } from "../../../middleware/auth";
 import { ForbiddenError } from '../../../../errors/ForbiddenError';
 import { UnauthorizedError } from '../../../../errors/UnauthorizedError';
+import { CommentRatingRequest } from '@/app/types/rating';
 
-export async function POST(req) {
+export async function POST(req: NextRequest): Promise<Response> {
   try {
-    let { value, userId, postId } = await req.json();
-    value = Number(value);
-    userId = Number(userId);
-    postId = Number(postId);
+    const body: CommentRatingRequest = await req.json();
+    const value = Number(body.value);
+    const userId = Number(body.userId);
+    const commentId = Number(body.commentId);
 
-    if (!value || !userId || !postId) {
+    if (!value || !userId || !commentId) {
       return Response.json(
         { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
       );
     }
-    
+
     if (value !== -1 && value !== 1) {
       return Response.json(
         { status: 'error', error: 'Invalid rating value (must be 1 for upvote or -1 for downvote)' },
@@ -35,32 +37,32 @@ export async function POST(req) {
       );
     }
 
-    const post = await prisma.blogPost.findUnique({ where: { id: postId } });
+    const comment = await prisma.comment.findUnique({ where: { id: commentId } });
 
-    if (!post || post.isDeleted || post.isHidden) {
+    if (!comment || comment.isDeleted || comment.isHidden) {
       return Response.json(
-        { status: 'error', error: 'Post not found' },
+        { status: 'error', error: 'Comment not found' },
         { status: 404 }
       );
     }
 
-    const existingRating = await prisma.postRating.findFirst({
+    const existingRating = await prisma.commentRating.findFirst({
       where: {
         userId,
-        postId
+        commentId
       }
     });
-    
+
     const newRating = existingRating 
-      ? await prisma.postRating.update({
+      ? await prisma.commentRating.update({
           where: { id: existingRating.id },
           data: { value }
         })
-      : await prisma.postRating.create({
+      : await prisma.commentRating.create({
           data: {
             value,
             user: { connect: { id: userId } },
-            post: { connect: { id: postId } }
+            comment: { connect: { id: commentId } }
           }
         });
 
@@ -77,13 +79,11 @@ export async function POST(req) {
   }
 }
 
-export async function DELETE(req) {
+export async function DELETE(req: NextRequest): Promise<Response> {
   try {
-    let { userId, postId } = await req.json();
-    userId = Number(userId);
-    postId = Number(postId);
+    const { userId, commentId }: CommentRatingRequest = await req.json();
 
-    if (!userId || !postId) {
+    if (!userId || !commentId) {
       return Response.json(
         { status: 'error', error: 'Missing or invalid ID field' },
         { status: 400 }
@@ -101,19 +101,19 @@ export async function DELETE(req) {
       );
     }
 
-    const post = await prisma.blogPost.findUnique({ where: { id: postId } });
+    const comment = await prisma.comment.findUnique({ where: { id: commentId } });
 
-    if (!post || post.isDeleted || post.isHidden) {
+    if (!comment || comment.isDeleted || comment.isHidden) {
       return Response.json(
-        { status: 'error', error: 'Post not found' },
+        { status: 'error', error: 'Comment not found' },
         { status: 404 }
       );
     }
 
-    const rating = await prisma.postRating.findFirst({ 
+    const rating = await prisma.commentRating.findFirst({ 
       where: { 
         userId,
-        postId
+        commentId
       } 
     });
 
@@ -124,12 +124,12 @@ export async function DELETE(req) {
       );
     }
 
-    await prisma.postRating.update({
+    await prisma.commentRating.update({
       where: { id: rating.id },
       data: { value: 0 }
     });
 
-    return Response.json( { status: 'success' }, { status: 200 } );
+    return Response.json({ status: 'success' }, { status: 200 });
   } catch (error) {
     console.error(error);
     if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {

@@ -1,16 +1,27 @@
+import { NextRequest } from 'next/server';
 import { prisma } from '../../../../utils/db';
 import { authorize } from "../../../middleware/auth";
 import { ForbiddenError } from '../../../../errors/ForbiddenError';
 import { UnauthorizedError } from '../../../../errors/UnauthorizedError';
+import { Comment, RawComment } from '@/app/types/comment';
 
-export async function PUT(req, { params }) {
+interface RouteParams {
+  params: {
+    id: string;
+  };
+}
+
+interface CommentUpdate {
+  content: string;
+}
+
+export async function PUT(req: NextRequest, { params }: RouteParams): Promise<Response> {
   try {
-    let { content } = await req.json();
-    let { id } = params;
-    id = Number(id);
+    const { content }: CommentUpdate = await req.json();
+    const id = Number(params.id);
     console.log("Received request to update comment with ID: ", id);
 
-    if (!id || !content ) {
+    if (!id || !content) {
       return Response.json(
         { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
@@ -56,10 +67,9 @@ export async function PUT(req, { params }) {
   }
 }
 
-export async function DELETE(req, { params }) {
+export async function DELETE(req: NextRequest, { params }: RouteParams): Promise<Response> {
   try {
-    let { id } = params;
-    id = Number(id);
+    const id = Number(params.id);
     console.log("Received request to delete comment with ID: ", id);
 
     if (!id) {
@@ -93,7 +103,7 @@ export async function DELETE(req, { params }) {
       }
     });
 
-    return Response.json( { status: 'success' }, { status: 200 });
+    return Response.json({ status: 'success' }, { status: 200 });
   } catch (error) {
     console.error(error);
     if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {
@@ -106,7 +116,7 @@ export async function DELETE(req, { params }) {
   }
 }
 
-export async function GET(req, { params }) {
+export async function GET(req: NextRequest, { params }: RouteParams): Promise<Response> {
   try {
     const searchParams = req.nextUrl.searchParams;
     const userId = Number(searchParams.get('userId'));
@@ -117,8 +127,7 @@ export async function GET(req, { params }) {
       await authorize(req, ['user', 'admin'], userId);
     }
 
-    let { id } = params;
-    id = Number(id);
+    const id = Number(params.id);
 
     if (!id) {
       return Response.json(
@@ -156,33 +165,28 @@ export async function GET(req, { params }) {
       );
     }
 
-    // set can view hidden
-    // either user is admin, or user is the author of the post
-
     if (userId) {
-      // at this point userId matches the logged in user
-      // check for adminship first
       try {
         await authorize(req, ['admin']);
         canViewHidden = true;
       } catch {
-        // not admin, check if user is author
         canViewHidden = userId === comment.authorId;
       }
     }
 
-    const processComment = (c) => ({
+    const processComment = (c: RawComment): Comment => ({
       id: c.id,
       content: c.isHidden
-        ? `[This comment has been hidden by a moderator.]${canViewHidden ? '\n\n' + c.content : ''}`
-        : c.content,
-      authorId: c.authorId,
+        ? `[This comment has been hidden by a moderator.]${canViewHidden ? '\n\n' + (c.content ?? '') : ''}`
+        : (c.content ?? '[deleted]'),
+      authorId: c.authorId ?? 0,
       authorUsername: c.author?.username ?? "[deleted]",
-      createdAt: c.createdAt,
+      createdAt: String(c.createdAt),
       score: c.ratings.reduce((sum, r) => sum + r.value, 0),
       allowAction: !c.isDeleted && !c.isHidden,
       userVote: userId ? c.ratings.find(r => r.userId === userId)?.value || 0 : 0,
-      postId: c.postId
+      postId: c.postId,
+      replies: []
     });
 
     return Response.json(processComment(comment), { status: 200 });

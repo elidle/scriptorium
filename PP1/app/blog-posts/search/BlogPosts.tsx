@@ -25,7 +25,7 @@ import InputModal from "@/app/components/InputModal";
 import { Post } from "../../types/post";
 import { Tag } from "@/app/types";
 import TagsContainer from "@/app/components/TagsContainer";
-const domain = "http://localhost:3000";
+const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export default function BlogPosts() {
   const router = useRouter();

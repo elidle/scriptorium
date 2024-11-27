@@ -1,4 +1,5 @@
 import { Tag } from './tag';
+import { Report } from './report';
 
 export interface BlogPostRequest {
   authorId: number | string;
@@ -23,6 +24,12 @@ export interface Post {
   score: number;
   userVote: number;
   allowAction: boolean;
+}
+
+export interface PostReports extends Post {
+  _count: {
+    reports: Report[];
+  };
 }
 
 export interface PostWithMetrics extends Post {

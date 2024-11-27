@@ -3,22 +3,35 @@ import { authorize } from "../../../../../middleware/auth";
 import { fetchCurrentPage } from '../../../../../../utils/pagination';
 import { ForbiddenError } from '../../../../../../errors/ForbiddenError';
 import { UnauthorizedError } from '../../../../../../errors/UnauthorizedError';
+import { NextRequest } from 'next/server';
 
-export async function GET(req, { params }) {
+interface PostReportResponse {
+  id: number;
+  reason: string;
+  reporterId: number;
+  reporterUsername: string;
+  createdAt: Date;
+}
+
+interface RouteParams {
+  params: {
+    id: string;
+  };
+}
+
+export async function GET(req: NextRequest, { params }: RouteParams): Promise<Response> {
   try {
     const searchParams = req.nextUrl.searchParams;
     await authorize(req, ['admin']);
 
-    let { id } = params;
-    id = Number(id);
+    const id = Number(params.id);
     if (!id) {
       return Response.json(
-        { status: 'error', error: 'Invalid comment ID' },
+        { status: 'error', error: 'Invalid post ID' },
         { status: 400 }
       );
     }
 
-    // Pagination parameters
     const page = Number(searchParams.get('page') || '1');
     const limit = Number(searchParams.get('limit') || '10');
 
@@ -29,7 +42,7 @@ export async function GET(req, { params }) {
       );
     }
 
-    const comment = await prisma.comment.findUnique({
+    const post = await prisma.blogPost.findUnique({
       where: { id },
       include: {
         reports: {
@@ -53,27 +66,27 @@ export async function GET(req, { params }) {
       }
     });
 
-    if (!comment || comment.isDeleted) {
+    if (!post || post.isDeleted) {
       return Response.json(
-        { status: 'error', error: 'Comment not found' },
+        { status: 'error', error: 'Post not found' },
         { status: 404 }
       );
     }
 
-    const reports = comment.reports.map(report => ({
+    const reports = post.reports.map(report => ({
       id: report.id,
       reason: report.reason,
       reporterId: report.reporter.id,
       reporterUsername: report.reporter.username,
-      createdAt: report.createdAt,
-    }));
+      createdAt: report.createdAt
+    })) as PostReportResponse[];
 
     const paginatedReports = fetchCurrentPage(reports, page, limit);
 
     const hasMore = paginatedReports.hasMore;
     const nextPage = hasMore ? page + 1 : null;
 
-    return Response.json( { reports: paginatedReports.curPage, hasMore: hasMore, nextPage: nextPage }, { status: 200 });
+    return Response.json({ reports: paginatedReports.curPage, hasMore, nextPage }, { status: 200 });
   } catch (error) {
     console.error(error);
     if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {

@@ -12,12 +12,14 @@ import UserProfileAvatar from '@/app/components/UserProfileAvatar';
 import { Comment } from '@/app/types/comment';
 import { User } from '@/app/types/auth';
 
+const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
 // This function runs on the server and fetches user data.
 async function getUserData(username: string): Promise<User | null> {
 
     try {
         // Find the corresponding user id from the database
-        const response = await fetch(`http://localhost:3000/api/users?username=${username}`, {
+        const response = await fetch(`${domain}/api/users?username=${username}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -40,7 +42,7 @@ async function getUserData(username: string): Promise<User | null> {
 
 async function getComments(username: string): Promise<Comment[]> {
     try {
-      const response = await fetch(`http://localhost:3000/api/users/comments?username=${username}`, {
+      const response = await fetch(`${domain}/api/users/comments?username=${username}`, {
           method: 'GET',
           headers: {
               'Content-Type': 'application/json',
@@ -63,7 +65,7 @@ async function getComments(username: string): Promise<Comment[]> {
 
 async function getTemplates(username: string): Promise<CodeTemplate[]> {
   try {
-    const response = await fetch(`http://localhost:3000/api/users/templates?username=${username}`, {
+    const response = await fetch(`${domain}/api/users/templates?username=${username}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

@@ -3,13 +3,25 @@ import { authorize } from "../../../../middleware/auth";
 import { fetchCurrentPage } from '../../../../../utils/pagination';
 import { ForbiddenError } from '../../../../../errors/ForbiddenError';
 import { UnauthorizedError } from '../../../../../errors/UnauthorizedError';
+import { NextRequest } from 'next/server';
 
-export async function GET(req) {
+import { PostReports } from '@/app/types/post';
+
+interface PostReportsResponse {
+  id: number;
+  title: string;
+  content: string;
+  authorId: number | null;
+  authorUsername: string | null;
+  createdAt: Date;
+  reportCount: number;
+}
+
+export async function GET(req: NextRequest): Promise<Response> {
   try {
     const searchParams = req.nextUrl.searchParams;
     await authorize(req, ['admin']);
 
-    // Pagination parameters
     const page = Number(searchParams.get('page') || '1');
     const limit = Number(searchParams.get('limit') || '10');
 
@@ -50,7 +62,7 @@ export async function GET(req) {
 
     const paginatedPosts = fetchCurrentPage(posts, page, limit);
 
-    const curPage = paginatedPosts.curPage.map(post => ({
+    const curPage = paginatedPosts.curPage.map((post: PostReports) => ({
       id: post.id,
       title: post.title,
       content: post.content,
@@ -58,12 +70,12 @@ export async function GET(req) {
       authorUsername: post.author?.username,
       createdAt: post.createdAt,
       reportCount: post._count.reports
-    }));
+    })) as PostReportsResponse[];
 
     const hasMore = paginatedPosts.hasMore;
     const nextPage = hasMore ? page + 1 : null;
 
-    return Response.json( { posts: curPage, hasMore: hasMore, nextPage: nextPage }, { status: 200 });
+    return Response.json({ posts: curPage, hasMore, nextPage }, { status: 200 });
   } catch (error) {
     console.error(error);
     if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {

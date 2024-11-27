@@ -11,7 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 
-const domain = "http://localhost:3000";
+const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 interface CodeTemplate {
   title: string;

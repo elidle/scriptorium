@@ -9,6 +9,8 @@ import { notFound } from "next/navigation";
 import UserProfileAvatar from "@/app/components/UserProfileAvatar";
 import { User } from "@/app/types/auth";
 
+const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
 interface FormData {
   firstName: string;
   lastName: string;
@@ -51,7 +53,7 @@ const useProfileForm = (initialData: User | null) => {
 const profileService = {
   async getUserData(username: string): Promise<User | null> {
     try {
-      const response = await fetch(`http://localhost:3000/api/users?username=${username}`, {
+      const response = await fetch(`${domain}/api/users?username=${username}`, {
         headers: { 'Content-Type': 'application/json' },
         cache: 'no-store'
       });

@@ -1,11 +1,18 @@
+import { NextRequest } from 'next/server';
 import { prisma } from '../../../../utils/db';
-import { writeFile, readFile, mkdir } from 'fs/promises'
+import { writeFile, readFile, mkdir, unlink } from 'fs/promises'
 import { join } from 'path'
 import { authorize } from '../../../middleware/auth';
 import { ForbiddenError } from '../../../../errors/ForbiddenError';
 import { UnauthorizedError } from '../../../../errors/UnauthorizedError';
 
-export async function GET(req, { params }) {
+interface RouteParams {
+  params: {
+    userId: string;
+  };
+}
+
+export async function GET(req: NextRequest, { params }: RouteParams): Promise<Response> {
   try {
     const userId = Number(params.userId);
 
@@ -26,20 +33,25 @@ export async function GET(req, { params }) {
         'Content-Type': 'image/jpeg',
         'Cache-Control': 'public, max-age=31536000'
       }
-    })
+    });
   } catch {
     return Response.json({ error: 'Avatar not found' }, { status: 404 });
   }
 }
 
-export async function POST(req, { params }) {
+export async function POST(req: NextRequest, { params }: RouteParams): Promise<Response> {
   try {
     const userId = Number(params.userId);
 
     await authorize(req, ['user', 'admin'], userId);
 
     const data = await req.formData();
-    const file = data.get('image');
+    const file = data.get('image') as File | null;
+    
+    if (!file) {
+      return Response.json({ error: 'No image provided' }, { status: 400 });
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
     
     const uploadDir = join(process.cwd(), 'public/uploads');
@@ -51,7 +63,7 @@ export async function POST(req, { params }) {
 
     await prisma.user.update({
       where: { id: userId },
-      data: { avatar: `/uploads/profile-${userId}.jpg` } // The avatar URL stored in db
+      data: { avatar: `/uploads/profile-${userId}.jpg` }
     });
     
     return Response.json({ avatar: `/uploads/profile-${userId}.jpg` });
@@ -63,7 +75,7 @@ export async function POST(req, { params }) {
   }
 }
 
-export async function DELETE(req, { params }) {
+export async function DELETE(req: NextRequest, { params }: RouteParams): Promise<Response> {
   try {
     const userId = Number(params.userId);
 

@@ -50,7 +50,7 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
     if (isEditing) {
       setEditedContent("");
     } else {
-      setEditedContent(post?.content || "");
+      setEditedContent(comment.content || "");
     }
     setIsEditing(!isEditing)
   };

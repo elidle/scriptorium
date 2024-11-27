@@ -1,22 +1,21 @@
+import { NextRequest } from 'next/server';
 import { prisma } from '../../../../utils/db';
 import { authorize } from "../../../middleware/auth";
 import { ForbiddenError } from '../../../../errors/ForbiddenError';
 import { UnauthorizedError } from '../../../../errors/UnauthorizedError';
+import { PostRatingRequest } from '@/app/types/rating';
 
-export async function POST(req) {
+export async function POST(req: NextRequest): Promise<Response> {
   try {
-    let { value, userId, commentId } = await req.json();
-    value = Number(value);
-    userId = Number(userId);
-    commentId = Number(commentId);
+    const { value, userId, postId }: PostRatingRequest = await req.json();
 
-    if (!value || !userId || !commentId) {
+    if (!value || !userId || !postId) {
       return Response.json(
         { status: 'error', error: 'Invalid or missing required fields' },
         { status: 400 }
       );
     }
-
+    
     if (value !== -1 && value !== 1) {
       return Response.json(
         { status: 'error', error: 'Invalid rating value (must be 1 for upvote or -1 for downvote)' },
@@ -35,32 +34,32 @@ export async function POST(req) {
       );
     }
 
-    const comment = await prisma.comment.findUnique({ where: { id: commentId } });
+    const post = await prisma.blogPost.findUnique({ where: { id: postId } });
 
-    if (!comment || comment.isDeleted || comment.isHidden) {
+    if (!post || post.isDeleted || post.isHidden) {
       return Response.json(
-        { status: 'error', error: 'Comment not found' },
+        { status: 'error', error: 'Post not found' },
         { status: 404 }
       );
     }
 
-    const existingRating = await prisma.commentRating.findFirst({
+    const existingRating = await prisma.postRating.findFirst({
       where: {
         userId,
-        commentId
+        postId
       }
     });
-
+    
     const newRating = existingRating 
-      ? await prisma.commentRating.update({
+      ? await prisma.postRating.update({
           where: { id: existingRating.id },
           data: { value }
         })
-      : await prisma.commentRating.create({
+      : await prisma.postRating.create({
           data: {
             value,
             user: { connect: { id: userId } },
-            comment: { connect: { id: commentId } }
+            post: { connect: { id: postId } }
           }
         });
 
@@ -77,13 +76,11 @@ export async function POST(req) {
   }
 }
 
-export async function DELETE(req) {
+export async function DELETE(req: NextRequest): Promise<Response> {
   try {
-    let { userId, commentId } = await req.json();
-    userId = Number(userId);
-    commentId = Number(commentId);
+    const { userId, postId }: PostRatingRequest = await req.json();
 
-    if (!userId || !commentId) {
+    if (!userId || !postId) {
       return Response.json(
         { status: 'error', error: 'Missing or invalid ID field' },
         { status: 400 }
@@ -101,19 +98,19 @@ export async function DELETE(req) {
       );
     }
 
-    const comment = await prisma.comment.findUnique({ where: { id: commentId } });
+    const post = await prisma.blogPost.findUnique({ where: { id: postId } });
 
-    if (!comment || comment.isDeleted || comment.isHidden) {
+    if (!post || post.isDeleted || post.isHidden) {
       return Response.json(
-        { status: 'error', error: 'Comment not found' },
+        { status: 'error', error: 'Post not found' },
         { status: 404 }
       );
     }
 
-    const rating = await prisma.commentRating.findFirst({ 
+    const rating = await prisma.postRating.findFirst({ 
       where: { 
         userId,
-        commentId
+        postId
       } 
     });
 
@@ -124,12 +121,12 @@ export async function DELETE(req) {
       );
     }
 
-    await prisma.commentRating.update({
+    await prisma.postRating.update({
       where: { id: rating.id },
       data: { value: 0 }
     });
 
-    return Response.json( { status: 'success' }, { status: 200 } );
+    return Response.json({ status: 'success' }, { status: 200 });
   } catch (error) {
     console.error(error);
     if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {
@@ -141,4 +138,3 @@ export async function DELETE(req) {
     );
   }
 }
-

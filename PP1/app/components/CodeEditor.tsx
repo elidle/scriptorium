@@ -31,6 +31,8 @@ import {useToast} from "@/app/contexts/ToastContext";
 import CodeEditorAppBar from "@/app/components/CodeEditorAppBar";
 import {useTheme} from "@/app/contexts/ThemeContext";
 
+const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
 interface ControlPanelParams {
   language: string;
   setLanguage: (value: string) => void;
@@ -273,11 +275,9 @@ const ExplanationSection = ({ explanation, setExplanation, mode, isEditing }
 );
 
 const API_SERVICE = {
-  domain: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
-
   async fetchTags(query: string = '') {
     const response = await fetch(
-      `${this.domain}/api/tags/search/?q=${query}`,
+      `${domain}/api/tags/search/?q=${query}`,
       {
         headers: { 'Content-Type': 'application/json' },
       }
@@ -479,7 +479,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/run-code', {
+      const response = await fetch(`${domain}/api/run-code`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -554,7 +554,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         ...(isFork && { parentTemplateId: forkedTemplate?.forkedFrom?.id })
       };
 
-      const url = 'http://localhost:3000/api/code-templates';
+      const url = `${domain}/api/code-templates`;
       const options: RequestInit = {
         method: 'POST',
         headers: {
@@ -629,7 +629,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         tags: selectedTags,
       };
 
-      const url = `http://localhost:3000/api/code-templates/${initialTemplate?.id}`;
+      const url = `${domain}/api/code-templates/${initialTemplate?.id}`;
       const options: RequestInit = {
         method: 'PUT',
         headers: {
@@ -686,7 +686,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     setError('');
 
     try {
-      const url = `http://localhost:3000/api/code-templates/${initialTemplate?.id}`;
+      const url = `${domain}/api/code-templates/${initialTemplate?.id}`;
       const options: RequestInit = {
         method: 'DELETE',
         headers: {

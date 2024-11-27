@@ -7,18 +7,7 @@ const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || '1h';
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || '';
 const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || '7d';
 
-interface TokenPayload {
-  id: number;
-  role: string;
-  username?: string;
-  exp?: number;
-}
-
-interface TokenVerification {
-  valid: boolean;
-  decoded?: TokenPayload;
-  reason?: string;
-}
+import { TokenVerification, TokenPayload } from "@/app/types/auth";
 
 export async function hashPassword(password: string): Promise<string> {
   return await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
