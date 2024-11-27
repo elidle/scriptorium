@@ -1,0 +1,12 @@
+{
+    "name": "age-calculator",
+    "version": "1.0.0",
+    "description": "A simple Node.js program to calculate age in 10 years",
+    "main": "ageIn10Years.js",
+    "scripts": {
+      "start": "node ageIn10Years.js"
+    },
+    "author": "Your Name",
+    "license": "MIT"
+  }
+  

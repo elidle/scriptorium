@@ -1,0 +1,9 @@
+FROM golang:1.20-alpine
+
+WORKDIR /sandbox
+
+COPY . /sandbox
+
+# RUN go build /sandbox/code.go -o /sandbox/code
+
+# CMD ["/sandbox/code"]

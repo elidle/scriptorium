@@ -1,0 +1,9 @@
+FROM rust:1.65-slim
+
+WORKDIR /sandbox
+
+COPY . /sandbox
+
+# RUN cargo build --release
+
+# CMD ["/sandbox/target/release/code"]

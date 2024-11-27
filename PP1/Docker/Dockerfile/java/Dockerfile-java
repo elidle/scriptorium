@@ -1,0 +1,9 @@
+FROM openjdk:17-slim
+
+WORKDIR /sandbox
+
+COPY . /sandbox
+
+# RUN javac /sandbox/code.java
+
+# CMD ["java", "/sandbox/code"]

@@ -1,0 +1,7 @@
+FROM python:3.9-slim
+
+WORKDIR /sandbox
+
+COPY . /sandbox
+
+# CMD ["python3", "/sandbox/code.py"]

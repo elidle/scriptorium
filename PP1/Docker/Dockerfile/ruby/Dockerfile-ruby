@@ -1,0 +1,7 @@
+FROM ruby:3.1-slim
+
+WORKDIR /sandbox
+
+COPY . /sandbox
+
+# CMD ["ruby", "/sandbox/code.rb"]

@@ -1,0 +1,10 @@
+FROM swift:5.9.2
+
+WORKDIR /sandbox
+
+COPY . /sandbox
+
+RUN swiftc --version
+# RUN swiftc /sandbox/code.swift -o /sandbox/code
+
+# CMD ["/sandbox/code"]

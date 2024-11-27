@@ -1,0 +1,10 @@
+FROM node:16-slim
+
+COPY package*.json ./
+
+WORKDIR /sandbox
+
+COPY . /sandbox
+
+# CMD ["node", "/sandbox/code.js"]
+

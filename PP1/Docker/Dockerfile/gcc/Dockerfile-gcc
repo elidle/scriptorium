@@ -1,0 +1,7 @@
+FROM gcc:12
+
+WORKDIR /sandbox
+
+COPY . /sandbox
+
+# CMD ["/sandbox/code"]
