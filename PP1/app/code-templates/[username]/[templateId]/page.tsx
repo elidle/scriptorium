@@ -50,9 +50,6 @@ const CodeTemplatePage = () => {
     }
   }, [params.templateId]);
 
-
-
-
   if (isLoading) {
     return (
       <Box

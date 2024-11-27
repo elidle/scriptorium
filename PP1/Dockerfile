@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
     python3 \
     gcc \
     g++ \
-    docker.io \ 
+    docker.io \
     curl \
     zip \
     unzip \

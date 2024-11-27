@@ -1,4 +1,4 @@
-"use client"; // Enable client-side rendering
+"use client";
 
 import React, {ReactNode, useCallback, useEffect, useState} from 'react';
 import {

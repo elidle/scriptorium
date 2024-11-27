@@ -4,9 +4,10 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - db-data:/app/prisma
+      - ./prisma:/app/prisma
       - /var/run/docker.sock:/var/run/docker.sock
       - /app/temp:/app/temp
+      - ./.env:/app/.env
     privileged: true
 
 #  nginx:
