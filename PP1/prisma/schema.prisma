@@ -11,13 +11,13 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = "file:/app/prisma/dev.db"
 }
 
 model User {
   id              Int             @id @default(autoincrement())
-  firstname            String
-  lastname             String
+  firstname       String
+  lastname        String
   username        String           @unique
   hashedPassword  String
   avatar          String?

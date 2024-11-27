@@ -45,7 +45,7 @@ const languageConfigs = {
             : ['sh', '-c', `gcc ${filename} -o output && ./output`],
     },
     cpp: {
-        image: 'openjdk:24-ea-25-jdk-slim-bookworm',
+        image: 'gcc:latest',
         cmd: (filename, input) => input
             ? ['sh', '-c', `g++ ${filename} -o output && echo "${input}" | ./output`]
             : ['sh', '-c', `g++ ${filename} -o output && ./output`],
