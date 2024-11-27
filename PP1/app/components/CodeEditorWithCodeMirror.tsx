@@ -1,5 +1,6 @@
 import React, {useCallback} from 'react';
-import CodeMirror from '@uiw/react-codemirror';
+import ReactCodeMirror from '@uiw/react-codemirror';
+const CodeMirror = ReactCodeMirror;
 import { vscodeDark } from '@uiw/codemirror-theme-vscode';
 import { StreamLanguage } from '@codemirror/language';
 import { python } from '@codemirror/legacy-modes/mode/python';
