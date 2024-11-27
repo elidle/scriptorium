@@ -1,4 +1,4 @@
-import { IconButton, Typography, ThemeProvider } from "@mui/material";
+import { IconButton, Typography } from "@mui/material";
 import { ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import { useToast } from "../contexts/ToastContext";
 

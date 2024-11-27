@@ -57,7 +57,6 @@ export default function BlogPost({ params }: PostQueryParams) {
 
   // New comment state
   const [newComment, setNewComment] = useState<string>("");
-  const [newCommentError, setNewCommentError] = useState<string>("");
 
   // Comment button logic
   const newCommentRef = useRef<HTMLDivElement>(null);
@@ -70,7 +69,11 @@ export default function BlogPost({ params }: PostQueryParams) {
   // Edit logic
   const [isEditing, setIsEditing] = useState(false);
   const toggleIsEditing = () => {
-    isEditing ? setEditedContent("") : setEditedContent(post?.content || "");
+    if (isEditing) {
+      setEditedContent("");
+    } else {
+      setEditedContent(post?.content || "");
+    }
     setIsEditing(!isEditing)
   };
   const [editedContent, setEditedContent] = useState("");
@@ -159,7 +162,7 @@ export default function BlogPost({ params }: PostQueryParams) {
         body: JSON.stringify(jsonBody),
       };
 
-      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      const response = await fetchAuth({url, options, user, setAccessToken, router});
       if (!response) return;
 
       const data = await response.json();
@@ -189,7 +192,7 @@ export default function BlogPost({ params }: PostQueryParams) {
   const fetchBlogPost = async () => {
     try {
       const url = `${domain}/api/blog-posts/${postId}?${user?.id ? `userId=${user.id}` : ''}`;
-      let options: RequestInit = {
+      const options: RequestInit = {
         headers: user && accessToken ? {
           'access-token': `Bearer ${accessToken}`
         } : {}
@@ -207,7 +210,7 @@ export default function BlogPost({ params }: PostQueryParams) {
           };
           
           response = await fetch(url, options);
-        } catch (err) {
+        } catch {
           response = await fetch(url, {}); // Fall back to guest view if token refresh fails
         }
       }
@@ -235,11 +238,11 @@ export default function BlogPost({ params }: PostQueryParams) {
         postId: postId.toString(),
         page: (reset ? 1 : page).toString(),
         sortBy: sortBy,
-        ...(user?.id && { userId: user.id })
+        ...(user?.id && { userId: String(user.id) })
       });
   
       const url = `${domain}/api/comments?${queryParams.toString()}`;
-      let options: RequestInit = {
+      const options: RequestInit = {
         headers: user && accessToken ? {
           'access-token': `Bearer ${accessToken}`
         } : {}
@@ -257,7 +260,7 @@ export default function BlogPost({ params }: PostQueryParams) {
           };
           
           response = await fetch(url, options);
-        } catch (err) {
+        } catch {
           response = await fetch(url, {}); // Fall back to guest view
         }
       }
@@ -268,7 +271,11 @@ export default function BlogPost({ params }: PostQueryParams) {
 
       const data = await response.json();
   
-      reset ? setComments(data.comments) : setComments((prevComments) => [...prevComments, ...data.comments]);
+      if (reset) {
+        setComments(data.comments);
+      } else {
+        setComments((prevComments) => [...prevComments, ...data.comments]);
+      }
       setHasMore(data.hasMore);
       setPage(data.nextPage);
     } catch (err) {
@@ -322,7 +329,7 @@ export default function BlogPost({ params }: PostQueryParams) {
    
     const vote = isUpvote ? 1 : -1;
     let newVote = 0;
-    let prevComments = comments;
+    const prevComments = comments;
 
     let found = false;
     const updateComments = (comments: Comment[]): Comment[] => {
@@ -372,14 +379,14 @@ export default function BlogPost({ params }: PostQueryParams) {
         'access-token': `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
-        userId: user.id,
+        userId: user!.id,
         postId: postId,
         commentId: commentId,
         value: vote
       }),
     };
 
-    let response = await fetchAuth({url, options, user, setAccessToken, router});
+    const response = await fetchAuth({url, options, user: user!, setAccessToken, router});
     
     if (!response) {
       throw new Error('Failed to submit vote - no response');
@@ -439,7 +446,7 @@ export default function BlogPost({ params }: PostQueryParams) {
         }),
       };
 
-      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      const response = await fetchAuth({url, options, user, setAccessToken, router});
       if (!response) return;
    
       const data = await response.json();
@@ -460,7 +467,7 @@ export default function BlogPost({ params }: PostQueryParams) {
   };
   
   const handleDelete = async () => {
-    if (user.id !== post?.authorId) return; // Do nothing
+    if (user?.id !== post?.authorId) return; // Do nothing
 
     if (!user || !accessToken) {
       showToast({ 
@@ -481,7 +488,7 @@ export default function BlogPost({ params }: PostQueryParams) {
         }
       };
 
-      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      const response = await fetchAuth({url, options, user, setAccessToken, router});
       if (!response) return;
    
       const data = await response.json();
@@ -512,7 +519,7 @@ export default function BlogPost({ params }: PostQueryParams) {
       return;
     }
 
-    if (user.id !== post?.authorId) return; // Do nothing
+    if (user?.id !== post?.authorId) return; // Do nothing
 
     if (!user || !accessToken) {
       showToast({ 
@@ -539,7 +546,7 @@ export default function BlogPost({ params }: PostQueryParams) {
         }),
       };
   
-      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      const response = await fetchAuth({url, options, user, setAccessToken, router});
       if (!response) return;
   
       const data = await response.json();
@@ -599,7 +606,7 @@ export default function BlogPost({ params }: PostQueryParams) {
           <>
             <PostSection 
               post={post}
-              user={user}
+              user={user!}
               isEditing={isEditing}
               editedContent={editedContent}
               handlePostVote={handlePostVote}

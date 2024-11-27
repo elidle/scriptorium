@@ -9,7 +9,7 @@ export async function generateMetadata({ params }: { params: { commentId: string
       title: (comment.content === null) ? 'Deleted comment - Scriptorium' : `Reports for ${[comment.authorUsername]}'s comment - Scriptorium`,
       description: (comment.content === null) ? 'This comment has been deleted. You should not be here.' : `View reports for for ${[comment.authorUsername]}'s comment`,
     };
-  } catch (error) {
+  } catch {
     return {
       title: 'Not Found - Scriptorium',
       description: 'The requested data could not be found',

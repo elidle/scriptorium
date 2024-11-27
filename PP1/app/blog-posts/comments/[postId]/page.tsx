@@ -9,7 +9,7 @@ export async function generateMetadata({ params }: { params: { postId: string } 
       title: (post.title === null) ? 'Deleted post - Scriptorium' : `${post.title} (by ${[post.authorUsername]}) - Scriptorium`,
       description: (post.title === null) ? 'This post has been deleted, but you can still see the comments.' : `View post "${post.title}" by ${[post.authorUsername]}`,
     };
-  } catch (error) {
+  } catch {
     return {
       title: 'Post Not Found - Scriptorium',
       description: 'The requested post could not be found',

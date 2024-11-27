@@ -2,7 +2,6 @@ import {
   Typography,
   Box,
   ThemeProvider,
-  useTheme as useMuiTheme
 } from "@mui/material";
 import { FileText, ExternalLink, EyeOff } from "lucide-react";
 import Link from 'next/link';
@@ -20,7 +19,6 @@ interface PostReportPreviewProps {
 export default function PostReportPreview({ post, handleHide }: PostReportPreviewProps) {
   const { user } = useAuth();
   const { theme } = useTheme();
-  const muiTheme = useMuiTheme();
 
   return (
     <ThemeProvider theme={theme}>

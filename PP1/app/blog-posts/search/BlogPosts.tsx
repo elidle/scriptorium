@@ -8,7 +8,7 @@ import {
   Theme,
   CircularProgress
 } from "@mui/material";
-import React, {useCallback, useEffect, useState} from "react";
+import React, { useEffect, useState} from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import {Star, Clock, TrendingUp, Zap, ChevronRight, ChevronLeft} from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
@@ -23,7 +23,6 @@ import SortMenu from "@/app/components/SortMenu";
 import InputModal from "@/app/components/InputModal";
 
 import { Post } from "../../types/post";
-import debounce from "lodash.debounce";
 import { Tag } from "@/app/types";
 import TagsContainer from "@/app/components/TagsContainer";
 const domain = "http://localhost:3000";
@@ -42,11 +41,8 @@ export default function BlogPosts() {
 
   // Searching and filtering states
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [isSearchingTags, setIsSearchingTags] = useState(false);
-  const [tagsError, setTagsError] = useState("");
 
   // Query persistence
   const searchParams = useSearchParams();
@@ -115,7 +111,7 @@ export default function BlogPosts() {
       page: currentPage.toString(),
       sortBy: currentSort,
       ...(query && { q: query }),
-      ...(user?.id && { userId: user.id })
+      ...(user?.id && { userId: String(user.id) })
     });
 
     urlTags.forEach(tag => {
@@ -142,7 +138,7 @@ export default function BlogPosts() {
           };
           
           response = await fetch(url, options);
-        } catch (err) {
+        } catch {
           response = await fetch(url, {}); // Fall back to guest view if token refresh fails
         }
       }
@@ -153,7 +149,12 @@ export default function BlogPosts() {
 
       const data = await response.json();
       const posts = data.posts;
-      reset ? setBlogPosts(posts) : setBlogPosts((prevPosts) => [...prevPosts, ...posts]);
+
+      if (reset) {
+        setBlogPosts(posts);
+      } else {
+        setBlogPosts((prevPosts) => [...prevPosts, ...posts]);
+      }
 
       setHasMore(data.hasMore);
       setPage(data.nextPage);
@@ -166,42 +167,7 @@ export default function BlogPosts() {
     }
   };
 
-  const searchTags = useCallback(
-    debounce(async (query: string) => {
-      setIsSearchingTags(true);
-      setTagsError("");
-
-      try {
-        const response = await fetch(
-          `${domain}/api/tags/search/?q=${encodeURIComponent(query)}`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        const data = await response.json();
-
-        if (data.status === "error") {
-          throw new Error(data.message);
-        }
-
-        setTags(data.tags || []);
-      } catch (err) {
-        setTagsError(err instanceof Error ? err.message : "Failed to search tags");
-        setTags([]);
-      } finally {
-        setIsSearchingTags(false);
-      }
-    }, 300),
-    []
-  );
-
   const refreshTags = async () => {
-    setIsSearchingTags(true);
-    setTagsError("");
-
     try {
       const response = await fetch(`${domain}/api/tags/search/?q=`, {
         headers: {
@@ -216,10 +182,8 @@ export default function BlogPosts() {
       }
 
       setTags(data.tags || []);
-    } catch (err) {
-      setTagsError(err instanceof Error ? err.message : "Failed to refresh tags");
-    } finally {
-      setIsSearchingTags(false);
+    } catch {
+      setTags([]);
     }
   };
 
@@ -304,7 +268,7 @@ export default function BlogPosts() {
       }),
     };
   
-    const response = await fetchAuth({url, options, user, setAccessToken, router});
+    const response = await fetchAuth({url, options, user: user!, setAccessToken, router});
     
     if (!response) {
       throw new Error('Failed to submit vote - no response');
@@ -399,7 +363,7 @@ export default function BlogPosts() {
     setSideBarState(!sideBarState);
   };
 
-  let rightDrawerWidth = 300;
+  const rightDrawerWidth = 300;
   return (
     <BaseLayout
       user={user}
@@ -520,7 +484,7 @@ export default function BlogPosts() {
           {/* Search status */}
           {searchParams.get('q') && (
             <Typography className="mb-4 text-slate-400">
-              Showing results for "{searchParams.get('q')}"
+              Showing results for &quot;{searchParams.get('q')}&quot;
             </Typography>
           )}
 
@@ -549,11 +513,11 @@ export default function BlogPosts() {
             endMessage={
               blogPosts.length > 0 ? (
                 <Typography sx={{ color: theme.palette.text.secondary }}>
-                  You've reached the end!
+                  You have reached the end!
                 </Typography>
               ) : (
                 <Typography className='text-center p-4' sx={{ color: theme.palette.primary.main }}>
-                  No posts found{debouncedQuery ? ` for "${debouncedQuery}"` : ''}
+                  No posts found
                 </Typography>
               )
             }

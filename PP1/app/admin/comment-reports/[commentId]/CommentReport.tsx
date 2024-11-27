@@ -12,7 +12,6 @@ import Link from "next/link";
 
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useToast } from "@/app/contexts/ToastContext";
-import { useTheme } from "@/app/contexts/ThemeContext";
 import { refreshToken, fetchAuth } from "@/app/utils/auth";
 import { useRouter } from "next/navigation";
 
@@ -31,7 +30,6 @@ interface CommentReportParams {
 export default function CommentReport({ params }: CommentReportParams) {
   const router = useRouter();
   const commentId = Number(params.commentId);
-  const { theme } = useTheme();
 
   const [comment, setComment] = useState<Comment | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
@@ -143,7 +141,7 @@ export default function CommentReport({ params }: CommentReportParams) {
         }),
       };
 
-      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      const response = await fetchAuth({url, options, user, setAccessToken, router});
       if (!response) return;
 
       const data = await response.json();

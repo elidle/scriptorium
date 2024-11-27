@@ -4,6 +4,7 @@ import CommentItem from "./CommentItem";
 import SortMenu from "@/app/components/SortMenu";
 import { Comment } from "@/app/types/comment";
 import { Post } from "@/app/types/post";
+import { LucideIcon } from "lucide-react";
 
 interface NewCommentFormProps {
   post: Post;
@@ -111,7 +112,7 @@ interface CommentSectionProps {
   hasMore: boolean;
   commentInputRef: React.RefObject<HTMLTextAreaElement>;
   newCommentRef: React.RefObject<HTMLDivElement>;
-  sortOptions: Array<{ value: string; label: string; icon: any; }>;
+  sortOptions: Array<{ value: string; label: string; icon: LucideIcon; }>;
 }
 
 export default function CommentSection({

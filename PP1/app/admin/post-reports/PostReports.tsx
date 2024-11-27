@@ -24,7 +24,7 @@ export default function PostReports() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  const { user, accessToken, setAccessToken } = useAuth();
+  const { user, accessToken } = useAuth();
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -40,14 +40,18 @@ export default function PostReports() {
 
     const currentPage = reset ? 1 : page;
     try {
-      let response = await fetch(`/api/admin/sort-reports/post/?page=${currentPage}`, {
+      const response = await fetch(`/api/admin/sort-reports/post/?page=${currentPage}`, {
         headers: {
           'access-token': `Bearer ${accessToken}`
         }
       });
 
       const data = await response.json();
-      reset ? setReportedPosts(data.posts) : setReportedPosts(prev => [...prev, ...data.posts]);
+      if (reset) {
+        setReportedPosts(data.posts);
+       } else {
+        setReportedPosts(prev => [...prev, ...data.posts]);
+       }
       setHasMore(data.hasMore);
       setPage(data.nextPage);
     } catch (err) {

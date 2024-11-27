@@ -25,7 +25,6 @@ export default function Submit() {
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingTags, setIsLoadingTags] = useState(false);
 
   const { accessToken, setAccessToken, user, loading } = useAuth();
 
@@ -39,7 +38,6 @@ export default function Submit() {
     const fetchTags = async () => {
       if (!user || !accessToken) return;
 
-      setIsLoadingTags(true);
       try {
         const url = 'http://localhost:3000/api/tags/search/?q=';
         const options: RequestInit = {
@@ -60,8 +58,6 @@ export default function Submit() {
       } catch (err) {
         console.error('Error fetching tags:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch tags');
-      } finally {
-        setIsLoadingTags(false);
       }
     };
 
@@ -93,7 +89,7 @@ export default function Submit() {
           'access-token': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          authorId: user.id,
+          authorId: user?.id,
           title: title.trim(),
           content: content,
           tags: selectedTags,
@@ -101,7 +97,7 @@ export default function Submit() {
         }),
       };
 
-      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      const response = await fetchAuth({url, options, user: user!, setAccessToken, router});
       if (!response) return;
 
       const data = await response.json();

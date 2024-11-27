@@ -14,7 +14,6 @@ import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useToast } from "@/app/contexts/ToastContext";
-import { useTheme } from "@/app/contexts/ThemeContext";
 import { fetchAuth } from "@/app/utils/auth";
 
 import BaseLayout from "@/app/components/BaseLayout";
@@ -24,7 +23,6 @@ type ItemType = "post" | "comment";
 
 export default function Unhide() {
   const router = useRouter();
-  const { theme } = useTheme();
   const [itemType, setItemType] = useState<ItemType>("post");
   const [itemId, setItemId] = useState<string>("");
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -78,7 +76,7 @@ export default function Unhide() {
         }),
       };
 
-      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      const response = await fetchAuth({url, options, user, setAccessToken, router});
       if (!response) return;
 
       const data = await response.json();

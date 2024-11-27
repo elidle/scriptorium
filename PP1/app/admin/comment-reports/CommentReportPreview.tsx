@@ -1,8 +1,7 @@
 import {
   Typography,
   Box,
-  ThemeProvider,
-  useTheme as useMuiTheme
+  ThemeProvider
 } from "@mui/material";
 import { FileText, ExternalLink, EyeOff } from "lucide-react";
 import Link from 'next/link';
@@ -17,7 +16,6 @@ interface CommentReportPreviewProps {
 
 export default function CommentReportPreview({ comment, handleHide }: CommentReportPreviewProps) {
   const { theme } = useTheme();
-  const muiTheme = useMuiTheme();
 
   return (
     <ThemeProvider theme={theme}>

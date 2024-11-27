@@ -12,7 +12,6 @@ import Link from "next/link";
 
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useToast } from "@/app/contexts/ToastContext";
-import { useTheme } from "@/app/contexts/ThemeContext";
 import { fetchAuth, refreshToken } from "@/app/utils/auth";
 import { useRouter } from "next/navigation";
 
@@ -20,15 +19,7 @@ import BaseLayout from "@/app/components/BaseLayout";
 import UserAvatar from "@/app/components/UserAvatar";
 
 import { Report } from "@/app/types/report";
-
-interface BlogPost {
-  id: number;
-  title: string;
-  content: string;
-  authorId: string;
-  authorUsername: string;
-  createdAt: string;
-}
+import { Post } from "@/app/types/post";
 
 interface PostReportParams {
   params: {
@@ -40,7 +31,7 @@ export default function PostReport({ params }: PostReportParams) {
   const router = useRouter();
   const postId = Number(params.postId);
 
-  const [post, setPost] = useState<BlogPost | null>(null);
+  const [post, setPost] = useState<Post | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [error, setError] = useState<string>("");
   
@@ -125,7 +116,11 @@ export default function PostReport({ params }: PostReportParams) {
         return;
       }
 
-      reset ? setReports(data.reports) : setReports(prev => [...prev, ...data.reports]);
+      if (reset) {
+        setReports(data.reports);
+      } else {
+        setReports(prev => [...prev, ...data.reports]);
+      }
       setHasMore(data.hasMore);
       setPage(data.nextPage);
     } catch (err) {
@@ -150,7 +145,7 @@ export default function PostReport({ params }: PostReportParams) {
         }),
       };
 
-      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      const response = await fetchAuth({url, options, user, setAccessToken, router});
       if (!response) return;
 
       const data = await response.json();

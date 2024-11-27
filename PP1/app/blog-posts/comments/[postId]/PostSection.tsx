@@ -5,6 +5,7 @@ import UserAvatar from "@/app/components/UserAvatar";
 import Voting from "@/app/blog-posts/Voting";
 import { Post } from "@/app/types/post";
 import { useToast } from "@/app/contexts/ToastContext";
+import { User } from "@/app/types/auth";
 
 interface EditFormProps {
   editedContent: string;
@@ -52,7 +53,7 @@ const EditForm = ({ editedContent, setEditedContent, handleEditSubmit, onCancel 
 
 interface PostActionsProps {
   post: Post;
-  user: any;
+  user: User;
   handlePostVote: (postId: number, isUpvote: boolean) => Promise<void>;
   handleReportClick: (commentId?: number) => void;
   toggleIsEditing: () => void;
@@ -67,7 +68,7 @@ const PostActions = ({ post, user, handlePostVote, handleReportClick, toggleIsEd
     try {
       await navigator.clipboard.writeText(window.location.href);
       showToast({ message: "Link copied to clipboard!", type: "success" });
-    } catch (err) {
+    } catch {
       showToast({ message: "Failed to copy link", type: "error" });
     }
   };
@@ -154,7 +155,7 @@ const PostActions = ({ post, user, handlePostVote, handleReportClick, toggleIsEd
 
 interface PostSectionProps {
   post: Post;
-  user: any;
+  user: User;
   isEditing: boolean;
   editedContent: string;
   handlePostVote: (postId: number, isUpvote: boolean) => Promise<void>;

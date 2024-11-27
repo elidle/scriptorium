@@ -19,20 +19,6 @@ export default function PostPreview({ post, handleVote, handleReportClick }: Pos
   const { isDarkMode } = useTheme();
   const router = useRouter();
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const formatCount = (count: number = 0) => {
-    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
-    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
-    return count.toString();
-  };
-
   const handleClick = () => {
     router.push(`/blog-posts/comments/${post.id}`);
   };

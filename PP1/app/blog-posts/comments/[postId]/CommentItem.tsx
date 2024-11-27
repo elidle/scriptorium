@@ -4,9 +4,7 @@ import {
   Button,
   Collapse,
   TextField,
-  Box,
-  ThemeProvider,
-  IconButton,
+  Box
 } from "@mui/material";
 import {
   MessageCircle,
@@ -49,7 +47,11 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
   // Edit states
   const [isEditing, setIsEditing] = useState(false);
   const toggleIsEditing = () => {
-    isEditing ? setEditedContent("") : setEditedContent(post?.content || "");
+    if (isEditing) {
+      setEditedContent("");
+    } else {
+      setEditedContent(post?.content || "");
+    }
     setIsEditing(!isEditing)
   };
   const [editedContent, setEditedContent] = useState(comment.content);
@@ -99,7 +101,7 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
         }),
       };
 
-      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      const response = await fetchAuth({url, options, user, setAccessToken, router});
       if (!response) return;
 
       const data = await response.json();
@@ -131,7 +133,7 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
       return;
     }
 
-    if (user.id !== post?.authorId) return; // Do nothing
+    if (user?.id !== post?.authorId) return; // Do nothing
 
     if (!user || !accessToken) {
       showToast({ 
@@ -153,7 +155,7 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
         body: JSON.stringify({ content: editedContent }),
       };
   
-      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      const response = await fetchAuth({url, options, user, setAccessToken, router});
       if (!response) return;
   
       const data = await response.json();
@@ -175,7 +177,7 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
   };
   
   const handleDelete = async () => {
-    if (user.id !== comment.authorId) return; // Do nothing
+    if (!user || user.id !== comment.authorId) return; // Do nothing
 
     if (!user || !accessToken) {
       showToast({ 
@@ -195,7 +197,7 @@ export default function CommentItem({ comment, post, handleVote, handleReportCli
         }
       };
   
-      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      const response = await fetchAuth({url, options, user, setAccessToken, router});
       if (!response) return;
   
       const data = await response.json();

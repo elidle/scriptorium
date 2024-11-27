@@ -58,7 +58,7 @@ export default function CommentReports() {
       }
 
       const data = await response.json();
-      reset ? setReportedComments(data.comments) : setReportedComments(prev => [...prev, ...data.comments]);
+      (reset ? setReportedComments(data.comments) : setReportedComments(prev => [...prev, ...data.comments]));
       setHasMore(data.hasMore);
       setPage(data.nextPage);
     } catch (err) {
@@ -83,7 +83,7 @@ export default function CommentReports() {
         }),
       };
 
-      let response = await fetchAuth({url, options, user, setAccessToken, router});
+      const response = await fetchAuth({url, options, user, setAccessToken, router});
       if (!response) return;
 
       const data = await response.json();
