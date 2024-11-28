@@ -6,7 +6,7 @@ const Page = () => {
   const router = useRouter();
 
   useEffect(() => {
-    router.push('/blog-posts/search');
+    router.push('/code-templates/search');
   }, [router]);
 
 

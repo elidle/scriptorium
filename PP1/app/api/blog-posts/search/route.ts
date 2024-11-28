@@ -50,7 +50,17 @@ export async function GET(req: NextRequest): Promise<Response> {
         ...(q && {
           OR: [
             { title: { contains: q } },
-            { content: { contains: q } }
+            { content: { contains: q } },
+            {
+              codeTemplates: {
+                some: {
+                  OR: [
+                    { title: { contains: q } },
+                    { explanation: { contains: q } }
+                  ]
+                }
+              }
+            }
           ]
         }),
         ...(tags.length > 0 && {

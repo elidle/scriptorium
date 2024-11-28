@@ -1,14 +1,13 @@
 'use client';
 
-import {notFound, useRouter} from 'next/navigation';
-import AppBar from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
+import { notFound } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import TemplateCard from '@/app/components/TemplateCard';
 import UserAvatar from '@/app/components/UserAvatar';
 import { CodeTemplate } from '@/app/types';
 import { useAuth } from '@/app/contexts/AuthContext';
 import UserProfileAvatar from '@/app/components/UserProfileAvatar';
+import BaseLayoutProfile from '@/app/components/BaseLayoutProfile';
 import { Comment } from '@/app/types/comment';
 import { User } from '@/app/types/auth';
 
@@ -87,14 +86,11 @@ async function getTemplates(username: string): Promise<CodeTemplate[]> {
 }
 
 export default function UserProfile({ params }: { params: { username: string } }) {
-  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [view, setView] = useState("templates");
   const [comments, setComments] = useState<Comment[]>([]);
   const [templates, setTemplates] = useState<CodeTemplate[]>([]);
   const {user: currentUser } = useAuth();
-
-  const isLoggedIn = !!currentUser;
 
   const canEdit = currentUser?.username === params.username;
   useEffect(() => {
@@ -112,7 +108,7 @@ export default function UserProfile({ params }: { params: { username: string } }
         setComments(Array.isArray(data) ? data : []);;
     };
     fetchUserComments();
- }, [params.username]); // Fetch data when the username changes
+  }, [params.username]); // Fetch data when the username changes
 
   useEffect(() => {
     const fetchUserTemplates = async () => {
@@ -128,41 +124,9 @@ export default function UserProfile({ params }: { params: { username: string } }
     }
 
     return (
-      <div className="min-h-screen bg-slate-900">
-        {/* Fixed header */}
-        <AppBar position="static">
-                <Toolbar className="w-full py-3 border-b bg-blue-500 dark:bg-gray-800">
-                    <div className="flex justify-between items-center w-full font-semibold">
-                        {/* Left Section */}
-                        <div className="flex items-center mr-auto">
-                            <button className="mr-4" onClick={() => window.history.back()}>
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                </svg>
-                            </button>
-                            <h1 className="text-2xl cursor-pointer" onClick={() => window.location.href = '/'}>Scriptorium</h1>
-                        </div>
-
-                        {/* Center Section */}
-                        <div className="flex items-center xl:gap-10 md:gap-8 gap-2 mx-auto">
-                            <h1 className="text-2xl">Profile</h1>
-                        </div>
-
-                        {/* Right Section */}
-                        {isLoggedIn ? (
-                          <UserAvatar username={currentUser.username} userId={currentUser.id} size={32} />
-                        ) : (
-                          <button 
-                            className="py-2 px-6 bg-black text-white rounded-3xl font-semibold ml-auto"
-                            onClick={() => window.location.href = '/login'}
-                          >
-                            Log in
-                          </button>
-                        )}
-                    </div>
-                </Toolbar>
-            </AppBar>
-
+    <BaseLayoutProfile
+        user={user}
+      >
 
       {/* Main Content */}
       <div className="flex flex-col md:flex-row w-full mt-4 p-8 gap-4">
@@ -171,22 +135,16 @@ export default function UserProfile({ params }: { params: { username: string } }
                     {/* Profile Info */}
                     <div className="flex flex-col md:flex-row">
                         <div className="md:w-1/3 text-center mb-8 md:mb-0">
-                        {/* <Avatar
-                        alt={user.username}
-                        src={user.avatar}
-                        sx={{
-                            width: "clamp(90px, 15vw, 150px)", // Dynamic resizing: clamps between 72px and 120px based on viewport width
-                            height: "clamp(90px, 15vw, 150px)", // Dynamic resizing for height too
-                        }}
-                        className="mx-auto mb-4 border-4 border-indigo-800 dark:border-blue-900 transition-transform duration-300 hover:scale-110 ease-in-out"
-                        /> */}
                         <UserProfileAvatar username={user.username} userId={user.id} />
                           <h1 className="text-2xl font-bold text-indigo-800 dark:text-white mb-2">{user.firstname + " " + user.lastname}</h1>
                           <p className="text-gray-600 dark:text-gray-300">{user.username}</p>
                           {canEdit && (
-                            <button
-                              onClick={() => router.push(`/users/${params.username}/edit-profile`)}
-                              className="mt-4 bg-indigo-800 text-white px-4 py-2 rounded-lg hover:bg-blue-900 transition-colors duration-300">Edit Profile</button>
+                            <button 
+                              className="mt-4 bg-indigo-800 text-white px-4 py-2 rounded-lg hover:bg-blue-900 transition-colors duration-300"
+                              onClick={() => window.location.href = `/users/${user.username}/edit-profile`}
+                            >
+                              Edit Profile
+                            </button>
                           )}
                         </div>
                         <div className="md:w-2/3 md:pl-8">
@@ -256,7 +214,7 @@ export default function UserProfile({ params }: { params: { username: string } }
                 comments.map((comment) => (
                     <div key={comment.id} className="mb-4 border-b border-gray-300 dark:border-gray-700 pb-4">
                         <div className="flex items-center mb-2">
-                            <UserAvatar username={comment.authorUsername} userId={comment.authorId} size={32} />
+                            <UserAvatar username={comment.authorUsername} userId={comment.id} size={32} />
                             <p className="ml-2 text-gray-700 dark:text-gray-300">
                                 <strong>{comment.authorUsername}</strong>
                             </p>
@@ -271,6 +229,6 @@ export default function UserProfile({ params }: { params: { username: string } }
     )}
 </div>
             </div>
-      </div>
+                  </BaseLayoutProfile>
     );
 }

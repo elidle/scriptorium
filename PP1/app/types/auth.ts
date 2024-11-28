@@ -1,5 +1,5 @@
 export interface User {
-  avatar: string;
+  avatar: string | null;
   firstname: string;
   lastname: string;
   email: string;
@@ -7,7 +7,7 @@ export interface User {
   username: string;
   id: number;
   role: string;
-  about: string;
+  about: string | null;
 }
 
 export interface TokenVerification {

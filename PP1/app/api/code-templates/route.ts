@@ -1,13 +1,16 @@
-import { prisma } from '../../../utils/db';
-import {authorize} from "../../middleware/auth";
-import {ForbiddenError} from "../../../errors/ForbiddenError.js";
-import { UnauthorizedError } from '../../../errors/UnauthorizedError.js';
+import { prisma } from '@/utils/db';
+import {authorize} from "@/app/middleware/auth";
+import {ForbiddenError} from "@/errors/ForbiddenError";
+import { UnauthorizedError } from '@/errors/UnauthorizedError';
+import {NextRequest} from "next/server";
 
 /*
  * This function is used to create or fork a new code template.
  */
-export async function POST(req) {
-  let { title, code, language , explanation, tags, authorId, isForked, parentTemplateId } = await req.json();
+export async function POST(req: NextRequest) {
+  const reqJson = await req.json();
+  const { title, code, authorId, parentTemplateId } = reqJson;
+  let { language, explanation, tags, isForked } = reqJson;
 
   /*
    * Note:
@@ -45,7 +48,7 @@ export async function POST(req) {
         language: language,
         explanation: explanation,
         tags: {
-          connectOrCreate: tags.map((tagName) => ({
+          connectOrCreate: tags.map((tagName: string) => ({
             where: {name: tagName.toLowerCase()},
             create: {name: tagName.toLowerCase()},
           }))

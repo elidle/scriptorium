@@ -1,5 +1,6 @@
 import { Tag } from './tag';
 import { Report } from './report';
+import { CodeTemplate } from './code-template';
 
 export interface BlogPostRequest {
   authorId: number | string;
@@ -24,6 +25,7 @@ export interface Post {
   score: number;
   userVote: number;
   allowAction: boolean;
+  codeTemplates: CodeTemplate[];
 }
 
 export interface PostReports extends Post {

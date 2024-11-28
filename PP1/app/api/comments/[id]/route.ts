@@ -148,12 +148,7 @@ export async function GET(req: NextRequest, { params }: RouteParams): Promise<Re
         author: {
           select: { username: true }
         },
-        ratings: {
-          select: {
-            value: true,
-            ...(userId && { userId: true })
-          }
-        },
+        ratings: true,
         postId: true
       }
     });

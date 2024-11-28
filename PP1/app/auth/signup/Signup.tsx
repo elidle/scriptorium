@@ -1,5 +1,4 @@
-// app/signup/page.js or any client component file
-'use client'; // This directive makes the component a Client Component
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -32,7 +31,7 @@ export default function Signup() {
     }
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
-      event.preventDefault(); // Prevent the default form submission
+      event.preventDefault();
 
       const signupData: SignupData = { username, firstname, lastname, email, password, confirmPassword, phoneNumber};
 
@@ -45,7 +44,6 @@ export default function Signup() {
       });
 
       if (response.ok) {
-        // Clear the input fields after successful signup
         setUsername('');
         setFirstname('');
         setLastname('');
@@ -53,13 +51,13 @@ export default function Signup() {
         setPassword('');
         setConfirmPassword('');
         setPhoneNumber('');
-        setError(null); // Clear any previous error messages
+        setError(null);
         console.log('User created successfully');
         router.push('login');
       } else {
         const errorData: ErrorResponse = await response.json();
         console.log("error: " + errorData.message);
-        setError(errorData.message); // Set error message
+        setError(errorData.message);
         console.log(error);
       }
     };
@@ -180,7 +178,7 @@ export default function Signup() {
             {error && <ErrorBox errorMessage={error} />}
             <p className="text-center text-gray-600 mt-4">
               Already have an account?{' '}
-              <a href="/views/login" className="text-green-500 hover:underline">
+              <a href="/auth/login" className="text-green-500 hover:underline">
                 Log in
               </a>
             </p>

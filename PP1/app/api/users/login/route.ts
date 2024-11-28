@@ -1,38 +1,51 @@
 import { comparePassword, generateAccessToken, generateRefreshToken } from '../../../../utils/auth';
 import { prisma } from "../../../../utils/db";
+import { User, TokenPayload } from '@/app/types/auth';
+import { NextRequest } from 'next/server';
 
+interface LoginRequest {
+   username: string;
+   password: string;
+}
 
-export async function POST(req) {
-    const { username, password } = await req.json(); // Parse JSON body
-    // Validate input
+interface LoginResponse {
+   message: string;
+   user: Omit<User, 'avatar' | 'phoneNumber'>;
+   'access-token': string;
+}
+
+export async function POST(req: NextRequest): Promise<Response> {
+    const { username, password }: LoginRequest = await req.json();
+
     if (!username || !password) {
         return Response.json({ status: "error", message: "Missing fields" }, { status: 400 });
     }
-    try {
-        // Check if the user exists
+
+   try {
         const user = await prisma.user.findUnique({
-            where: { username }, // You can also check by email if needed
+            where: { username },
         });
 
         if (!user) {
             return Response.json({ status: "error", message: "Invalid username or password" }, { status: 400 });
         }
 
-        // Compare the password with the stored hashed password
         const isPasswordValid = await comparePassword(password, user.hashedPassword);
         
         if (!isPasswordValid) {
             return Response.json({ status: "error", message: "Invalid username or password" }, { status: 400 });
         }
 
-        // Generate the token
+        const tokenPayload: TokenPayload = { 
+            id: user.id, 
+            username: user.username, 
+            role: user.role 
+        };
+        
+        const accessToken = generateAccessToken(tokenPayload);
+        const refreshToken = generateRefreshToken(tokenPayload);
 
-        const obj = { id: user.id, username: user.username, role: user.role}
-        const accessToken = generateAccessToken(obj);
-        const refreshToken = generateRefreshToken(obj);
-
-        // Successful login
-        const response = Response.json({
+        const responseData: LoginResponse = {
             message: "Login successful",
             user: {
                 id: user.id,
@@ -43,21 +56,19 @@ export async function POST(req) {
                 about: user.about,
                 role: user.role
             },
-            'access-token': accessToken,
-            }, {
+            'access-token': accessToken
+        };
+
+        const headers = new Headers();
+        headers.append('Set-Cookie', `access_token=${accessToken}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${15 * 60}`);
+        headers.append('Set-Cookie', `refresh_token=${refreshToken}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${7 * 24 * 60 * 60}`);
+
+        return Response.json(responseData, {
             status: 200,
-            headers: {
-                'Set-Cookie': [
-                    // Access token cookie
-                    `access_token=${accessToken}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${15 * 60}`, // 15 minutes
-                    // Refresh token cookie
-                    `refresh_token=${refreshToken}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${7 * 24 * 60 * 60}` // 7 days
-                ]
-            }
+            headers: headers
         });
-        return response;
     } catch (error) {
         console.error("Error during login:", error);
         return Response.json({ status: "error", message: "Internal server error" }, { status: 500 });
     }
-} 
+}

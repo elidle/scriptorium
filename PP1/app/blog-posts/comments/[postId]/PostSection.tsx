@@ -6,6 +6,7 @@ import Voting from "@/app/blog-posts/Voting";
 import { Post } from "@/app/types/post";
 import { useToast } from "@/app/contexts/ToastContext";
 import { User } from "@/app/types/auth";
+import TemplateCard from '@/app/components/TemplateCard';
 
 interface EditFormProps {
   editedContent: string;
@@ -254,7 +255,65 @@ export default function PostSection({
           {post.content === null ? "[This post has been deleted by its author.]" : post.content}
         </Typography>
       )}
-  
+
+      {/* Tags and Templates Section */}
+      <Box sx={{ mb: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {post.codeTemplates?.length > 0 && (
+          <Box sx={{
+            p: 2,
+            bgcolor: 'background.paper',
+            borderRadius: 1,
+            border: 1,
+            borderColor: 'divider',
+          }}>
+            <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 1 }}>
+              Related Code Templates
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {post.codeTemplates.map((template, index) => (
+                <TemplateCard key={index} template={template} />
+              ))}
+            </Box>
+          </Box>
+        )}
+
+        {post.tags?.length > 0 && (
+          <Box sx={{
+            p: 2,
+            bgcolor: 'background.paper',
+            borderRadius: 1,
+            border: 1,
+            borderColor: 'divider',
+          }}>
+            <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 1 }}>
+              Tags
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {post.tags.map((tag, index) => (
+                <Link key={index} href={`/blog-posts/search?tags=${tag.name}`}>
+                  <Box sx={{
+                    px: 1,
+                    py: 0.5,
+                    bgcolor: 'background.default',
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: '16px',
+                    typography: 'caption',
+                    color: 'primary.main',
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                    },
+                    transition: 'background-color 0.2s',
+                  }}>
+                    {tag.name}
+                  </Box>
+                </Link>
+              ))}
+            </Box>
+          </Box>
+        )}
+      </Box>
+
       <PostActions
         post={post}
         user={user}

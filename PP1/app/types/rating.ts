@@ -1,12 +1,12 @@
 export interface Rating {
   id: number;
   userId: number;
+  value: number;
 }
 
 interface BaseRating {
   id: number;
   userId: number;
-  value: number;
   createdAt: Date;
   updatedAt: Date;
 }

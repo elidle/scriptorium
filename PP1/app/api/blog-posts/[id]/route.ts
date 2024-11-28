@@ -206,7 +206,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         codeTemplates: {
           select: {
             id: true,
-            title: true
+            title: true,
+            code: true,
+            language: true,
+            explanation: true,
+            tags: true,
+            author: true,
+            createdAt: true,
+            updatedAt: true,
           }
         }
       }
@@ -249,7 +256,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       score: postWithMetrics.metrics.totalScore,
       userVote: postWithMetrics.userVote,
       allowAction: !post.isDeleted && !post.isHidden,
-      author: postWithMetrics.author || { id: 0, username: '[deleted]' }
+      author: postWithMetrics.author || { id: 0, username: '[deleted]' },
+      codeTemplates: postWithMetrics.codeTemplates
     };
 
     return Response.json(responsePost, { status: 200 });

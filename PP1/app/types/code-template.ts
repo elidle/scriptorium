@@ -41,5 +41,11 @@ export interface CodeEditorProps {
 }
 
 export interface ForkLabelProps {
-    parentTemplate?: ParentFork;
+  parentTemplate?: ParentFork;
+}
+
+export interface RawCodeTemplate {
+  authorId: number;
+  tags: Tag[];
+  author: Author;
 }
