@@ -186,11 +186,8 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
     return <div className="min-h-screen flex items-center justify-center">You are not authorized to view this page</div>;
   }
 
-  if (!isLoaded) {
+  if (!isLoaded || !user) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
-  else if (!user) {
-    return <div className="min-h-screen flex items-center justify-center">User not found</div>;
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
