@@ -81,8 +81,10 @@ export default function ProfileUpdate({ params }: {params: { username: string }}
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const data = await getUserData(currentUser, setAccessToken, router);
-      setUser(data);
+      if (currentUser) {
+        const data = await getUserData(currentUser, setAccessToken, router);
+        setUser(data);
+      }
     };
     fetchUserData();
   }, [params.username]); // Fetch data when the username changes
