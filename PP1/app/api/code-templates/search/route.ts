@@ -1,11 +1,35 @@
-import { prisma, Prisma } from '../../../../utils/db';
-import { sortMostRelevantFirst } from "../../../../utils/code-template/sorts";
-import { fetchCurrentPage } from "../../../../utils/pagination";
+import { prisma, Prisma } from '@/utils/db';
+import { sortMostRelevantFirst } from "@/utils/code-template/sorts";
+import { fetchCurrentPage } from "@/utils/pagination";
+import {NextRequest} from "next/server";
+import {Author} from "@/app/types";
+
+interface Template {
+  id: number;
+  title: string;
+  code: string;
+  language: string;
+  explanation: string;
+  authorId: number;
+  isForked: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  parentForkId: number | null;
+}
+
+interface TemplateWithDetails extends Omit<Template, 'authorId'> {
+  author: Author;
+  childForks: Array<{
+    id: number;
+    title: string;
+  }>;
+  forkCount: number;
+}
 
 /*
  * This function is used to search for code templates with author information.
  */
-export async function GET(req) {
+export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q');
   const tags = req.nextUrl.searchParams.getAll('tags'); // Format: /search?q=...&tags=tag1&tags=tag2
   const username = req.nextUrl.searchParams.get('username');
@@ -13,7 +37,7 @@ export async function GET(req) {
   const sortBy = req.nextUrl.searchParams.get('sortBy');
   const limit = req.nextUrl.searchParams.get('limit') ? Number(req.nextUrl.searchParams.get('limit')) : 10;
 
-  let templates, userId;
+  let userId;
   try {
     if (username) {
       const existingUser = await prisma.user.findUnique({
@@ -31,7 +55,7 @@ export async function GET(req) {
       userId = existingUser.id;
     }
 
-    templates = await prisma.codeTemplate.findMany({
+    const queryOptions = {
       where: {
         ...(userId && { authorId: userId }),
 
@@ -47,33 +71,34 @@ export async function GET(req) {
 
         OR: [
           {
-            title: { contains: q ?? ""},
+            title: { contains: q ?? "" },
           },
           {
             tags: {
               some: {
-                name: { contains: q ?? ""},
+                name: { contains: q ?? "" },
               },
             },
           },
           {
-            explanation: { contains: q ?? ""},
+            explanation: { contains: q ?? "" },
           },
           {
-            code: { contains: q ?? ""},
+            code: { contains: q ?? "" },
           },
         ],
       },
-      orderBy: sortBy === 'old' ? { createdAt: 'asc' } : (sortBy === 'new' ? { createdAt: 'desc' } : Prisma.skip),
-      include: {
+      select: {
+        id: true,
+        title: true,
+        code: true,
+        language: true,
+        explanation: true,
         tags: true,
-        author: {
-          select: {
-            id: true,
-            username: true,
-            avatar: true,
-          },
-        },
+        author: true,
+        isForked: true,
+        createdAt: true,
+        updatedAt: true,
         parentFork: {
           select: {
             id: true,
@@ -91,19 +116,26 @@ export async function GET(req) {
             title: true,
           }
         }
-      }
-    });
+      },
+      orderBy: { createdAt: 'desc' },
+    };
+    if (sortBy === 'old') {
+      queryOptions.orderBy = { createdAt: 'asc' };
+    } else if (sortBy === 'new') {
+      queryOptions.orderBy = { createdAt: 'desc' };
+    }
+    const templates = await prisma.codeTemplate.findMany(queryOptions);
 
     if (!templates || templates.length === 0) {
       return Response.json({ status: 'error', message: 'No templates found' }, { status: 404 });
     }
 
+    console.log('Templates:', templates);
     // Transform the data to include author information directly in the template object
     const transformedTemplates = templates.map(template => ({
       ...template,
       author: {
         username: template.author.username,
-        name: template.author.name,
         avatar: template.author.avatar,
       },
       forkCount: template.childForks.length,
@@ -119,7 +151,6 @@ export async function GET(req) {
       curPage = retObj.curPage;
       hasMore = retObj.hasMore;
     }
-
     return Response.json({
       templates: curPage,
       hasMore: hasMore,

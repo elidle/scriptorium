@@ -46,7 +46,7 @@ export async function fetchAuth({
     const refreshResponse = await refreshToken(user);
 
     if (!refreshResponse.ok && refreshResponse.status === 401) {
-      router.push('/auth/login');
+      router.push('/login');
       return null;
     }
 

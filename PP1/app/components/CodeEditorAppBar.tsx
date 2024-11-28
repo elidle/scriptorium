@@ -231,7 +231,7 @@ const CodeEditorAppBar: React.FC<AppBarProps> = ({
           color="primary"
           onClick={() => {
             setShowLoginDialog(false);
-            router.push('/auth/login');
+            router.push('/login');
           }}
         >
           Log In

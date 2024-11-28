@@ -86,7 +86,7 @@ export default function CodeTemplates() {
   // Handle routing
   const handleCreateTemplate = () => {
     if (!user) {
-      router.push('/auth/login');
+      router.push('/login');
     } else {
       router.push('/code-templates/new');
     }
@@ -146,7 +146,7 @@ export default function CodeTemplates() {
         }
         throw new Error(data.message);
       }
-
+      console.log(data.templates);
       setCodeTemplates(prev =>
         params.page === 1 ? data.templates : [...prev, ...data.templates]
       );

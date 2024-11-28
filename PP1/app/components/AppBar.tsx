@@ -55,7 +55,7 @@ export default function AppBar({ type, user, onSearch, onMenuClick }: AppBarProp
         </Link>
       </div>
     ) : (
-      <Link href="/auth/login">
+      <Link href="/login">
         <Button
           className={`
             px-4 sm:px-6 min-w-[90px] sm:min-w-[100px] 
