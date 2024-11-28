@@ -3,23 +3,23 @@ import { authorize } from "../../../../../middleware/auth";
 import { fetchCurrentPage } from '../../../../../../utils/pagination';
 import { ForbiddenError } from '../../../../../../errors/ForbiddenError';
 import { UnauthorizedError } from '../../../../../../errors/UnauthorizedError';
-import { NextRequest } from 'next/server';
+// import { NextRequest } from 'next/server';
 
-interface PostReportResponse {
-  id: number;
-  reason: string;
-  reporterId: number;
-  reporterUsername: string;
-  createdAt: Date;
-}
+// interface PostReportResponse {
+//   id: number;
+//   reason: string;
+//   reporterId: number;
+//   reporterUsername: string;
+//   createdAt: Date;
+// }
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
+// interface RouteParams {
+//   params: {
+//     id: string;
+//   };
+// }
 
-export async function GET(req: NextRequest, { params }: RouteParams): Promise<Response> {
+export async function GET(req, { params }) {
   try {
     const searchParams = req.nextUrl.searchParams;
     await authorize(req, ['admin']);
@@ -79,7 +79,7 @@ export async function GET(req: NextRequest, { params }: RouteParams): Promise<Re
       reporterId: report.reporter.id,
       reporterUsername: report.reporter.username,
       createdAt: report.createdAt
-    })) as PostReportResponse[];
+    }));
 
     const paginatedReports = fetchCurrentPage(reports, page, limit);
 
