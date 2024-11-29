@@ -1,4 +1,4 @@
-// import { NextRequest } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '../../../utils/db';
 import { itemsRatingsToMetrics } from '../../../utils/blog/metrics';
 import { sortItems } from '../../../utils/blog/sorts';
@@ -6,7 +6,7 @@ import { fetchCurrentPage } from '../../../utils/pagination';
 import { authorize } from "../../middleware/auth";
 import { ForbiddenError } from "../../../errors/ForbiddenError";
 import { UnauthorizedError } from '../../../errors/UnauthorizedError';
-// import { Comment, CommentDetails } from '@/app/types/comment';
+import { Comment, CommentDetails } from '@/app/types/comment';
 
 // interface CommentRequest {
 //   content: string;
