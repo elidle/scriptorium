@@ -1,17 +1,17 @@
-import { prisma } from '@/utils/db'
+import { prisma, Prisma } from '@/utils/db'
 import {authorize} from "@/app/middleware/auth";
 import {ForbiddenError} from "@/errors/ForbiddenError";
 import { UnauthorizedError } from '@/errors/UnauthorizedError';
-// import {NextRequest} from "next/server";
+import {NextRequest} from "next/server";
 
-// interface RouteParams {
-//   id: string;
-// }
+interface RouteParams {
+  id: string;
+}
 
 /*
   * This function is used to retrieve existing code template.
  */
-export async function GET(req, { params }) {
+export async function GET(req: NextRequest, { params }: { params: RouteParams }) {
   const { id } = params;
   if (!id) {
     return Response.json({ status: 'error', message: 'Missing or invalid ID' }, { status: 400 });
@@ -82,7 +82,7 @@ export async function GET(req, { params }) {
 /*
   * This function is used to update a code template.
  */
-export async function PUT(req, { params }) {
+export async function PUT(req: NextRequest, { params }: { params: RouteParams }) {
   const { id } = params;
   if (!id) {
     return Response.json({ status: 'error', message: 'Missing or invalid ID' }, { status: 400 });
@@ -108,7 +108,7 @@ export async function PUT(req, { params }) {
     // Authorize author
     await authorize(req, ['user', 'admin'], existingTemplate.authorId);
 
-    const updateData = {};
+    const updateData: Prisma.CodeTemplateUpdateInput = {};
 
     if (title !== undefined) updateData.title = title;
     if (code !== undefined) updateData.code = code;
@@ -118,7 +118,7 @@ export async function PUT(req, { params }) {
     if (tags !== undefined && tags.length > 0) {
       updateData.tags = {
         deleteMany: {},
-        connectOrCreate: tags.map((tagName) => ({
+        connectOrCreate: tags.map((tagName: string) => ({
           where: { name: tagName.toLowerCase() },
           create: { name: tagName.toLowerCase() },
         }))
@@ -144,7 +144,7 @@ export async function PUT(req, { params }) {
 /*
   * This function is used to delete a code template.
  */
-export async function DELETE(req, { params }) {
+export async function DELETE(req: NextRequest, { params }: { params: RouteParams }) {
   const { id } = params;
   if (!id) {
     return Response.json({ status: 'error', message: 'Missing or invalid ID' }, { status: 400 });

@@ -8,27 +8,27 @@ import { ForbiddenError } from "../../../errors/ForbiddenError";
 import { UnauthorizedError } from '../../../errors/UnauthorizedError';
 import { Comment, CommentDetails } from '@/app/types/comment';
 
-// interface CommentRequest {
-//   content: string;
-//   authorId: number;
-//   parentId?: number | null;
-//   postId: number;
-// }
+interface CommentRequest {
+  content: string;
+  authorId: number;
+  parentId?: number | null;
+  postId: number;
+}
 
-// interface CommentResponse extends Comment {
-//   postId: number;
-//   parentId?: number | null;
-// }
+interface CommentResponse extends Comment {
+  postId: number;
+  parentId?: number | null;
+}
 
-// interface CommentTreeResponse {
-//   comments: Comment[];
-//   hasMore: boolean;
-//   nextPage: number | null;
-// }
+interface CommentTreeResponse {
+  comments: Comment[];
+  hasMore: boolean;
+  nextPage: number | null;
+}
 
-export async function POST(req){
+export async function POST(req: NextRequest): Promise<Response> {
   try {
-    const body = await req.json();
+    const body = await req.json() as CommentRequest;
     const { content } = body;
     const authorId = Number(body.authorId);
     const parentId = Number(body.parentId);
@@ -116,7 +116,7 @@ export async function POST(req){
   }
 }
 
-export async function GET(req){
+export async function GET(req: NextRequest): Promise<Response> {
   try {
     const searchParams = req.nextUrl.searchParams;
 
@@ -224,8 +224,8 @@ export async function GET(req){
     
     const commentsWithMetrics = itemsRatingsToMetrics(commentsWithVotes);
 
-    const topLevelComments = commentsWithMetrics.filter((comment) => !comment.parentId);
-    const replies = commentsWithMetrics.filter((comment) => comment.parentId);
+    const topLevelComments = commentsWithMetrics.filter((comment: CommentDetails) => !comment.parentId);
+    const replies = commentsWithMetrics.filter((comment: CommentDetails) => comment.parentId);
 
     const sortedTopLevelComments = sortItems(topLevelComments, sortBy);
     const sortedReplies = sortItems(replies, 'old');
@@ -234,7 +234,7 @@ export async function GET(req){
 
     const commentTree = buildCommentTree(allSortedComments);
 
-    const optimizeComment = (comment) => ({
+    const optimizeComment = (comment: CommentDetails): Comment => ({
       id: comment.id,
       content: comment.isHidden
         ? `[This comment has been hidden by a moderator.]${canViewHidden || comment.author?.id === userId ? '\n\n' + comment.content : ''}`
@@ -245,12 +245,12 @@ export async function GET(req){
       score: comment.metrics.totalScore,
       userVote: comment.userVote,
       allowAction: !comment.isDeleted && !comment.isHidden,
-      replies: comment.replies?.map((reply) => optimizeComment(reply)) || [],
+      replies: comment.replies?.map((reply: CommentDetails) => optimizeComment(reply)) || [],
       postId: comment.postId
     });
 
     const paginatedCommentTree = fetchCurrentPage(commentTree, page, limit);
-    const curPage = paginatedCommentTree.curPage.map((comment) => optimizeComment(comment));
+    const curPage = paginatedCommentTree.curPage.map((comment: CommentDetails) => optimizeComment(comment));
     const hasMore = paginatedCommentTree.hasMore;
     const nextPage = hasMore ? page + 1 : null;
 
@@ -258,7 +258,7 @@ export async function GET(req){
       comments: curPage, 
       hasMore: hasMore, 
       nextPage: nextPage
-    } , { status: 200 });
+    } as CommentTreeResponse, { status: 200 });
   } catch (error) {
     console.error(error);
     if (error instanceof ForbiddenError || error instanceof UnauthorizedError) {
@@ -271,9 +271,9 @@ export async function GET(req){
   }
 }
 
-function buildCommentTree(comments){
+function buildCommentTree(comments: CommentDetails[]): CommentResponse[] {
   const commentMap = new Map();
-  const rootComments = [];
+  const rootComments: Comment[] = [];
 
   comments.forEach(comment => {
     comment.replies = [];
