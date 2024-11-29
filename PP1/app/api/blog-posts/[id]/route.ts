@@ -1,13 +1,13 @@
-// import { NextRequest } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '../../../../utils/db';
 import { itemRatingsToMetrics } from '../../../../utils/blog/metrics';
 import { authorize } from '../../../middleware/auth';
 import { ForbiddenError } from '../../../../errors/ForbiddenError';
 import { UnauthorizedError } from '../../../../errors/UnauthorizedError';
-// import { BlogPostRequest, Post } from '@/app/types/post';
-// import { Tag } from '@/app/types/tag';
+import { BlogPostRequest, Post } from '@/app/types/post';
+import { Tag } from '@/app/types/tag';
 
-export async function PUT(req, { params }) {
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const id = Number(params.id);
     console.log("Received request to update post with ID: ", id);
@@ -19,7 +19,7 @@ export async function PUT(req, { params }) {
       );
     }
 
-    const { title, content, tags, codeTemplateIds } = await req.json();
+    const { title, content, tags, codeTemplateIds } = await req.json() as BlogPostRequest;
 
     const post = await prisma.blogPost.findUnique({ where: { id } });
 
@@ -97,7 +97,7 @@ export async function PUT(req, { params }) {
   }
 }
 
-export async function DELETE(req, { params }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const id = Number(params.id);
     console.log("Received request to delete post with ID: ", id);
@@ -153,7 +153,7 @@ export async function DELETE(req, { params }) {
   }
 }
 
-export async function GET(req, { params } ) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const searchParams = req.nextUrl.searchParams;
     const userId = Number(searchParams.get('userId'));
@@ -241,7 +241,7 @@ export async function GET(req, { params } ) {
     };
     const postWithMetrics = itemRatingsToMetrics(postWithVote);
 
-    const responsePost= {
+    const responsePost: Post = {
       id: postWithMetrics.id,
       title: post.isHidden
         ? `[Hidden post] ${canViewHidden ? post.title : ''}`
@@ -251,7 +251,7 @@ export async function GET(req, { params } ) {
         : postWithMetrics.content,
       authorId: postWithMetrics.author?.id ?? null,
       authorUsername: postWithMetrics.author?.username ?? "[deleted]",
-      tags: postWithMetrics.tags.map((tag) => ({ id: tag.id, name: tag.name })),
+      tags: postWithMetrics.tags.map((tag: Tag) => ({ id: tag.id, name: tag.name })),
       createdAt: postWithMetrics.createdAt,
       score: postWithMetrics.metrics.totalScore,
       userVote: postWithMetrics.userVote,

@@ -1,20 +1,20 @@
-// import { NextRequest } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '../../../utils/db';
 import { authorize } from "../../middleware/auth";
 import { ForbiddenError } from "../../../errors/ForbiddenError";
 import { UnauthorizedError } from "../../../errors/UnauthorizedError";
 
-// interface BlogPostRequest {
-//   authorId: number | string;
-//   title: string;
-//   content: string;
-//   tags?: string[];
-//   codeTemplateIds?: (number | string)[];
-// }
+interface BlogPostRequest {
+  authorId: number | string;
+  title: string;
+  content: string;
+  tags?: string[];
+  codeTemplateIds?: (number | string)[];
+}
 
-export async function POST(req){
+export async function POST(req: NextRequest): Promise<Response> {
   try {
-    const body = await req.json();
+    const body = await req.json() as BlogPostRequest;
     const { title, content, tags = [], codeTemplateIds = [] } = body;
     const authorId = Number(body.authorId);
 

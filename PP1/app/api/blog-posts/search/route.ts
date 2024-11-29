@@ -1,15 +1,15 @@
-// import { NextRequest } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '../../../../utils/db';
 import { itemsRatingsToMetrics } from '../../../../utils/blog/metrics';
 import { sortItems } from '../../../../utils/blog/sorts';
 import { fetchCurrentPage } from '../../../../utils/pagination';
 import { authorize } from '../../../middleware/auth';
 import { ForbiddenError } from '../../../../errors/ForbiddenError';
-// import { Post, PostWithMetrics, PaginatedResponse } from '@/app/types/post';
+import { Post, PostWithMetrics, PaginatedResponse } from '@/app/types/post';
 
-// type SortType = 'new' | 'old' | 'top' | 'controversial';
+type SortType = 'new' | 'old' | 'top' | 'controversial';
 
-export async function GET(req){
+export async function GET(req: NextRequest): Promise<Response> {
   try {
     const searchParams = req.nextUrl.searchParams;
 
@@ -25,7 +25,7 @@ export async function GET(req){
     const tags = searchParams.getAll('tags');
 
     // Sorting parameter
-    const sortBy = (searchParams.get('sortBy') || 'new');
+    const sortBy = (searchParams.get('sortBy') || 'new') as SortType;
 
     if (!['new', 'old', 'top', 'controversial'].includes(sortBy)) {
       return Response.json(
@@ -118,7 +118,7 @@ export async function GET(req){
     const sortedPosts = sortItems(postsWithMetrics, sortBy);
     const paginatedPosts = fetchCurrentPage(sortedPosts, page, limit);
 
-    const curPage= paginatedPosts.curPage.map((post) => ({
+    const curPage: Post[] = paginatedPosts.curPage.map((post: PostWithMetrics) => ({
       id: post.id,
       title: post.title,
       content: post.content,
@@ -131,7 +131,7 @@ export async function GET(req){
       allowAction: true
     }));
 
-    const response= {
+    const response: PaginatedResponse = {
       posts: curPage,
       hasMore: paginatedPosts.hasMore,
       nextPage: paginatedPosts.hasMore ? page + 1 : null
