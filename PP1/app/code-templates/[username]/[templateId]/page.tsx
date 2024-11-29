@@ -12,7 +12,7 @@ import { CodeTemplate } from '@/app/types';
 import ErrorBox from '@/app/components/ErrorBox';
 import CodeEditor from '@/app/components/CodeEditor';
 
-const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+// const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 const CodeTemplatePage = () => {
   const params = useParams();
@@ -27,7 +27,7 @@ const CodeTemplatePage = () => {
 
       try {
         const response = await fetch(
-          `${domain}/api/code-templates/${params.templateId}`
+          `/api/code-templates/${params.templateId}`
         );
 
         if (!response.ok) {

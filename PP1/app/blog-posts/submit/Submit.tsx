@@ -15,7 +15,7 @@ import BaseLayout from "@/app/components/BaseLayout";
 import TagsContainer from "@/app/components/TagsContainer";
 import { useTheme } from "@/app/contexts/ThemeContext";
 
-const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+// const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export default function Submit() {
   const router = useRouter();
@@ -41,7 +41,7 @@ export default function Submit() {
       if (!user || !accessToken) return;
 
       try {
-        const url = `${domain}/api/tags/search/?q=`;
+        const url = `/api/tags/search/?q=`;
         const options: RequestInit = {
           headers: {
             'Content-Type': 'application/json',

@@ -1,10 +1,10 @@
 import BlogPost from './BlogPost';
 
-const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+// const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export async function generateMetadata({ params }: { params: { postId: string } }) {
   try {
-    const response = await fetch(`${domain}/api/blog-posts/${params.postId}`);
+    const response = await fetch(`/api/blog-posts/${params.postId}`);
     const post = await response.json();
 
     return {

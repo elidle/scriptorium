@@ -10,7 +10,7 @@ import { useRouter} from "next/navigation";
 import { User } from '@/app/types';
 import BaseLayoutProfile from "@/app/components/BaseLayoutProfile";
 
-const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+// const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 async function getUserData(currentUser: User | null, setAccessToken: (token: string) => void, router: ReturnType<typeof useRouter> ): Promise<User | null> {
   try {
@@ -24,7 +24,7 @@ async function getUserData(currentUser: User | null, setAccessToken: (token: str
     };
 
     const response = await fetchAuth({
-      url: `${domain}/api/users?username=${currentUser?.username}`,
+      url: `/api/users?username=${currentUser?.username}`,
       options: option,
       user: currentUser,
       setAccessToken,

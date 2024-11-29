@@ -26,7 +26,7 @@ import { useRouter } from "next/navigation";
 
 import ConfirmationModal from "@/app/components/ConfirmationModal";
 
-const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+// const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 import { Post } from "@/app/types/post";
 import { Comment } from "@/app/types/comment";
@@ -191,7 +191,7 @@ export default function BlogPost({ params }: PostQueryParams) {
 
   const fetchBlogPost = async () => {
     try {
-      const url = `${domain}/api/blog-posts/${postId}?${user?.id ? `userId=${user.id}` : ''}`;
+      const url = `/api/blog-posts/${postId}?${user?.id ? `userId=${user.id}` : ''}`;
       const options: RequestInit = {
         headers: user && accessToken ? {
           'access-token': `Bearer ${accessToken}`
@@ -241,7 +241,7 @@ export default function BlogPost({ params }: PostQueryParams) {
         ...(user?.id && { userId: String(user.id) })
       });
   
-      const url = `${domain}/api/comments?${queryParams.toString()}`;
+      const url = `/api/comments?${queryParams.toString()}`;
       const options: RequestInit = {
         headers: user && accessToken ? {
           'access-token': `Bearer ${accessToken}`

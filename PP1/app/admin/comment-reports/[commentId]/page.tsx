@@ -1,10 +1,10 @@
 import CommentReport from './CommentReport';
 
-const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+// const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export async function generateMetadata({ params }: { params: { commentId: string } }) {
   try {
-    const response = await fetch(`${domain}/api/comments/${params.commentId}`);
+    const response = await fetch(`/api/comments/${params.commentId}`);
     const comment = await response.json();
 
     return {

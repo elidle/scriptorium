@@ -11,7 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 
-const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+// const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 interface CodeTemplate {
   title: string;
@@ -34,7 +34,7 @@ export default function CodeTemplates() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${domain}/api/code-templates/search?page=${page}`, {
+      const response = await fetch(`/api/code-templates/search?page=${page}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

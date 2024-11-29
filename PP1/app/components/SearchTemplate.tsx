@@ -16,7 +16,7 @@ import debounce from 'lodash.debounce';
 import SearchBar from "@/app/components/SearchBar";
 import { CodeTemplate } from "@/app/types";
 
-const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+// const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 interface SearchTemplateProps {
   selectedTemplates: CodeTemplate[];
@@ -41,7 +41,7 @@ const SearchTemplate = ({
       setTemplateError("");
 
       try {
-        const url = `${domain}/api/code-templates/search?q=${encodeURIComponent(query)}&sortBy=most_relevant`;
+        const url = `/api/code-templates/search?q=${encodeURIComponent(query)}&sortBy=most_relevant`;
         const options: RequestInit = {};
 
         const response = await fetch(url, options);
@@ -67,7 +67,7 @@ const SearchTemplate = ({
     setTemplateError("");
 
     try {
-      const url = `${domain}/api/code-templates/search?q=&sortBy=most_relevant`;
+      const url = `/api/code-templates/search?q=&sortBy=most_relevant`;
       const options: RequestInit = {};
 
       const response = await fetch(url, options);

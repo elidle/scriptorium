@@ -25,7 +25,7 @@ import InputModal from "@/app/components/InputModal";
 import { Post } from "../../types/post";
 import { Tag } from "@/app/types";
 import TagsContainer from "@/app/components/TagsContainer";
-const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+// const domain = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export default function BlogPosts() {
   const router = useRouter();
@@ -119,7 +119,7 @@ export default function BlogPosts() {
     });
 
     try {
-      const url = `${domain}/api/blog-posts/search?${queryParams.toString()}`;
+      const url = `/api/blog-posts/search?${queryParams.toString()}`;
       const options: RequestInit = {
         headers: user && accessToken ? {
           'access-token': `Bearer ${accessToken}`
@@ -169,7 +169,7 @@ export default function BlogPosts() {
 
   const refreshTags = async () => {
     try {
-      const response = await fetch(`${domain}/api/tags/search/?q=`, {
+      const response = await fetch(`/api/tags/search/?q=`, {
         headers: {
           "Content-Type": "application/json",
         },

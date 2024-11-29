@@ -31,7 +31,7 @@ import {useTheme} from "@/app/contexts/ThemeContext";
 import {AppRouterInstance} from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 const API_SERVICE = {
-  domain: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
+  // domain: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
 
   async fetchCodeTemplates(params: SearchParams,
                            accessToken: string | null = null,
@@ -39,7 +39,7 @@ const API_SERVICE = {
                            setAccessToken: ((token: string | null) => void ) | null = null,
                            router: AppRouterInstance | null = null) {
     const tagsQuery = params.tags.length ? `&tags=${params.tags.join('&tags=')}` : '';
-    const url = `${this.domain}/api/code-templates/search?q=${params.query || ''}&sortBy=${params.sortBy || 'new'}&username=${params.username || ''}&page=${params.page}${tagsQuery}`;
+    const url = `/api/code-templates/search?q=${params.query || ''}&sortBy=${params.sortBy || 'new'}&username=${params.username || ''}&page=${params.page}${tagsQuery}`;
 
     if (user && setAccessToken) {
       // Authenticated request
@@ -69,7 +69,7 @@ const API_SERVICE = {
 
   async fetchTags(query: string = '') {
     const response = await fetch(
-      `${this.domain}/api/tags/search/?q=${query}`,
+      `/api/tags/search/?q=${query}`,
       {
         headers: { 'Content-Type': 'application/json' },
       }
