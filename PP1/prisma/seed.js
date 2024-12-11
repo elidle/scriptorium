@@ -1,5 +1,5 @@
-import { PrismaClient, User, Tag, CodeTemplate, BlogPost } from '@prisma/client';
-import { hashPassword } from '../utils/auth';
+import { PrismaClient } from '@prisma/client';
+import { hashPassword } from '../utils/auth.js';
 
 const prisma = new PrismaClient();
 
