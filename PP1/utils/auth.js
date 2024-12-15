@@ -1,11 +1,13 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-const BCRYPT_SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS);
-const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
-const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY;
-const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
-const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY;
+const BCRYPT_SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || '10');
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || '';
+const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || '1h';
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || '';
+const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || '7d';
+
+// import { TokenVerification, TokenPayload } from "@/app/types/auth";
 
 export async function hashPassword(password) {
   return await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
@@ -31,14 +33,14 @@ export function verifyAccessToken(token) {
   if (!token?.startsWith("Bearer ")) {
     return null;
   }
-  
+
   token = token.split(" ")[1];
 
   try {
     const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET);
     return { valid: true, decoded };
   } catch (err) {
-    if (err.name === 'TokenExpiredError') {
+    if (err instanceof jwt.TokenExpiredError) {
       return { valid: false, reason: "Token has expired." };
     }
     return { valid: false, reason: "Invalid token." };
@@ -54,10 +56,9 @@ export function verifyRefreshToken(token) {
     const decoded = jwt.verify(token, REFRESH_TOKEN_SECRET);
     return { valid: true, decoded };
   } catch (err) {
-    if (err.name === 'TokenExpiredError') {
+    if (err instanceof jwt.TokenExpiredError) {
       return { valid: false, reason: "Token has expired." };
     }
     return { valid: false, reason: "Invalid token." };
   }
 }
-

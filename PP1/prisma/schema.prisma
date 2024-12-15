@@ -5,25 +5,26 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["strictUndefinedChecks"]
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = "file:/app/prisma/dev.db"
 }
 
 model User {
   id              Int             @id @default(autoincrement())
-  firstname            String
-  lastname             String
+  firstname       String
+  lastname        String
   username        String           @unique
   hashedPassword  String
   avatar          String?
   role            String           @default("user") // "user" or "admin"
   phoneNumber     String
   email           String           @unique
+  about           String?
   posts           BlogPost[]       @relation("author")
   comments        Comment[]        @relation("author")
   postRatings     PostRating[]
