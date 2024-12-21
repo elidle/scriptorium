@@ -14,4 +14,4 @@ docker-compose up --build
 
 ## Visiting the deployed app
 
-Other than running the code locally, you can visit our deployed app on `scriptorium.fun`.
+Other than running the code locally, you can visit our deployed app on `scriptorium.fun`. Note that since we are using the free plan on AWS, we cannot always keep the the app deployed.
